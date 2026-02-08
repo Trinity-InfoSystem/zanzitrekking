@@ -38,7 +38,6 @@ jobs:
             --exclude='node_modules' \
             --exclude='.git' \
             --exclude='*.log' \
-            --exclude='.env*' \
             .
 
       - name: Deploy to cPanel via FTP
@@ -53,10 +52,13 @@ jobs:
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/.env*
             **/*.log
             **/dist
             **/.DS_Store
+            **/public/**
+            **/public/uploads/**
+            **/public/pdfs/**
+            **/public/newsletter/**
 
       - name: SSH Deploy (Alternative - if SSH is available)
         if: ${{ secrets.CPANEL_SSH_HOST != '' }}
