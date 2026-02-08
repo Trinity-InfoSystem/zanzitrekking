@@ -56,7 +56,6 @@ jobs:
           fi
 
       - name: Deploy to cPanel via FTP
-        if: ${{ secrets.CPANEL_FTP_HOST != '' && secrets.CPANEL_FTP_USERNAME != '' && secrets.CPANEL_FTP_PASSWORD != '' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.CPANEL_FTP_HOST }}
@@ -77,7 +76,7 @@ jobs:
             **/public/newsletter/**
 
       - name: SSH Deploy (Alternative - if SSH is available)
-        if: ${{ secrets.CPANEL_SSH_HOST != '' }}
+        if: ${{ secrets.CPANEL_SSH_HOST }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.CPANEL_SSH_HOST }}
