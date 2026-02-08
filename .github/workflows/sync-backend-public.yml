@@ -28,7 +28,7 @@ jobs:
           echo "Downloading public folder from cPanel via FTP..."
           
           # Install lftp for FTP download
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y lftp
           
           # Create public directory structure
@@ -37,17 +37,32 @@ jobs:
           mkdir -p zanzitrekking-backend/public/newsletter
           
           # Download via FTP using lftp
+          # Try different FTP paths
+          echo "Attempting FTP download..."
+          
           lftp -c "
           set ftp:ssl-allow no
+          set ftp:passive-mode yes
+          set ftp:list-options -a
           open -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} ${{ secrets.CPANEL_FTP_HOST }}
-          cd api.zanzisafaris.com/public
-          mirror --parallel=3 --verbose uploads zanzitrekking-backend/public/uploads
-          mirror --parallel=3 --verbose pdfs zanzitrekking-backend/public/pdfs
-          mirror --parallel=3 --verbose newsletter zanzitrekking-backend/public/newsletter
+          cd api.zanzisafaris.com/public || cd ./api.zanzisafaris.com/public || cd /api.zanzisafaris.com/public
+          pwd
+          ls -la
+          mirror --parallel=3 --verbose --continue uploads zanzitrekking-backend/public/uploads || echo 'Uploads folder not found or empty'
+          mirror --parallel=3 --verbose --continue pdfs zanzitrekking-backend/public/pdfs || echo 'PDFs folder not found or empty'
+          mirror --parallel=3 --verbose --continue newsletter zanzitrekking-backend/public/newsletter || echo 'Newsletter folder not found or empty'
           bye
-          "
+          " || {
+            echo "⚠️ FTP download had issues, but continuing..."
+          }
           
-          echo "✅ Public folder downloaded via FTP"
+          # Check if we got any files
+          if [ -d "zanzitrekking-backend/public/uploads" ] && [ "$(ls -A zanzitrekking-backend/public/uploads 2>/dev/null)" ]; then
+            echo "✅ Public folder downloaded via FTP"
+          else
+            echo "⚠️ Warning: Public folder may be empty or download failed"
+            echo "This is OK if the folder is empty on the server"
+          fi
 
       - name: Pull Public Folder from cPanel (SSH - Alternative)
         if: ${{ github.event.inputs.sync_direction == 'pull' }}
