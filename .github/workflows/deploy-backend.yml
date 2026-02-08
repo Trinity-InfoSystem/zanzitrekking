@@ -40,7 +40,23 @@ jobs:
             --exclude='*.log' \
             .
 
+      - name: Check FTP Secrets
+        run: |
+          if [ -z "${{ secrets.CPANEL_FTP_HOST }}" ] || [ -z "${{ secrets.CPANEL_FTP_USERNAME }}" ] || [ -z "${{ secrets.CPANEL_FTP_PASSWORD }}" ]; then
+            echo "❌ ERROR: FTP secrets are missing!"
+            echo "Please configure these secrets in GitHub:"
+            echo "  - CPANEL_FTP_HOST"
+            echo "  - CPANEL_FTP_USERNAME"
+            echo "  - CPANEL_FTP_PASSWORD"
+            echo ""
+            echo "Go to: Settings → Secrets and variables → Actions"
+            exit 1
+          else
+            echo "✅ FTP secrets are configured"
+          fi
+
       - name: Deploy to cPanel via FTP
+        if: ${{ secrets.CPANEL_FTP_HOST != '' && secrets.CPANEL_FTP_USERNAME != '' && secrets.CPANEL_FTP_PASSWORD != '' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.CPANEL_FTP_HOST }}
