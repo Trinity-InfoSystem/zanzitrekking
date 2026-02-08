@@ -45,6 +45,12 @@ jobs:
         run: |
           if [ -z "${{ secrets.CPANEL_FTP_HOST }}" ] || [ -z "${{ secrets.CPANEL_FTP_USERNAME }}" ] || [ -z "${{ secrets.CPANEL_FTP_PASSWORD }}" ]; then
             echo "❌ ERROR: FTP secrets are missing!"
+            echo "Please configure these secrets in GitHub:"
+            echo "  - CPANEL_FTP_HOST"
+            echo "  - CPANEL_FTP_USERNAME"
+            echo "  - CPANEL_FTP_PASSWORD"
+            echo ""
+            echo "Go to: Settings → Secrets and variables → Actions"
             exit 1
           else
             echo "✅ FTP secrets are configured"
@@ -58,22 +64,12 @@ jobs:
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
           local-dir: ./zanzitrekking-frontend/dist/
           server-dir: ./booking.zanzisafaris.com/
+          dry-run: false
           dangerous-clean-slate: true
           exclude: |
             **/.git*
             **/.git*/**
             **/.DS_Store
-
-      - name: SSH Deploy (Alternative - if SSH is available)
-        continue-on-error: true
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_SSH_HOST }}
-          username: ${{ secrets.CPANEL_SSH_USERNAME }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
-          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
-          source: "./zanzitrekking-frontend/dist/*"
-          target: "/home/safariszanzico/booking.zanzisafaris.com/"
 
       - name: Deployment Notification
         if: success()
