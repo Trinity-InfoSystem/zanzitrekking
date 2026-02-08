@@ -24,21 +24,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: zanzitrekking-backend/package-lock.json
 
-      - name: Install dependencies
-        working-directory: ./zanzitrekking-backend
-        run: npm ci --production
-
-      - name: Create deployment package
+      - name: Prepare files for deployment
         working-directory: ./zanzitrekking-backend
         run: |
-          # Remove node_modules to reduce size (will be reinstalled on server)
+          # Remove node_modules to reduce size (dependencies installed manually on server)
           rm -rf node_modules
-          # Create a tar archive excluding unnecessary files
-          tar -czf ../backend-deploy.tar.gz \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='*.log' \
-            .
+          echo "✅ Files prepared for deployment"
 
       - name: Check FTP Secrets
         run: |
@@ -75,20 +66,6 @@ jobs:
             **/public/uploads/**
             **/public/pdfs/**
             **/public/newsletter/**
-
-      - name: SSH Deploy (Alternative - if SSH is available)
-        continue-on-error: true
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.CPANEL_SSH_HOST }}
-          username: ${{ secrets.CPANEL_SSH_USERNAME }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
-          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
-          script: |
-            cd /home/safariszanzico/api.zanzisafaris.com
-            npm install --production
-            # Restart Passenger if needed
-            touch tmp/restart.txt || true
 
       - name: Deployment Notification
         if: success()
