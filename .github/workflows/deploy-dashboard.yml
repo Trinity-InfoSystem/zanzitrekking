@@ -32,6 +32,24 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://api.zanzisafaris.com' }}
         run: npm run build
 
+      - name: Verify build output
+        working-directory: ./zanzitrekking-dashboard
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ ERROR: dist folder not found after build!"
+            exit 1
+          fi
+          echo "✅ Build output verified: $(ls -la dist | head -10)"
+
+      - name: Check FTP Secrets
+        run: |
+          if [ -z "${{ secrets.CPANEL_FTP_HOST }}" ] || [ -z "${{ secrets.CPANEL_FTP_USERNAME }}" ] || [ -z "${{ secrets.CPANEL_FTP_PASSWORD }}" ]; then
+            echo "❌ ERROR: FTP secrets are missing!"
+            exit 1
+          else
+            echo "✅ FTP secrets are configured"
+          fi
+
       - name: Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -39,7 +57,7 @@ jobs:
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
           local-dir: ./zanzitrekking-dashboard/dist/
-          server-dir: ./admin.zanzisafaris.com/
+          server-dir: /admin.zanzisafaris.com/
           dangerous-clean-slate: true
           exclude: |
             **/.git*
