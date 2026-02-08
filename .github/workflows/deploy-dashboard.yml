@@ -57,7 +57,7 @@ jobs:
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
           local-dir: ./zanzitrekking-dashboard/dist/
-          server-dir: /admin.zanzisafaris.com/
+          server-dir: ./admin.zanzisafaris.com/
           dangerous-clean-slate: true
           exclude: |
             **/.git*
