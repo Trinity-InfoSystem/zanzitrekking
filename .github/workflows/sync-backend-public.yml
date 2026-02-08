@@ -27,9 +27,9 @@ jobs:
         continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.CPANEL_SSH_HOST }}
-          username: ${{ secrets.CPANEL_SSH_USERNAME }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
+          host: ${{ secrets.CPANEL_SSH_HOST || 'not-configured' }}
+          username: ${{ secrets.CPANEL_SSH_USERNAME || 'not-configured' }}
+          key: ${{ secrets.CPANEL_SSH_KEY || 'not-configured' }}
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           source: "/home/safariszanzico/api.zanzisafaris.com/public/*"
           target: "./zanzitrekking-backend/"
@@ -78,7 +78,8 @@ jobs:
             **/.gitkeep
 
       - name: Push Public Folder to cPanel (SSH)
-        if: ${{ github.event.inputs.sync_direction == 'push' && secrets.CPANEL_SSH_HOST != '' }}
+        if: ${{ github.event.inputs.sync_direction == 'push' }}
+        continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.CPANEL_SSH_HOST }}
