@@ -22,7 +22,34 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull Public Folder from cPanel (SSH)
+      - name: Pull Public Folder from cPanel via FTP
+        if: ${{ github.event.inputs.sync_direction == 'pull' }}
+        run: |
+          echo "Downloading public folder from cPanel via FTP..."
+          
+          # Install lftp for FTP download
+          sudo apt-get update
+          sudo apt-get install -y lftp
+          
+          # Create public directory structure
+          mkdir -p zanzitrekking-backend/public/uploads
+          mkdir -p zanzitrekking-backend/public/pdfs
+          mkdir -p zanzitrekking-backend/public/newsletter
+          
+          # Download via FTP using lftp
+          lftp -c "
+          set ftp:ssl-allow no
+          open -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} ${{ secrets.CPANEL_FTP_HOST }}
+          cd api.zanzisafaris.com/public
+          mirror --parallel=3 --verbose uploads zanzitrekking-backend/public/uploads
+          mirror --parallel=3 --verbose pdfs zanzitrekking-backend/public/pdfs
+          mirror --parallel=3 --verbose newsletter zanzitrekking-backend/public/newsletter
+          bye
+          "
+          
+          echo "✅ Public folder downloaded via FTP"
+
+      - name: Pull Public Folder from cPanel (SSH - Alternative)
         if: ${{ github.event.inputs.sync_direction == 'pull' }}
         continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
@@ -34,24 +61,6 @@ jobs:
           source: "/home/safariszanzico/api.zanzisafaris.com/public/*"
           target: "./zanzitrekking-backend/"
           strip_components: 3
-
-      - name: Check if SSH Pull Succeeded
-        if: ${{ github.event.inputs.sync_direction == 'pull' }}
-        run: |
-          if [ ! -d "zanzitrekking-backend/public/uploads" ]; then
-            echo "⚠️ SSH pull failed or SSH secrets not configured."
-            echo ""
-            echo "To sync manually via FTP:"
-            echo "1. Use FTP client (FileZilla, WinSCP, etc.)"
-            echo "2. Connect to: ${{ secrets.CPANEL_FTP_HOST }}"
-            echo "3. Username: ${{ secrets.CPANEL_FTP_USERNAME }}"
-            echo "4. Download: /api.zanzisafaris.com/public/ to C:\Users\ali\Desktop\Deployment\zanzitrekking-backend\public\"
-            echo "5. Then commit: git add zanzitrekking-backend/public/ && git commit -m 'Sync public folder' && git push"
-            echo ""
-            echo "Or configure SSH secrets for automatic sync."
-          else
-            echo "✅ Public folder downloaded successfully"
-          fi
 
       - name: Commit and Push Changes (Pull Mode)
         if: ${{ github.event.inputs.sync_direction == 'pull' }}
