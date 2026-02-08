@@ -1,0 +1,95 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+build/
+**/build/
+# Allow dist folders for frontend and dashboard deployment
+!zanzitrekking-frontend/dist/
+!zanzitrekking-dashboard/dist/
+
+# Environment variables (exclude from root, but allow in backend for deployment)
+.env
+.env.local
+.env.*.local
+# Allow .env in backend for deployment
+!zanzitrekking-backend/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+.cache/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Deployment files
+*.zip
+*.tar.gz
+dist.zip
+
+# cPanel specific
+.htpasswd
+.cpanel/
+
+# Backend public folder - keep structure but ignore contents
+# We sync this from cPanel, so we don't want to commit local changes
+zanzitrekking-backend/public/uploads/**
+!zanzitrekking-backend/public/uploads/.gitkeep
+zanzitrekking-backend/public/pdfs/**
+!zanzitrekking-backend/public/pdfs/.gitkeep
+zanzitrekking-backend/public/newsletter/**
+!zanzitrekking-backend/public/newsletter/.gitkeep
+
+# Git
+.git/
+.gitignore
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
