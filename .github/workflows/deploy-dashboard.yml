@@ -41,7 +41,7 @@ jobs:
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
           local-dir: ./zanzitrekking-dashboard/dist/
-          server-dir: /admin.zanzisafaris.com/
+          server-dir: ./admin.zanzisafaris.com/
           dangerous-clean-slate: true
           exclude: |
             **/.git*
@@ -49,7 +49,7 @@ jobs:
             **/.DS_Store
 
       - name: SSH Deploy (Alternative - if SSH is available)
-        if: ${{ secrets.CPANEL_SSH_HOST != '' }}
+        continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.CPANEL_SSH_HOST }}
