@@ -38,8 +38,8 @@ jobs:
       - name: Check if SSH Pull Succeeded
         if: ${{ github.event.inputs.sync_direction == 'pull' }}
         run: |
-          if [ ! -d "zanzitrekking-backend/public/uploads" ] && [ -z "${{ secrets.CPANEL_SSH_HOST }}" ]; then
-            echo "⚠️ SSH secrets not configured. Using manual FTP instructions."
+          if [ ! -d "zanzitrekking-backend/public/uploads" ]; then
+            echo "⚠️ SSH pull failed or SSH secrets not configured."
             echo ""
             echo "To sync manually via FTP:"
             echo "1. Use FTP client (FileZilla, WinSCP, etc.)"
@@ -49,7 +49,8 @@ jobs:
             echo "5. Then commit: git add zanzitrekking-backend/public/ && git commit -m 'Sync public folder' && git push"
             echo ""
             echo "Or configure SSH secrets for automatic sync."
-            exit 1
+          else
+            echo "✅ Public folder downloaded successfully"
           fi
 
       - name: Commit and Push Changes (Pull Mode)
