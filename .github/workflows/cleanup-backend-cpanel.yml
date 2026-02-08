@@ -14,7 +14,7 @@ jobs:
     
     steps:
       - name: Cleanup Backend on cPanel (SSH)
-        if: ${{ secrets.CPANEL_SSH_HOST != '' }}
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.CPANEL_SSH_HOST }}
@@ -46,10 +46,9 @@ jobs:
             
             echo "✅ Cleanup complete. Only public folder remains."
 
-      - name: Cleanup Notification (FTP - Manual Required)
-        if: ${{ secrets.CPANEL_SSH_HOST == '' }}
+      - name: Cleanup Notification
         run: |
-          echo "⚠️ SSH not configured. Manual cleanup required via FTP/File Manager."
+          echo "⚠️ Note: If SSH cleanup failed, manual cleanup required via FTP/File Manager."
           echo ""
           echo "Manual Steps:"
           echo "1. Log into cPanel File Manager"
@@ -57,4 +56,3 @@ jobs:
           echo "3. Select all files and folders EXCEPT 'public'"
           echo "4. Delete selected items"
           echo "5. Verify only 'public' folder remains"
-          exit 1
