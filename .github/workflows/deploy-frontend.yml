@@ -24,13 +24,19 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./zanzitrekking-frontend
-        run: npm ci
+        run: |
+          echo "📦 Installing dependencies..."
+          npm ci
+          echo "✅ Dependencies installed"
 
       - name: Build frontend
         working-directory: ./zanzitrekking-frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://api.zanzisafaris.com' }}
-        run: npm run build
+        run: |
+          echo "🔨 Building frontend..."
+          npm run build
+          echo "✅ Build completed"
 
       - name: Verify build output
         working-directory: ./zanzitrekking-frontend
@@ -39,7 +45,11 @@ jobs:
             echo "❌ ERROR: dist folder not found after build!"
             exit 1
           fi
-          echo "✅ Build output verified: $(ls -la dist | head -10)"
+          echo "✅ Build output verified"
+          echo "📁 Contents of dist folder:"
+          ls -la dist | head -20
+          echo ""
+          echo "📊 Total files: $(find dist -type f | wc -l)"
 
       - name: Check FTP Secrets
         run: |
@@ -66,6 +76,7 @@ jobs:
           server-dir: ./booking.zanzisafaris.com/
           dry-run: false
           dangerous-clean-slate: true
+          log-level: verbose
           exclude: |
             **/.git*
             **/.git*/**
