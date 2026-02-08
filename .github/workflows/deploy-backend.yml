@@ -62,7 +62,8 @@ jobs:
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
           local-dir: ./zanzitrekking-backend/
-          server-dir: /api.zanzisafaris.com/
+          server-dir: ./api.zanzisafaris.com/
+          dry-run: false
           exclude: |
             **/.git*
             **/.git*/**
