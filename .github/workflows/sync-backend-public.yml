@@ -23,7 +23,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull Public Folder from cPanel (SSH)
-        if: ${{ github.event.inputs.sync_direction == 'pull' && secrets.CPANEL_SSH_HOST != '' }}
+        if: ${{ github.event.inputs.sync_direction == 'pull' }}
+        continue-on-error: true
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.CPANEL_SSH_HOST }}
@@ -34,15 +35,22 @@ jobs:
           target: "./zanzitrekking-backend/"
           strip_components: 3
 
-      - name: Pull Public Folder from cPanel (FTP - Manual Script)
-        if: ${{ github.event.inputs.sync_direction == 'pull' && secrets.CPANEL_SSH_HOST == '' }}
+      - name: Check if SSH Pull Succeeded
+        if: ${{ github.event.inputs.sync_direction == 'pull' }}
         run: |
-          echo "⚠️ FTP pull requires SSH. Please set up SSH secrets or use manual FTP client."
-          echo "To pull via FTP manually:"
-          echo "1. Use FTP client (FileZilla, WinSCP, etc.)"
-          echo "2. Connect to: ${{ secrets.CPANEL_FTP_HOST }}"
-          echo "3. Download: /api.zanzisafaris.com/public/ to ./zanzitrekking-backend/public/"
-          exit 1
+          if [ ! -d "zanzitrekking-backend/public/uploads" ] && [ -z "${{ secrets.CPANEL_SSH_HOST }}" ]; then
+            echo "⚠️ SSH secrets not configured. Using manual FTP instructions."
+            echo ""
+            echo "To sync manually via FTP:"
+            echo "1. Use FTP client (FileZilla, WinSCP, etc.)"
+            echo "2. Connect to: ${{ secrets.CPANEL_FTP_HOST }}"
+            echo "3. Username: ${{ secrets.CPANEL_FTP_USERNAME }}"
+            echo "4. Download: /api.zanzisafaris.com/public/ to C:\Users\ali\Desktop\Deployment\zanzitrekking-backend\public\"
+            echo "5. Then commit: git add zanzitrekking-backend/public/ && git commit -m 'Sync public folder' && git push"
+            echo ""
+            echo "Or configure SSH secrets for automatic sync."
+            exit 1
+          fi
 
       - name: Commit and Push Changes (Pull Mode)
         if: ${{ github.event.inputs.sync_direction == 'pull' }}
