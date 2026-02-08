@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPAP & TATO Certification - Zanzi Trekking and Safaris</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .certifications-section {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a4d8f 0%, #2d5aa0 100%);
+            padding: 80px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .certifications-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .certifications-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Hero Section with Logos */
+        .hero-logos {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-title {
+            font-size: 3em;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .logos-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .logo-box {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: floatIn 1s ease-out;
+            max-width: 300px;
+        }
+
+        .logo-box:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes floatIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: auto;
+            max-height: 150px;
+            object-fit: contain;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5em;
+            color: white;
+            font-weight: 300;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content Grid */
+        .certifications-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 40px;
+            margin-bottom: 50px;
+        }
+
+        /* Certification Card */
+        .cert-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+            opacity: 0;
+            animation: slideInUp 0.8s ease-out forwards;
+        }
+
+        .cert-card:nth-child(1) { animation-delay: 0.2s; }
+        .cert-card:nth-child(2) { animation-delay: 0.4s; }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cert-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .cert-header {
+            padding: 40px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 4px solid #1a4d8f;
+        }
+
+        .cert-logo {
+            width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        .cert-title {
+            font-size: 2em;
+            font-weight: 800;
+            color: #1a4d8f;
+            margin-bottom: 15px;
+        }
+
+        .cert-body {
+            padding: 40px;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .cert-body p {
+            margin-bottom: 20px;
+            font-size: 1.05em;
+        }
+
+        .cert-body strong {
+            color: #1a4d8f;
+            font-weight: 700;
+        }
+
+        /* Highlight Stats */
+        .highlight-stats {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8555 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin: 25px 0;
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        .highlight-stats strong {
+            color: white;
+            font-size: 1.1em;
+        }
+
+        /* Benefits Section */
+        .benefits-section {
+            background: white;
+            border-radius: 20px;
+            padding: 50px 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 50px;
+        }
+
+        .benefits-title {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: #1a4d8f;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .benefit-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 5px solid #ff6b35;
+            transition: all 0.3s ease;
+        }
+
+        .benefit-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .benefit-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .benefit-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #1a4d8f;
+            margin-bottom: 10px;
+        }
+
+        .benefit-text {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        /* Call to Action */
+        .cta-section {
+            background: linear-gradient(135deg, #1a4d8f 0%, #2d5aa0 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .cta-title {
+            font-size: 2.5em;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-subtitle {
+            font-size: 1.3em;
+            margin-bottom: 35px;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 18px 45px;
+            background: white;
+            color: #1a4d8f;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            background: #f8f9fa;
+        }
+
+        .cta-button.secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .cta-button.secondary:hover {
+            background: white;
+            color: #1a4d8f;
+        }
+
+        /* Trust Indicators */
+        .trust-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .trust-item {
+            text-align: center;
+        }
+
+        .trust-number {
+            font-size: 3em;
+            font-weight: 900;
+            color: #ff6b35;
+            line-height: 1;
+        }
+
+        .trust-label {
+            font-size: 1.1em;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .certifications-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .certifications-section {
+                padding: 50px 15px;
+            }
+
+            .hero-title {
+                font-size: 2em;
+            }
+
+            .logos-container {
+                gap: 30px;
+            }
+
+            .logo-box {
+                padding: 20px 30px;
+                max-width: 200px;
+            }
+
+            .cert-header, .cert-body {
+                padding: 25px;
+            }
+
+            .cert-title {
+                font-size: 1.6em;
+            }
+
+            .benefits-section {
+                padding: 30px 20px;
+            }
+
+            .benefits-title {
+                font-size: 1.8em;
+            }
+
+            .cta-section {
+                padding: 40px 25px;
+            }
+
+            .cta-title {
+                font-size: 1.8em;
+            }
+
+            .cta-button {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .trust-number {
+                font-size: 2.5em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 1.6em;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2em;
+            }
+
+            .cert-body {
+                font-size: 0.95em;
+            }
+
+            .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scroll Animations */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <section class="certifications-section">
+        <div class="certifications-container">
+            
+            <!-- Hero Section -->
+            <div class="hero-logos">
+                <h1 class="hero-title">Certified Excellence in Ethical Tourism</h1>
+                
+                <div class="logos-container">
+                    <div class="logo-box">
+                        <img src="https://zanzisafaris.com/wp-content/uploads/2026/01/kapa-logo.jpeg" alt="KPAP - Kilimanjaro Porters Assistance Project">
+                    </div>
+                    <div class="logo-box">
+                        <img src="https://zanzisafaris.com/wp-content/uploads/2026/01/tato-logo.jpeg" alt="TATO - Tanzania Association of Tour Operators">
+                    </div>
+                </div>
+                
+                <p class="hero-subtitle">
+                    We are proud to be officially recognized by KPAP and registered with TATO — 
+                    your guarantee of ethical, safe, and professionally managed adventures in Tanzania.
+                </p>
+            </div>
+
+            <!-- Certifications Grid -->
+            <div class="certifications-grid">
+                
+                <!-- KPAP Card -->
+                <div class="cert-card">
+                    <div class="cert-header">
+                        <img src="https://zanzisafaris.com/wp-content/uploads/2026/01/kapa-logo.jpeg" alt="KPAP Logo" class="cert-logo">
+                        <h2 class="cert-title">KPAP Partner</h2>
+                    </div>
+                    <div class="cert-body">
+                        <p>
+                            We are proud to be <strong>one of only 66 local Tanzanian operators</strong> 
+                            and <strong>one of just 168 operators worldwide</strong> recognized as an official 
+                            <strong>KPAP (Kilimanjaro Porters Assistance Project) Partner</strong>, out of more 
+                            than <strong>2,100 operators on Kilimanjaro</strong>.
+                        </p>
+
+                        <div class="highlight-stats">
+                            <p><strong>66</strong> local operators | <strong>168</strong> worldwide | Out of <strong>2,100+</strong> total operators</p>
+                        </div>
+
+                        <p>
+                            This status means we commit to <strong>the highest standards for porter welfare</strong>: 
+                            fair wages, proper equipment, weight limits, adequate food and shelter, and transparent 
+                            tipping. These standards are <strong>independently monitored by KPAP</strong> on every climb.
+                        </p>
+
+                        <p>
+                            For our clients, this translates directly into <strong>safer, better-organized, and 
+                            higher-quality climbs</strong>. A well-treated, motivated mountain crew delivers a smoother, 
+                            more reliable, and more enjoyable Kilimanjaro experience.
+                        </p>
+
+                        <p>
+                            By climbing with us, you choose an <strong>ethical, responsible adventure</strong> that 
+                            respects the people behind your success — without compromising on quality, safety, or 
+                            professionalism.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- TATO Card -->
+                <div class="cert-card">
+                    <div class="cert-header">
+                        <img src="https://zanzisafaris.com/wp-content/uploads/2026/01/tato-logo.jpeg" alt="TATO Logo" class="cert-logo">
+                        <h2 class="cert-title">Proud Member of TATO</h2>
+                    </div>
+                    <div class="cert-body">
+                        <p>
+                            We are a registered and active member of <strong>TATO (Tanzania Association of Tour Operators)</strong>, 
+                            the official umbrella organization representing professional tour operators in Tanzania.
+                        </p>
+
+                        <p>
+                            TATO membership is not automatic. It confirms that we operate <strong>legally, transparently, 
+                            and in compliance with national tourism regulations</strong>, including licensing, insurance 
+                            requirements, safety standards, and ethical business practices.
+                        </p>
+
+                        <div class="highlight-stats">
+                            <p><strong>Legal • Transparent • Compliant</strong> with national tourism regulations</p>
+                        </div>
+
+                        <p>
+                            For our guests, this means <strong>reliability, accountability, and professional service</strong> 
+                            from the first inquiry to the end of your journey. For Tanzania, it means supporting 
+                            <strong>responsible tourism that benefits local communities and protects natural heritage</strong>.
+                        </p>
+
+                        <p>
+                            Choosing a TATO member means choosing a <strong>trusted, recognized, and locally rooted operator</strong> 
+                            — not an unregulated middleman.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Benefits Section -->
+            <div class="benefits-section scroll-reveal">
+                <h2 class="benefits-title">What This Means For You</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🏔️</div>
+                        <h3 class="benefit-title">Elite Standards</h3>
+                        <p class="benefit-text">
+                            We're among the top 3% of Kilimanjaro operators meeting KPAP's rigorous ethical standards
+                        </p>
+                    </div>
+                    
+                    <div class="benefit-card">
+                        <div class="benefit-icon">👥</div>
+                        <h3 class="benefit-title">Fair Treatment</h3>
+                        <p class="benefit-text">
+                            Our porters receive fair wages, proper equipment, and dignified working conditions on every climb
+                        </p>
+                    </div>
+                    
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🛡️</div>
+                        <h3 class="benefit-title">Safety First</h3>
+                        <p class="benefit-text">
+                            TATO membership ensures we meet all licensing, insurance, and safety requirements
+                        </p>
+                    </div>
+                    
+                    <div class="benefit-card">
+                        <div class="benefit-icon">✨</div>
+                        <h3 class="benefit-title">Quality Experience</h3>
+                        <p class="benefit-text">
+                            Well-treated crews deliver smoother, more reliable, and more enjoyable expeditions
+                        </p>
+                    </div>
+                    
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🌍</div>
+                        <h3 class="benefit-title">Responsible Tourism</h3>
+                        <p class="benefit-text">
+                            Your adventure supports local communities and protects Tanzania's natural heritage
+                        </p>
+                    </div>
+                    
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🔒</div>
+                        <h3 class="benefit-title">Trust & Accountability</h3>
+                        <p class="benefit-text">
+                            Legally registered, transparent operations with full compliance and professional service
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="cta-section scroll-reveal">
+                <h2 class="cta-title">Travel With Purpose. Choose Responsibly.</h2>
+                <p class="cta-subtitle">
+                    Join hundreds of adventurers who have chosen ethical tourism without compromising on quality, 
+                    safety, or professionalism. Book your Kilimanjaro adventure with a certified, trusted operator.
+                </p>
+                
+                <div class="trust-indicators">
+                    <div class="trust-item">
+                        <div class="trust-number">66</div>
+                        <div class="trust-label">Local KPAP Partners</div>
+                    </div>
+                    <div class="trust-item">
+                        <div class="trust-number">168</div>
+                        <div class="trust-label">Global KPAP Partners</div>
+                    </div>
+                    <div class="trust-item">
+                        <div class="trust-number">2,100+</div>
+                        <div class="trust-label">Total Operators</div>
+                    </div>
+                </div>
+                
+                <div class="cta-buttons">
+                    <a href="/contact" class="cta-button">Book Your Adventure</a>
+                    <a href="https://tatotz.org/why-tourists-choose-to-book-with-tato-members/" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="cta-button secondary">Learn More About TATO</a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        // Scroll reveal animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = document.querySelectorAll('.scroll-reveal');
+            elements.forEach(el => observer.observe(el));
+
+            // Number counter animation
+            const animateCounter = (element, target) => {
+                let current = 0;
+                const increment = target / 50;
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        element.textContent = target.toLocaleString();
+                        clearInterval(timer);
+                    } else {
+                        element.textContent = Math.floor(current).toLocaleString();
+                    }
+                }, 30);
+            };
+
+            // Animate numbers when visible
+            const numberObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const numbers = entry.target.querySelectorAll('.trust-number');
+                        numbers.forEach(num => {
+                            const target = parseInt(num.textContent.replace(/,/g, ''));
+                            animateCounter(num, target);
+                        });
+                        numberObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            const ctaSection = document.querySelector('.cta-section');
+            if (ctaSection) numberObserver.observe(ctaSection);
+        });
+    </script>
+</body>
+</html>

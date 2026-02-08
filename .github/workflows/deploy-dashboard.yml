@@ -1,0 +1,65 @@
+name: Deploy Dashboard to cPanel
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'zanzitrekking-dashboard/**'
+      - '.github/workflows/deploy-dashboard.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: zanzitrekking-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./zanzitrekking-dashboard
+        run: npm ci
+
+      - name: Build dashboard
+        working-directory: ./zanzitrekking-dashboard
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://api.zanzisafaris.com' }}
+        run: npm run build
+
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./zanzitrekking-dashboard/dist/
+          server-dir: /admin.zanzisafaris.com/
+          dangerous-clean-slate: true
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.DS_Store
+
+      - name: SSH Deploy (Alternative - if SSH is available)
+        if: ${{ secrets.CPANEL_SSH_HOST != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USERNAME }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          source: "./zanzitrekking-dashboard/dist/*"
+          target: "/home/safariszanzico/admin.zanzisafaris.com/"
+
+      - name: Deployment Notification
+        if: success()
+        run: |
+          echo "✅ Dashboard deployed successfully to cPanel"

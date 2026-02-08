@@ -1,0 +1,13 @@
+# Passenger configuration for Node.js application
+PassengerEnabled on
+PassengerAppType node
+PassengerStartupFile server.js
+
+# Passenger automatically passes X-Forwarded-Proto, X-Forwarded-For, and X-Forwarded-Host headers
+# The Express app.set('trust proxy', true) in server.js will use these headers correctly
+
+# Optional: Set environment variables if needed
+# PassengerAppEnv production
+
+# Optional: Restart app on file changes (disable in production for better performance)
+# PassengerFriendlyErrorPages on

@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+build
+*.local
+
+# Generated files
+*.min.js
+coverage
+
+# Config files
+.eslintrc.cjs
+vite.config.js
+tailwind.config.js
+postcss.config.js
+
+# Public assets
+public
+
+# Logs
+*.log

@@ -1,0 +1,2821 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "createdAt": "2025-10-15",
+    "description": "Zanzi Trekking and Safaris - Complete Company Dataset",
+    "lastUpdated": "2025-10-15",
+    "dataTypes": [
+      "Company Information",
+      "Terms and Conditions",
+      "Mountain Climbing Prices",
+      "Safari Prices",
+      "Package Categories and Inclusions",
+      "Seasonal Pricing",
+      "Accommodation Examples (Hotels, Lodges, Tents)"
+    ],
+    "totalMountainRoutes": 8,
+    "totalSafariTrips": 4,
+    "packageCategories": 3,
+    "accommodationTypes": {
+      "hotels": 3,
+      "lodges": 6,
+      "tentCategories": 3
+    },
+    "currency": "USD"
+  },
+  "company": {
+    "name": "Zanzi Trekking and Safaris Limited",
+    "registrationNumber": "139397851",
+    "address": {
+      "poBox": "P.O. Box 1229",
+      "city": "Arusha",
+      "country": "Tanzania"
+    },
+    "contact": {
+      "phone": "+255 752 777 701",
+      "email": "info@zanzisafaris.com",
+      "website": "https://zanzisafaris.com"
+    },
+    "banking": {
+      "usd": {
+        "accountHolder": "Zanzi Trekking and Safaris Limited",
+        "bankName": "CRDB Bank PLC",
+        "bankAddress": "P.O. Box 3132 Arusha",
+        "accountNumber": "0250476855400",
+        "swiftCode": ["CORUTZTZ", "CORUTZTZXXX"]
+      },
+      "tzs": {
+        "accountHolder": "Zanzi Trekking and Safaris Limited",
+        "bankName": "CRDB Bank PLC",
+        "bankAddress": "P.O. Box 3132 Arusha",
+        "accountNumber": "0150476855400",
+        "swiftCode": ["CORUTZTZ", "CORUTZTZXXX"]
+      }
+    },
+    "services": [
+      "Kilimanjaro climbing expeditions",
+      "Wildlife safaris",
+      "Mount Meru climbing"
+    ],
+    "licenses": [
+      "Licensed to organize Kilimanjaro climbing expeditions",
+      "Licensed to run wildlife safaris in Tanzania"
+    ]
+  },
+  "pricingCategories": {
+    "note": "All prices in USD ($) and don't include staff tips (voluntary basis)",
+    "categories": ["Budget", "Mid-Range", "Luxury"]
+  },
+  "seasons": {
+    "highSeason": {
+      "periods": [
+        {
+          "from": "June",
+          "to": "October"
+        },
+        {
+          "from": "December",
+          "to": "March"
+        }
+      ]
+    },
+    "lowSeason": {
+      "months": ["April", "May", "November"]
+    }
+  },
+  "safariParks": {
+    "available": ["Tarangire", "Manyara", "Ngorongoro", "Serengeti"],
+    "tripStructure": {
+      "2days": {
+        "options": [
+          {
+            "option": 1,
+            "parks": ["Ngorongoro/Crater", "Manyara or Tarangire"]
+          },
+          {
+            "option": 2,
+            "parks": ["Manyara", "Tarangire"],
+            "note": "Cheaper prices"
+          }
+        ]
+      },
+      "3days": {
+        "parks": ["Tarangire", "Manyara", "Ngorongoro including Crater"],
+        "note": "Only 3 parks can be visited due to limited time"
+      },
+      "4daysPlus": {
+        "parks": ["Tarangire", "Manyara", "Ngorongoro", "Serengeti"],
+        "note": "All 4 parks including Serengeti park"
+      }
+    },
+    "personalization": "Personalized plans available for more/other wishes (more days in a park, more/less parks, 1 day trips, etc.)"
+  },
+  "safariPrices": [
+    {
+      "trip": "1 Day Manyara or Tarangire",
+      "duration": {
+        "days": 1,
+        "nights": 0
+      },
+      "notes": "Without accommodation and without Airport Transport",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 210,
+            "highSeason": 260
+          },
+          "midRange": {
+            "lowSeason": 574,
+            "highSeason": 674
+          },
+          "luxury": {
+            "lowSeason": 924,
+            "highSeason": 1074
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 185,
+            "highSeason": 205
+          },
+          "midRange": {
+            "lowSeason": 374,
+            "highSeason": 474
+          },
+          "luxury": {
+            "lowSeason": 674,
+            "highSeason": 824
+          }
+        }
+      ]
+    },
+    {
+      "trip": "1 Day Ngorongoro/Crater",
+      "duration": {
+        "days": 1,
+        "nights": 0
+      },
+      "notes": "Without accommodation and without Airport Transport",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 250,
+            "highSeason": 300
+          },
+          "midRange": {
+            "lowSeason": 788,
+            "highSeason": 888
+          },
+          "luxury": {
+            "lowSeason": 1088,
+            "highSeason": 1288
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 215,
+            "highSeason": 255
+          },
+          "midRange": {
+            "lowSeason": 490,
+            "highSeason": 590
+          },
+          "luxury": {
+            "lowSeason": 740,
+            "highSeason": 990
+          }
+        }
+      ]
+    },
+    {
+      "trip": "2 Days / 1 Night - Manyara and Tarangire",
+      "duration": {
+        "days": 2,
+        "nights": 1
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 365,
+            "highSeason": 465
+          },
+          "midRange": {
+            "lowSeason": 1004,
+            "highSeason": 1127
+          },
+          "luxury": {
+            "lowSeason": 1516,
+            "highSeason": 1767
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 350,
+            "highSeason": 400
+          },
+          "midRange": {
+            "lowSeason": 799,
+            "highSeason": 869
+          },
+          "luxury": {
+            "lowSeason": 1104,
+            "highSeason": 1287
+          }
+        }
+      ]
+    },
+    {
+      "trip": "2 Days / 1 Night - Ngorongoro/Crater and Manyara or Tarangire",
+      "duration": {
+        "days": 2,
+        "nights": 1
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 465,
+            "highSeason": 545
+          },
+          "midRange": {
+            "lowSeason": 1347,
+            "highSeason": 1470
+          },
+          "luxury": {
+            "lowSeason": 1859,
+            "highSeason": 2010
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 430,
+            "highSeason": 480
+          },
+          "midRange": {
+            "lowSeason": 1014,
+            "highSeason": 1164
+          },
+          "luxury": {
+            "lowSeason": 1199,
+            "highSeason": 1443
+          }
+        }
+      ]
+    }
+  ],
+  "longerSafariPrices": [
+    {
+      "trip": "Lodge Safari - 3 parks minimum",
+      "duration": {
+        "days": 3,
+        "nights": 2
+      },
+      "note": "Including at least 3 parks",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 720,
+            "highSeason": 730
+          },
+          "midRange": {
+            "lowSeason": 1916,
+            "highSeason": 2062
+          },
+          "luxury": {
+            "lowSeason": 2240,
+            "highSeason": 2542
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 620,
+            "highSeason": 625
+          },
+          "midRange": {
+            "lowSeason": 1408,
+            "highSeason": 1548
+          },
+          "luxury": {
+            "lowSeason": 1718,
+            "highSeason": 1834
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Lodge Safari - 3 parks minimum",
+      "duration": {
+        "days": 4,
+        "nights": 3
+      },
+      "note": "Including at least 3 parks",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1010,
+            "highSeason": 1080
+          },
+          "midRange": {
+            "lowSeason": 2502,
+            "highSeason": 2823
+          },
+          "luxury": {
+            "lowSeason": 2991,
+            "highSeason": 3317
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 855,
+            "highSeason": 900
+          },
+          "midRange": {
+            "lowSeason": 2044,
+            "highSeason": 2284
+          },
+          "luxury": {
+            "lowSeason": 2381,
+            "highSeason": 2601
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Lodge Safari - 3 parks minimum",
+      "duration": {
+        "days": 5,
+        "nights": 4
+      },
+      "note": "Including at least 3 parks",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1215,
+            "highSeason": 1265
+          },
+          "midRange": {
+            "lowSeason": 3105,
+            "highSeason": 3501
+          },
+          "luxury": {
+            "lowSeason": 3559,
+            "highSeason": 3909
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 1095,
+            "highSeason": 1120
+          },
+          "midRange": {
+            "lowSeason": 2598,
+            "highSeason": 2988
+          },
+          "luxury": {
+            "lowSeason": 3014,
+            "highSeason": 3304
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Lodge Safari - 3 parks minimum",
+      "duration": {
+        "days": 6,
+        "nights": 5
+      },
+      "note": "Including at least 3 parks",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1678,
+            "highSeason": 1728
+          },
+          "midRange": {
+            "lowSeason": 3564,
+            "highSeason": 3983
+          },
+          "luxury": {
+            "lowSeason": 4530,
+            "highSeason": 5031
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 1558,
+            "highSeason": 1598
+          },
+          "midRange": {
+            "lowSeason": 2822,
+            "highSeason": 3361
+          },
+          "luxury": {
+            "lowSeason": 3474,
+            "highSeason": 4013
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Lodge Safari - 3 parks minimum",
+      "duration": {
+        "days": 7,
+        "nights": 6
+      },
+      "note": "Including at least 3 parks",
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1933,
+            "highSeason": 1983
+          },
+          "midRange": {
+            "lowSeason": 4167,
+            "highSeason": 4661
+          },
+          "luxury": {
+            "lowSeason": 4898,
+            "highSeason": 5323
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 1823,
+            "highSeason": 1873
+          },
+          "midRange": {
+            "lowSeason": 3605,
+            "highSeason": 4039
+          },
+          "luxury": {
+            "lowSeason": 4207,
+            "highSeason": 4666
+          }
+        }
+      ]
+    }
+  ],
+  "campingSafariPrices": [
+    {
+      "trip": "Camping Safari - Manyara and Tarangire",
+      "duration": {
+        "days": 2,
+        "nights": 1
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 480,
+            "highSeason": 640
+          },
+          "comfort": {
+            "lowSeason": 1297,
+            "highSeason": 1417
+          },
+          "luxury": {
+            "lowSeason": 1597,
+            "highSeason": 1817
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 390,
+            "highSeason": 465
+          },
+          "comfort": {
+            "lowSeason": 983,
+            "highSeason": 1103
+          },
+          "luxury": {
+            "lowSeason": 1219,
+            "highSeason": 1403
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Camping Safari - Ngorongoro/Crater and Manyara or Tarangire",
+      "duration": {
+        "days": 2,
+        "nights": 1
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 540,
+            "highSeason": 690
+          },
+          "comfort": {
+            "lowSeason": 1476,
+            "highSeason": 1646
+          },
+          "luxury": {
+            "lowSeason": 1846,
+            "highSeason": 2246
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 435,
+            "highSeason": 485
+          },
+          "comfort": {
+            "lowSeason": 1048,
+            "highSeason": 1258
+          },
+          "luxury": {
+            "lowSeason": 1398,
+            "highSeason": 1658
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Camping Safari",
+      "duration": {
+        "days": 3,
+        "nights": 2
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 730,
+            "highSeason": 980
+          },
+          "comfort": {
+            "lowSeason": 2069,
+            "highSeason": 2299
+          },
+          "luxury": {
+            "lowSeason": 2399,
+            "highSeason": 2619
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 680,
+            "highSeason": 780
+          },
+          "comfort": {
+            "lowSeason": 1651,
+            "highSeason": 1816
+          },
+          "luxury": {
+            "lowSeason": 2001,
+            "highSeason": 2216
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Camping Safari",
+      "duration": {
+        "days": 4,
+        "nights": 3
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 920,
+            "highSeason": 1120
+          },
+          "comfort": {
+            "lowSeason": 2604,
+            "highSeason": 2804
+          },
+          "luxury": {
+            "lowSeason": 3104,
+            "highSeason": 3304
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 820,
+            "highSeason": 920
+          },
+          "comfort": {
+            "lowSeason": 2086,
+            "highSeason": 2286
+          },
+          "luxury": {
+            "lowSeason": 2686,
+            "highSeason": 2786
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Camping Safari",
+      "duration": {
+        "days": 5,
+        "nights": 4
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1160,
+            "highSeason": 1360
+          },
+          "comfort": {
+            "lowSeason": 2916,
+            "highSeason": 3366
+          },
+          "luxury": {
+            "lowSeason": 3316,
+            "highSeason": 3666
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 960,
+            "highSeason": 1010
+          },
+          "comfort": {
+            "lowSeason": 2469,
+            "highSeason": 2894
+          },
+          "luxury": {
+            "lowSeason": 2869,
+            "highSeason": 3094
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Camping Safari",
+      "duration": {
+        "days": 6,
+        "nights": 5
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1400,
+            "highSeason": 1500
+          },
+          "comfort": {
+            "lowSeason": 3449,
+            "highSeason": 3709
+          },
+          "luxury": {
+            "lowSeason": 3949,
+            "highSeason": 4309
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 1200,
+            "highSeason": 1300
+          },
+          "comfort": {
+            "lowSeason": 2962,
+            "highSeason": 3242
+          },
+          "luxury": {
+            "lowSeason": 3212,
+            "highSeason": 3492
+          }
+        }
+      ]
+    },
+    {
+      "trip": "Camping Safari",
+      "duration": {
+        "days": 7,
+        "nights": 6
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": {
+            "lowSeason": 1540,
+            "highSeason": 1740
+          },
+          "comfort": {
+            "lowSeason": 3224,
+            "highSeason": 3394
+          },
+          "luxury": {
+            "lowSeason": 3782,
+            "highSeason": 4110
+          }
+        },
+        {
+          "numberOfPersons": "2 or more",
+          "budget": {
+            "lowSeason": 1390,
+            "highSeason": 1590
+          },
+          "comfort": {
+            "lowSeason": 2854,
+            "highSeason": 2989
+          },
+          "luxury": {
+            "lowSeason": 3204,
+            "highSeason": 3589
+          }
+        }
+      ]
+    }
+  ],
+
+  "safariPackageInclusions": {
+    "luxury": {
+      "parkFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha or Kilimanjaro",
+        "condition": "Only for trips for 2 days and more",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "safariCar": {
+        "type": "Luxury 4x4 Land Cruiser",
+        "features": ["WiFi", "Fridge", "Open roof"],
+        "shared": false,
+        "note": "Not shared with other people"
+      },
+      "accommodation": {
+        "type": "Luxury Lodge",
+        "timing": "During Safari days"
+      },
+      "softDrinks": {
+        "included": true,
+        "timing": "During game drive"
+      },
+      "meals": {
+        "type": "Luxury meals",
+        "includes": ["Luxury breakfast", "Lunch", "Dinner"]
+      },
+      "activities": ["Safari drive", "Animal Tour"]
+    },
+    "midRange": {
+      "parkFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha or Kilimanjaro",
+        "condition": "Only for trips for 2 days and more",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "safariCar": {
+        "type": "Luxury 4x4 Land Cruiser",
+        "features": ["WiFi", "Fridge", "Open roof"],
+        "shared": false,
+        "note": "Not shared with other people"
+      },
+      "accommodation": {
+        "type": "Mid-Range Lodge",
+        "timing": "During Safari days"
+      },
+      "softDrinks": {
+        "included": true,
+        "timing": "During game drive"
+      },
+      "meals": {
+        "type": "Mid-Range meals",
+        "includes": ["Mid-Range breakfast", "Lunch", "Dinner"]
+      },
+      "activities": ["Safari drive", "Animal Tour"]
+    },
+    "budget": {
+      "parkFees": true,
+      "transportation": {
+        "included": false,
+        "note": "Can be arranged for extra charge"
+      },
+      "safariCar": {
+        "type": "Luxury 4x4 Land Cruiser",
+        "features": ["WiFi", "Fridge", "Open roof"],
+        "shared": true,
+        "note": "Shared with other people"
+      },
+      "accommodation": {
+        "type": "Budget Lodge",
+        "timing": "During Safari days"
+      },
+      "softDrinks": {
+        "included": true,
+        "timing": "During game drive"
+      },
+      "meals": {
+        "type": "Budget meals",
+        "includes": ["Budget breakfast", "Lunch", "Dinner"]
+      },
+      "activities": ["Safari drive", "Animal Tour"]
+    }
+  },
+  "campingSafariPackageInclusions": {
+    "luxury": {
+      "parkFees": true,
+      "campingFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "safariCar": {
+        "type": "Luxury 4x4 Land Cruiser",
+        "features": ["WiFi", "Fridge", "Open roof"],
+        "shared": false,
+        "note": "Not shared with other people"
+      },
+      "camping": {
+        "personalChef": true,
+        "mealsPerDay": 3,
+        "equipment": ["Luxury tents", "Tables", "Chairs", "Mattress", "Bed"]
+      },
+      "softDrinks": {
+        "included": true,
+        "timing": "During game drive"
+      },
+      "meals": {
+        "type": "Full Luxury board",
+        "includes": ["Luxury breakfast", "Lunch", "Dinner"]
+      },
+      "activities": ["Safari drive", "Animal Tour"]
+    },
+    "comfort": {
+      "parkFees": true,
+      "campingFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "safariCar": {
+        "type": "Comfort 4x4 Land Cruiser",
+        "features": ["WiFi", "Fridge", "Open roof"],
+        "shared": false,
+        "note": "Not shared with other people"
+      },
+      "camping": {
+        "personalChef": true,
+        "mealsPerDay": 3,
+        "equipment": ["Comfort tents", "Tables", "Chairs", "Mattress"]
+      },
+      "softDrinks": {
+        "included": true,
+        "timing": "During game drive"
+      },
+      "meals": {
+        "type": "Full Comfort board",
+        "includes": ["Comfort breakfast", "Lunch", "Dinner"]
+      },
+      "activities": ["Safari drive", "Animal Tour"]
+    },
+    "budget": {
+      "parkFees": true,
+      "campingFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "safariCar": {
+        "type": "Standard 4x4 Land Cruiser",
+        "features": ["WiFi", "Fridge", "Open roof"],
+        "shared": true,
+        "note": "Shared with other people"
+      },
+      "camping": {
+        "personalChef": true,
+        "mealsPerDay": 3,
+        "equipment": ["Budget tents", "Tables", "Chairs", "Mattress"]
+      },
+      "softDrinks": {
+        "included": true,
+        "timing": "During game drive"
+      },
+      "meals": {
+        "type": "Full Budget board",
+        "includes": ["Budget breakfast", "Lunch", "Dinner"]
+      },
+      "activities": ["Safari drive", "Animal Tour"]
+    }
+  },
+  "sharedSafariTours": {
+    "description": "A safari experience where travelers from different bookings or tour companies are grouped together in the same vehicle to explore Tanzania's national parks",
+    "purpose": "Budget-friendly and sociable way to experience Tanzania's national parks",
+    "concept": "Travelers split the cost of vehicle, guide, and fuel while following individual itineraries and accommodation bookings",
+
+    "howItWorks": {
+      "vehicleCapacity": {
+        "travelers": "6 to 7 travelers per vehicle",
+        "seating": "Everyone has a window seat with enough space for comfort and viewing"
+      },
+      "grouping": "Travelers grouped with others whose itineraries closely match in terms of park visits and safari dates",
+      "accommodation": "Each client accommodated according to their own itinerary (budget campsite, mid-range lodge, or luxury tented lodge)",
+      "dropOff": "Guests dropped off at their specific hotel or camp",
+      "guide": "Fully guided by professional driver-guide provided by Zanzi Trekking and Safaris or Partner Company",
+      "experience": "All benefits of guided safari experience at a more accessible price"
+    },
+
+    "benefits": [
+      {
+        "benefit": "Cost Savings",
+        "icon": "💰",
+        "description": "Split the cost of transportation and guide services with others. Ideal for solo travelers or couples who want to keep costs down without compromising on experience"
+      },
+      {
+        "benefit": "Social Experience",
+        "icon": "🤝",
+        "description": "Meet fellow travelers from around the world. Exchange stories, share excitement of wildlife sightings, and make new friends during journey"
+      },
+      {
+        "benefit": "Avoid Being Alone",
+        "icon": "👥",
+        "description": "For solo travelers - experience journey with others, making it more fun, engaging, and safe. Likely make new friends and never feel isolated"
+      },
+      {
+        "benefit": "Stay Independent",
+        "icon": "🎯",
+        "description": "Accommodation, meal plan, and travel schedule still based on what you booked - no need to compromise on preferred level of comfort"
+      }
+    ],
+
+    "qualityAssurance": {
+      "coordination": "Carefully coordinated logistics for smooth experience",
+      "itinerary": "Respectful of individual itinerary",
+      "standards": "Same professionalism, safety standards, and local expertise as private safaris",
+      "format": "Shared format with individual service"
+    },
+
+    "importantNotes": [
+      "Well-organized but involve a bit of flexibility with pickup times and coordination",
+      "While sharing vehicle, guests enjoy their own room and lodge based on booking level (budget, mid-range, or luxury)",
+      "Safari activities, meals, and accommodations tailored to individual itinerary",
+      "Don't lose personal experience - just share the ride"
+    ],
+
+    "targetAudience": [
+      "Budget-conscious travelers",
+      "Solo travelers",
+      "Couples wanting to reduce costs",
+      "Social travelers who enjoy meeting new people",
+      "Flexible travelers open to shared experiences"
+    ]
+  },
+  "safariRoutes": {
+    "kenya": {
+      "country": "Kenya",
+      "description": "Experience the legendary Masai Mara and stunning Rift Valley landscapes",
+      "routes": [
+        {
+          "from": "Nairobi",
+          "to": "Masai Mara",
+          "distance": {
+            "min": 230,
+            "max": 250,
+            "unit": "km"
+          },
+          "duration": "5.5 hours",
+          "description": "Distance depends on the Mara Camp/Mara Hotel location. Travel time is 5 hours 30 minutes with bathroom stops. Speed limit is 60-80 km/h for tourist vehicles. Paved roads from Nairobi to Narok; final stretch to park is unpaved and may be slower depending on weather and road surface",
+          "roadCondition": "Paved to Narok, then unpaved"
+        },
+        {
+          "from": "Masai Mara",
+          "to": "Nakuru",
+          "via": "Lake Naivasha",
+          "distance": {
+            "value": 221,
+            "unit": "km"
+          },
+          "duration": "4-4.5 hours",
+          "description": "Combination of paved and murram roads. Travel time may vary based on route choices and regional traffic conditions",
+          "roadCondition": "Mixed - paved and murram"
+        },
+        {
+          "from": "Nakuru",
+          "to": "Nairobi",
+          "distance": {
+            "value": 155,
+            "unit": "km"
+          },
+          "duration": "3-3.5 hours",
+          "description": "Smooth highway with regular traffic flow. Travel time may increase near Nairobi due to urban traffic congestion",
+          "roadCondition": "Highway"
+        },
+        {
+          "from": "Nairobi",
+          "to": "Arusha",
+          "via": "Namanga",
+          "distance": {
+            "value": 275,
+            "unit": "km"
+          },
+          "duration": "4.5 hours",
+          "description": "Fully paved route. Border formalities at Namanga may influence overall travel duration depending on processing times",
+          "roadCondition": "Fully paved",
+          "borderCrossing": true,
+          "borderPoint": "Namanga"
+        }
+      ]
+    },
+    "tanzania": {
+      "country": "Tanzania",
+      "description": "Explore the iconic Serengeti, Ngorongoro Crater, and diverse wildlife parks",
+      "routes": [
+        {
+          "from": "Arusha",
+          "to": "Tarangire",
+          "via": "Mto wa Mbu",
+          "distance": {
+            "value": 120,
+            "unit": "km"
+          },
+          "duration": "2-3 hours",
+          "description": "Paved route with light to moderate traffic. Drive passes through scenic countryside and towns",
+          "roadCondition": "Paved"
+        },
+        {
+          "from": "Mto wa Mbu",
+          "to": "Serengeti",
+          "via": "Ngorongoro",
+          "distance": {
+            "value": 120,
+            "unit": "km"
+          },
+          "duration": "4-5 hours",
+          "description": "Route includes travel through Ngorongoro Conservation Area. Roads vary from paved to gravel, with elevation changes and gate procedures",
+          "roadCondition": "Mixed - paved to gravel"
+        },
+        {
+          "from": "Ngorongoro",
+          "to": "Lake Manyara",
+          "distance": {
+            "value": 120,
+            "unit": "km"
+          },
+          "duration": "2.5 hours",
+          "description": "Paved and well-maintained road via Karatu and Mto wa Mbu, transitioning from highlands to Rift Valley floor",
+          "roadCondition": "Paved and well-maintained"
+        },
+        {
+          "from": "Lake Manyara",
+          "to": "Arusha",
+          "distance": {
+            "value": 114,
+            "unit": "km"
+          },
+          "duration": "2-2.5 hours",
+          "description": "Good tarmac road. Travel times may fluctuate depending on local traffic, especially when approaching Arusha",
+          "roadCondition": "Tarmac"
+        },
+        {
+          "from": "Tarangire",
+          "to": "Serengeti",
+          "via": "Karatu",
+          "distance": {
+            "value": 243,
+            "unit": "km"
+          },
+          "duration": "5-6 hours",
+          "description": "Roads vary from paved highways to gravel tracks through Ngorongoro area. Entry logistics and terrain influence timing",
+          "roadCondition": "Mixed - paved highways to gravel"
+        },
+        {
+          "from": "Arusha",
+          "to": "Serengeti",
+          "distance": {
+            "value": 382,
+            "unit": "km"
+          },
+          "duration": "7-8 hours",
+          "description": "Combination of paved highways and conservation area roads through Ngorongoro. Duration depends on routing and park access schedules",
+          "roadCondition": "Mixed - paved highways and conservation roads"
+        },
+        {
+          "from": "Karatu",
+          "to": "Ngorongoro",
+          "distance": {
+            "value": 16,
+            "unit": "km"
+          },
+          "duration": "18-20 minutes",
+          "description": "Short paved drive with steady elevation gain",
+          "roadCondition": "Paved"
+        },
+        {
+          "from": "Tarangire",
+          "to": "Ngorongoro",
+          "distance": {
+            "value": 145,
+            "unit": "km"
+          },
+          "duration": "3 hours",
+          "description": "Direct drive from Ngorongoro to Tarangire offering scenic views across diverse landscapes",
+          "roadCondition": "Mixed terrain"
+        },
+        {
+          "from": "Ngorongoro",
+          "to": "Arusha",
+          "distance": {
+            "value": 155,
+            "unit": "km"
+          },
+          "duration": "3.5 hours",
+          "description": "Includes crater rim roads and tarmac highways through towns. Travel time may vary depending on road use and stopovers",
+          "roadCondition": "Mixed - crater rim roads and tarmac highways"
+        }
+      ]
+    },
+    "travelNotes": {
+      "title": "Essential Travel Notes",
+      "notes": [
+        {
+          "icon": "⏱️",
+          "category": "Timing",
+          "note": "Drive times are approximate and based on typical road and weather conditions. Allow extra time for unexpected delays"
+        },
+        {
+          "icon": "🌦️",
+          "category": "Variables",
+          "note": "Travel durations may vary with weather, road maintenance, park procedures, border formalities, and local traffic"
+        },
+        {
+          "icon": "🏙️",
+          "category": "Traffic",
+          "note": "Traffic congestion is more likely near major urban centers such as Nairobi and Arusha, especially during peak hours"
+        },
+        {
+          "icon": "🌅",
+          "category": "Recommendation",
+          "note": "Early morning departures are often recommended for smoother travel and optimal park entry timing"
+        }
+      ],
+      "additionalInfo": {
+        "speedLimit": "60-80 km/h for tourist vehicles",
+        "peakHours": "Urban centers like Nairobi and Arusha",
+        "bestDeparture": "Early morning"
+      }
+    }
+  },
+  "accommodationExamples": {
+    "hotels": {
+      "luxury": {
+        "name": "Mount Meru Hotel",
+        "category": "Luxury",
+        "purpose": "Before and after mountain climbing trips"
+      },
+      "midRange": {
+        "name": "Tulia Boutique Hotel",
+        "category": "Mid-Range",
+        "purpose": "Before and after mountain climbing trips"
+      },
+      "budget": {
+        "name": "Merves Hotel",
+        "category": "Budget",
+        "purpose": "Before and after mountain climbing trips"
+      }
+    },
+    "lodges": {
+      "luxury": {
+        "examples": [
+          {
+            "name": "Ngorongoro Farm House",
+            "category": "Luxury",
+            "purpose": "Safari trips accommodation"
+          },
+          {
+            "name": "Ole Serai Luxury Camp",
+            "category": "Luxury",
+            "purpose": "Safari trips accommodation"
+          }
+        ]
+      },
+      "midRange": {
+        "examples": [
+          {
+            "name": "Bougainvillea Safari Lodge in Karatu",
+            "category": "Mid-Range",
+            "purpose": "Safari trips accommodation"
+          },
+          {
+            "name": "Pamoja Serengeti Luxury Camp",
+            "category": "Mid-Range",
+            "purpose": "Safari trips accommodation"
+          }
+        ]
+      },
+      "budget": {
+        "examples": [
+          {
+            "name": "Fanaka Safari Campsites & Lodges",
+            "category": "Budget",
+            "purpose": "Safari trips accommodation"
+          }
+        ]
+      }
+    },
+    "tents": {
+      "luxury": {
+        "category": "Luxury",
+        "purpose": "Mountain climbing",
+        "equipment": [
+          "Tent veranda",
+          "Sink",
+          "Shower",
+          "Oxygen tank",
+          "Private toilet"
+        ],
+        "description": "Equipped to ensure a full luxury feeling during your climb"
+      },
+      "midRange": {
+        "category": "Mid-Range",
+        "purpose": "Mountain climbing",
+        "equipment": ["Private toilet", "Oxygen tank"],
+        "description": "Equipped to ensure a full comfort feeling during your climb"
+      },
+      "budget": {
+        "category": "Budget",
+        "purpose": "Mountain climbing",
+        "equipment": ["Budget tent", "Budget tent table and chair"],
+        "optionalExtras": {
+          "available": ["Sink", "Shower", "Private toilet"],
+          "note": "For a very affordable extra fee, clients can add these to ensure more comfort during the climb"
+        },
+        "description": "Basic camping setup with optional upgrades available"
+      }
+    }
+  },
+  "mountainClimbingPrices": [
+    {
+      "route": "Marangu/Mrangu Routes",
+      "duration": {
+        "days": 5,
+        "nights": 4
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 1484,
+          "midRange": 2143,
+          "luxury": 2558
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 1229,
+          "midRange": 1672,
+          "luxury": 1978
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 1240,
+          "midRange": 1573,
+          "luxury": 1865
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Lemosho/Umbwe/Marangu/Machame/Rongai Routes",
+      "duration": {
+        "days": 6,
+        "nights": 5
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 1604,
+          "midRange": 2309,
+          "luxury": 2501
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 1403,
+          "midRange": 1984,
+          "luxury": 2189
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 1360,
+          "midRange": 1701,
+          "luxury": 2028
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Machame/Rongai/Lemosho Routes",
+      "duration": {
+        "days": 7,
+        "nights": 6
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 1823,
+          "midRange": 2404,
+          "luxury": 2711
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 1649,
+          "midRange": 2044,
+          "luxury": 2331
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 1582,
+          "midRange": 1911,
+          "luxury": 2180
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Lemosho",
+      "duration": {
+        "days": 8,
+        "nights": 7
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 2205,
+          "midRange": 2924,
+          "luxury": 3154
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 2010,
+          "midRange": 2575,
+          "luxury": 2861
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 1892,
+          "midRange": 2475,
+          "luxury": 2688
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Lemosho Northern Circuit",
+      "duration": {
+        "days": 9,
+        "nights": 8
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 2530,
+          "midRange": 3102,
+          "luxury": 3471
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 2360,
+          "midRange": 2886,
+          "luxury": 3106
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 2165,
+          "midRange": 2542,
+          "luxury": 2938
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rate and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Lemosho Plus Crater",
+      "duration": {
+        "days": 10,
+        "nights": 9
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 3305,
+          "midRange": 3859,
+          "luxury": 4087
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 2423,
+          "midRange": 3365,
+          "luxury": 3678
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 2315,
+          "midRange": 3058,
+          "luxury": 3490
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Mount Meru",
+      "duration": {
+        "days": 3,
+        "nights": 2
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 877,
+          "midRange": 1418,
+          "luxury": 1733
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 754,
+          "midRange": 1214,
+          "luxury": 1446
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 650,
+          "midRange": 1095,
+          "luxury": 1276
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    },
+    {
+      "route": "Mount Meru",
+      "duration": {
+        "days": 4,
+        "nights": 3
+      },
+      "pricing": [
+        {
+          "numberOfPersons": "1",
+          "budget": 969,
+          "midRange": 1618,
+          "luxury": 2946
+        },
+        {
+          "numberOfPersons": "2",
+          "budget": 730,
+          "midRange": 1505,
+          "luxury": 1692
+        },
+        {
+          "numberOfPersons": "3-4",
+          "budget": 697,
+          "midRange": 1398,
+          "luxury": 1488
+        },
+        {
+          "numberOfPersons": "More than 4",
+          "note": "Contact us to get the rates and a quote"
+        }
+      ]
+    }
+  ],
+  "kilimanjaroRoutes": {
+    "marangu": {
+      "name": "Marangu Route",
+      "nickname": "Coca-Cola Route",
+      "description": "Mount Kilimanjaro, standing at 5,895 meters (19,341 feet), is Africa's tallest mountain. Unlike many high-altitude peaks, Kilimanjaro doesn't require technical climbing skills—what you need is determination, proper acclimatization, and the right route",
+      "keyFeatures": [
+        "Only route with dormitory-style hut accommodation instead of camping",
+        "No technical climbing required, suitable for first-time trekkers",
+        "Steady elevation gain helps with acclimatization"
+      ],
+      "startingPoint": {
+        "name": "Marangu Gate",
+        "elevation": 1879,
+        "unit": "meters above sea level"
+      },
+      "summit": {
+        "name": "Uhuru Peak",
+        "elevation": 5895,
+        "elevationFeet": 19341,
+        "unit": "meters"
+      },
+      "itineraries": {
+        "fiveDay": {
+          "days": 5,
+          "nights": 4,
+          "acclimatizationDay": false,
+          "note": "Times may vary based on climber's fitness level, experience, and acclimatization. Weather conditions and individual pace can affect completion times",
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Marangu Gate to Mandara Hut",
+              "distance": 7,
+              "elevation": 2720,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mandara Hut to Horombo Hut",
+              "distance": 11,
+              "elevation": 3720,
+              "time": "5-6 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Horombo Hut to Kibo Hut",
+              "distance": 10,
+              "elevation": 4720,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": "Summit Night",
+              "segment": "Kibo Hut to Summit/Uhuru Peak",
+              "distance": 6,
+              "elevation": 5895,
+              "time": "6-7 hours",
+              "unit": "km",
+              "highlight": true,
+              "isSummit": true
+            },
+            {
+              "day": 4,
+              "segment": "Kibo Hut to Horombo Hut (Descent)",
+              "distance": 10,
+              "elevation": 4720,
+              "time": "3-4 hours",
+              "unit": "km",
+              "descent": true
+            },
+            {
+              "day": 5,
+              "segment": "Horombo Hut to Marangu Gate (Descent)",
+              "distance": 19,
+              "elevation": 1800,
+              "time": "5-6 hours",
+              "unit": "km",
+              "descent": true
+            }
+          ]
+        },
+        "sixDay": {
+          "days": 6,
+          "nights": 5,
+          "acclimatizationDay": true,
+          "recommended": true,
+          "note": "The 6-day itinerary includes an extra acclimatization day at Horombo Hut, which significantly increases your chances of reaching the summit",
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Marangu Gate to Mandara Hut",
+              "distance": 7,
+              "elevation": 2720,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mandara Hut to Horombo Hut",
+              "distance": 11,
+              "elevation": 3720,
+              "time": "5-6 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Horombo Hut to Zebra Rocks (Acclimatization)",
+              "distance": 5,
+              "elevation": 4000,
+              "time": "4 hours",
+              "unit": "km",
+              "acclimatization": true,
+              "highlight": true
+            },
+            {
+              "day": 4,
+              "segment": "Horombo Hut to Kibo Hut",
+              "distance": 10,
+              "elevation": 4720,
+              "time": "5-6 hours",
+              "unit": "km"
+            },
+            {
+              "day": "Summit Night",
+              "segment": "Kibo Hut to Summit/Uhuru Peak",
+              "distance": 6,
+              "elevation": 5895,
+              "time": "6-7 hours",
+              "unit": "km",
+              "highlight": true,
+              "isSummit": true
+            },
+            {
+              "day": 5,
+              "segment": "Kibo Hut to Horombo Hut (Descent)",
+              "distance": 10,
+              "elevation": 3720,
+              "time": "3-4 hours",
+              "unit": "km",
+              "descent": true
+            },
+            {
+              "day": 6,
+              "segment": "Horombo Hut to Marangu Gate (Descent)",
+              "distance": 19,
+              "elevation": 1800,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true
+            }
+          ]
+        }
+      },
+      "tourOffering": {
+        "description": "Our company offers expert-led tours along the Marangu Route, ensuring a safe and comfortable experience tailored to your preferences",
+        "benefits": [
+          "Expert-led tours",
+          "Safe and comfortable experience",
+          "Tailored to preferences",
+          "Budget-friendly packages",
+          "Prioritize safety and quality"
+        ],
+        "promise": "Unforgettable adventure on Mount Kilimanjaro"
+      }
+    },
+    "machame": {
+      "name": "Machame Route",
+      "nickname": "Whiskey Route",
+      "description": "Mount Kilimanjaro, standing at 5,895 meters (19,341 feet), is Africa's tallest mountain. Unlike many high-altitude peaks, Kilimanjaro doesn't require technical climbing skills—what you need is determination, proper acclimatization, and the right route",
+      "startingPoint": {
+        "name": "Machame Gate",
+        "elevation": 1800,
+        "unit": "meters above sea level"
+      },
+      "summit": {
+        "name": "Uhuru Peak",
+        "elevation": 5895,
+        "elevationFeet": 19341,
+        "unit": "meters"
+      },
+      "itineraries": {
+        "sixDay": {
+          "days": 6,
+          "nights": 5,
+          "note": "Times may vary based on climber's fitness level, experience, and acclimatization. Weather conditions and individual pace can affect completion times",
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Machame Gate to Machame Hut",
+              "distance": 11,
+              "elevation": 2835,
+              "time": "4-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Machame Hut to Shira Cave Camp",
+              "distance": 5,
+              "elevation": 3850,
+              "time": "4-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira Cave Camp to Baranco Camp",
+              "distance": 10,
+              "elevation": 3900,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Baranco Camp to Barafu Camp",
+              "distance": 10,
+              "elevation": 4600,
+              "time": "6-7 hours",
+              "unit": "km",
+              "alternative": {
+                "segment": "Baranco Camp to Kosovo Camp/Upper Camp",
+                "distance": 11,
+                "elevation": 4900,
+                "time": "7-8 hours"
+              }
+            },
+            {
+              "day": "Summit Night",
+              "segment": "Barafu Camp to Summit/Uhuru Peak",
+              "distance": 6,
+              "elevation": 5895,
+              "time": "6-7 hours",
+              "unit": "km",
+              "highlight": true,
+              "isSummit": true,
+              "alternative": {
+                "segment": "Kosovo Camp to Summit/Uhuru Peak",
+                "distance": 5,
+                "elevation": 5895,
+                "time": "5-6 hours"
+              }
+            },
+            {
+              "day": 5,
+              "segment": "Barafu Camp to Millennium Camp",
+              "distance": 3.5,
+              "elevation": 3950,
+              "time": "1.5-2 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Barafu Camp to Mweka Camp",
+                "distance": 7,
+                "elevation": 3100,
+                "time": "3-4 hours"
+              }
+            },
+            {
+              "day": 6,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true
+            }
+          ]
+        },
+        "sevenDay": {
+          "days": 7,
+          "nights": 6,
+          "recommended": true,
+          "note": "Extended itinerary with better acclimatization",
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Machame Gate to Machame Hut",
+              "distance": 11,
+              "elevation": 2835,
+              "time": "4-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Machame Hut to Shira Cave Camp",
+              "distance": 5,
+              "elevation": 3850,
+              "time": "4-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira Cave Camp to Baranco Camp",
+              "distance": 10,
+              "elevation": 3900,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Baranco Camp to Karanga Camp",
+              "distance": 6,
+              "elevation": 3995,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 5,
+              "segment": "Karanga Camp to Barafu Camp",
+              "distance": 4,
+              "elevation": 4600,
+              "time": "3-4 hours",
+              "unit": "km",
+              "alternative": {
+                "segment": "Karanga Camp to Kosovo Camp/Upper Camp",
+                "distance": "4-5",
+                "elevation": 4900,
+                "time": "5 hours"
+              }
+            },
+            {
+              "day": "Summit Night",
+              "segment": "Barafu Camp to Summit/Uhuru Peak",
+              "distance": 6,
+              "elevation": 5895,
+              "time": "6-7 hours",
+              "unit": "km",
+              "highlight": true,
+              "isSummit": true
+            },
+            {
+              "day": 6,
+              "segment": "Summit to Millennium Camp",
+              "distance": 3.5,
+              "elevation": 3950,
+              "time": "1.5-2 hours",
+              "unit": "km",
+              "descent": true
+            },
+            {
+              "day": 7,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true
+            }
+          ]
+        }
+      },
+      "tourOffering": {
+        "description": "Our company offers expert-led tours along the Machame Route, ensuring a safe and comfortable experience tailored to your preferences",
+        "benefits": [
+          "Expert-led tours",
+          "Safe and comfortable experience",
+          "Tailored to preferences",
+          "Budget-friendly packages",
+          "Prioritize safety and quality"
+        ],
+        "promise": "Unforgettable adventure on Mount Kilimanjaro"
+      }
+    },
+    "lemosho": {
+      "name": "Lemosho Route",
+      "nickname": "The Scenic Route",
+      "description": "Mount Kilimanjaro, Africa's highest peak at 5,895 meters (19,341 feet), is a dream destination for trekkers worldwide. Unlike many other high-altitude climbs, Kilimanjaro requires no technical skills—just determination, proper acclimatization, and choosing the right route",
+      "startingPoint": {
+        "name": "Lemosho Gate",
+        "elevation": 2100,
+        "unit": "meters above sea level"
+      },
+      "summit": {
+        "name": "Uhuru Peak",
+        "elevation": 5895,
+        "elevationFeet": 19341,
+        "unit": "meters"
+      },
+      "itineraries": {
+        "sixDay": {
+          "days": 6,
+          "nights": 5,
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Lemosho Gate to Mti Mkubwa Camp",
+              "distance": 7,
+              "elevation": 2650,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mti Mkubwa to Shira 2",
+              "distance": 17,
+              "elevation": 3850,
+              "time": "7-8 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira 2 to Baranco Camp",
+              "distance": 10,
+              "elevation": 3900,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Baranco Camp to Barafu Camp",
+              "distance": 10,
+              "elevation": 4600,
+              "time": "6-7 hours",
+              "unit": "km",
+              "alternative": {
+                "segment": "Baranco Camp to Kosovo Camp/Upper Camp",
+                "distance": 11,
+                "elevation": 4900,
+                "time": "7-8 hours"
+              }
+            },
+            {
+              "day": "Summit Night",
+              "segment": "Barafu Camp to Summit/Uhuru Peak",
+              "distance": 6,
+              "elevation": 5895,
+              "time": "6-7 hours",
+              "unit": "km",
+              "highlight": true,
+              "isSummit": true,
+              "alternative": {
+                "segment": "Kosovo Camp to Summit/Uhuru Peak",
+                "distance": 5,
+                "elevation": 5895,
+                "time": "5-6 hours"
+              }
+            },
+            {
+              "day": 5,
+              "segment": "Barafu Camp to Millennium Camp/High Camp",
+              "distance": 3.5,
+              "elevation": 3950,
+              "time": "1.5-2 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Barafu Camp to Mweka Camp",
+                "distance": 7,
+                "elevation": 3100,
+                "time": "3-4 hours"
+              }
+            },
+            {
+              "day": 6,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Mweka Camp to Mweka Gate",
+                "distance": 10,
+                "elevation": 1640,
+                "time": "3-4 hours"
+              }
+            }
+          ]
+        },
+        "sevenDay": {
+          "days": 7,
+          "nights": 6,
+          "recommended": true,
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Lemosho Gate to Mti Mkubwa Camp",
+              "distance": 7,
+              "elevation": 2650,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mti Mkubwa to Shira 2",
+              "distance": 17,
+              "elevation": 3850,
+              "time": "7-8 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira 2 to Baranco Camp",
+              "distance": 10,
+              "elevation": 3900,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Baranco Camp to Karanga Camp",
+              "distance": 6,
+              "elevation": 3995,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 5,
+              "segment": "Karanga Camp to Barafu Camp",
+              "distance": 4,
+              "elevation": 4600,
+              "time": "3-4 hours",
+              "unit": "km",
+              "alternative": {
+                "segment": "to Kosovo Camp/Upper Camp",
+                "distance": 5,
+                "elevation": 4900,
+                "time": "4-5 hours"
+              }
+            },
+            {
+              "day": 6,
+              "segment": "Barafu Camp to Millennium Camp",
+              "distance": 3.5,
+              "elevation": 3950,
+              "time": "1.5-2 hours",
+              "unit": "km",
+              "descent": true,
+              "alternatives": [
+                {
+                  "segment": "Barafu Camp to Mweka Camp",
+                  "distance": 7,
+                  "elevation": 3100,
+                  "time": "3-4 hours"
+                },
+                {
+                  "segment": "Kosovo Camp/Upper Camp to Millennium Camp",
+                  "distance": 4.5,
+                  "elevation": 3950,
+                  "time": "2-3 hours"
+                },
+                {
+                  "segment": "Kosovo Camp/Upper Camp to Mweka Hut",
+                  "distance": 8,
+                  "elevation": 3100,
+                  "time": "4-5 hours"
+                }
+              ]
+            },
+            {
+              "day": 7,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Mweka Camp to Mweka Gate",
+                "distance": 10,
+                "elevation": 1640,
+                "time": "3-4 hours"
+              }
+            }
+          ]
+        },
+        "eightDay": {
+          "days": 8,
+          "nights": 7,
+          "note": "Northern Circuit variant",
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Lemosho Gate to Mti Mkubwa Camp",
+              "distance": 7,
+              "elevation": 2650,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mti Mkubwa to Shira 1",
+              "distance": 7,
+              "elevation": 3610,
+              "time": "3-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira 1 Camp to Shira 2 Camp",
+              "distance": 10,
+              "elevation": 3850,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Shira 2 Camp to Moir Hut",
+              "distance": 6,
+              "elevation": 4030,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 5,
+              "segment": "Moir Hut to Buffalo/Pofu Camp",
+              "distance": 12,
+              "elevation": 3995,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 6,
+              "segment": "Buffalo/Pofu Camp to Third Cave Camp",
+              "distance": 7,
+              "elevation": 3800,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 7,
+              "segment": "Third Cave Camp to Kibo Hut",
+              "distance": 12,
+              "elevation": 4720,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 8,
+              "segment": "Kibo Hut to Crater Camp",
+              "distance": 5,
+              "elevation": 5750,
+              "time": "5-6 hours",
+              "unit": "km"
+            },
+            {
+              "day": 9,
+              "segment": "Crater Camp to Summit/Uhuru Peak",
+              "distance": 1,
+              "elevation": 5895,
+              "time": "1 hour",
+              "unit": "km",
+              "isSummit": true,
+              "highlight": true
+            },
+            {
+              "day": "9 (continued)",
+              "segment": "Summit/Uhuru Peak to Millennium Camp/High Camp",
+              "distance": 9.5,
+              "elevation": 3995,
+              "time": "5-6 hours",
+              "unit": "km",
+              "descent": true
+            },
+            {
+              "day": 10,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Mweka Camp to Mweka Gate",
+                "distance": 10,
+                "elevation": 1640,
+                "time": "3-4 hours"
+              }
+            }
+          ]
+        },
+        "nineDay": {
+          "days": 9,
+          "nights": 8,
+          "note": "Northern Circuit variant",
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Lemosho Gate to Mti Mkubwa Camp",
+              "distance": 7,
+              "elevation": 2650,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mti Mkubwa to Shira 1",
+              "distance": 7,
+              "elevation": 3610,
+              "time": "3-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira 1 to Shira 2",
+              "distance": 10,
+              "elevation": 3850,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Shira 2 to Moir Hut",
+              "distance": 6,
+              "elevation": 4030,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 5,
+              "segment": "Moir Hut to Buffalo/Pofu Camp",
+              "distance": 12,
+              "elevation": 3995,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 6,
+              "segment": "Buffalo/Pofu Camp to Third Cave Camp",
+              "distance": 7,
+              "elevation": 3800,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 7,
+              "segment": "Third Cave Camp to Kibo Hut",
+              "distance": 12,
+              "elevation": 4720,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": "Summit Night",
+              "segment": "Kibo Hut to Summit/Uhuru Peak",
+              "distance": 6,
+              "elevation": 5895,
+              "time": "6-7 hours",
+              "unit": "km",
+              "isSummit": true,
+              "highlight": true
+            },
+            {
+              "day": 8,
+              "segment": "Summit/Uhuru Peak to Millennium Camp",
+              "distance": 9.5,
+              "elevation": 3995,
+              "time": "5-6 hours",
+              "unit": "km",
+              "descent": true
+            },
+            {
+              "day": 9,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Mweka Camp to Mweka Gate",
+                "distance": 10,
+                "elevation": 1640,
+                "time": "3-4 hours"
+              }
+            }
+          ]
+        },
+        "tenDay": {
+          "days": 10,
+          "nights": 9,
+          "note": "With Crater Camp - Northern Circuit",
+          "recommended": true,
+          "dailyRoutes": [
+            {
+              "day": 1,
+              "segment": "Lemosho Gate to Mti Mkubwa Camp",
+              "distance": 7,
+              "elevation": 2650,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 2,
+              "segment": "Mti Mkubwa Camp to Shira 1",
+              "distance": 7,
+              "elevation": 3610,
+              "time": "3-5 hours",
+              "unit": "km"
+            },
+            {
+              "day": 3,
+              "segment": "Shira 1 Camp to Shira 2 Camp",
+              "distance": 10,
+              "elevation": 3850,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 4,
+              "segment": "Shira 2 Camp to Moir Hut",
+              "distance": 6,
+              "elevation": 4030,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 5,
+              "segment": "Moir Hut to Buffalo/Pofu Camp",
+              "distance": 12,
+              "elevation": 3995,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 6,
+              "segment": "Buffalo/Pofu Camp to Third Cave Camp",
+              "distance": 7,
+              "elevation": 3800,
+              "time": "3-4 hours",
+              "unit": "km"
+            },
+            {
+              "day": 7,
+              "segment": "Third Cave Camp to Kibo Hut",
+              "distance": 12,
+              "elevation": 4720,
+              "time": "6-7 hours",
+              "unit": "km"
+            },
+            {
+              "day": 8,
+              "segment": "Kibo Hut to Crater Camp",
+              "distance": 5,
+              "elevation": 5750,
+              "time": "5-6 hours",
+              "unit": "km",
+              "highlight": true
+            },
+            {
+              "day": 9,
+              "segment": "Crater Camp to Summit/Uhuru Peak",
+              "distance": 1,
+              "elevation": 5895,
+              "time": "1 hour",
+              "unit": "km",
+              "isSummit": true,
+              "highlight": true
+            },
+            {
+              "day": "9 (continued)",
+              "segment": "Summit/Uhuru Peak to Millennium Camp/High Camp",
+              "distance": 9.5,
+              "elevation": 3995,
+              "time": "5-6 hours",
+              "unit": "km",
+              "descent": true
+            },
+            {
+              "day": 10,
+              "segment": "Millennium Camp to Mweka Gate",
+              "distance": 13.5,
+              "elevation": 1640,
+              "time": "6-7 hours",
+              "unit": "km",
+              "descent": true,
+              "alternative": {
+                "segment": "Mweka Camp to Mweka Gate",
+                "distance": 10,
+                "elevation": 1640,
+                "time": "3-4 hours"
+              }
+            }
+          ]
+        }
+      },
+      "tourOffering": {
+        "description": "Our company specializes in guided tours along the Lemosho Route, providing safe and comfortable experiences customized to meet your needs",
+        "benefits": [
+          "Expert-led guided tours",
+          "Safe and comfortable experience",
+          "Customized to meet your needs",
+          "Affordable packages",
+          "Never sacrifice safety or quality"
+        ],
+        "promise": "Scenic adventure on Mount Kilimanjaro"
+      }
+    }
+  },
+  "packageInclusions": {
+    "luxury": {
+      "parkFees": true,
+      "rescueFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "accommodation": {
+        "included": true,
+        "type": "Luxury hotel",
+        "nights": 2,
+        "timing": "Before and after climb"
+      },
+      "meals": {
+        "mealsPerDay": 3,
+        "type": "Luxury meals",
+        "location": "All days spent in the mountain"
+      },
+      "equipment": [
+        "Oxygen tank",
+        "Private toilet",
+        "Hot shower",
+        "Water sink",
+        "Big luxury tents",
+        "Luxury tent table and chairs",
+        "Luxury mattress and camping beds"
+      ],
+      "campingFees": {
+        "included": true,
+        "for": ["Guides", "Cooks", "Porters"]
+      }
+    },
+    "midRange": {
+      "parkFees": true,
+      "rescueFees": true,
+      "transportation": {
+        "included": true,
+        "details": "Pick up and drop off at the airport in Arusha",
+        "additionalAirports": "Transportation from/to further airports possible for extra charge"
+      },
+      "accommodation": {
+        "included": true,
+        "type": "Mid-Range hotel",
+        "nights": 2,
+        "timing": "Before and after climb"
+      },
+      "meals": {
+        "mealsPerDay": 3,
+        "type": "Mid-Range meals",
+        "location": "All days spent in the mountain"
+      },
+      "equipment": [
+        "Oxygen tank",
+        "Private toilet",
+        "Mid-Range tents",
+        "Mid-Range tent table and chairs",
+        "Mid-Range mattress"
+      ],
+      "campingFees": {
+        "included": true,
+        "for": ["Guides", "Cooks", "Porters"]
+      }
+    },
+    "budget": {
+      "parkFees": true,
+      "rescueFees": true,
+      "transportation": {
+        "included": false,
+        "note": "Can be arranged for extra charges"
+      },
+      "accommodation": {
+        "included": false,
+        "note": "Can be arranged for extra charges",
+        "exampleBudgetAccommodation": "Merves Hotel"
+      },
+      "meals": {
+        "mealsPerDay": 3,
+        "type": "Budget meals",
+        "location": "All days spent in the mountain"
+      },
+      "equipment": ["Budget tent", "Budget tent table and chair"],
+      "optionalEquipment": {
+        "available": ["Private toilet", "Oxygen tank"],
+        "note": "Can be added for extra charges"
+      },
+      "campingFees": {
+        "included": true,
+        "for": ["Guides", "Cooks", "Porters"]
+      }
+    }
+  },
+  "termsAndConditions": [
+    {
+      "section": 1,
+      "title": "When the Terms and Conditions apply",
+      "content": "These Terms and Conditions shall govern the relationship between all clients and Zanzi Trekking and Safaris Limited.",
+      "applicableTo": [
+        "Direct bookings with the company",
+        "Bookings through partners acting as sales representatives"
+      ]
+    },
+    {
+      "section": 2,
+      "title": "Our warranties and representations",
+      "warranties": [
+        "All necessary licenses and permits to organize tours",
+        "Professional training for all guides and consultants",
+        "True and accurate marketing information",
+        "Above-market salaries for local employees",
+        "Support for community development projects",
+        "Environmentally friendly with leave-no-trace protocols"
+      ]
+    },
+    {
+      "section": 2.2,
+      "title": "Lifetime Deposit",
+      "deposit": {
+        "amount": "10% or minimum $150 USD",
+        "type": "non-refundable",
+        "features": [
+          "Can change trek to different date without cost",
+          "Booking held until new date decided",
+          "Transferable to another trip at any point",
+          "Valid for lifetime",
+          "Excludes costs company must pay due to cancellation"
+        ]
+      }
+    },
+    {
+      "section": 3,
+      "title": "Treatment of personal information",
+      "requiredInfo": [
+        "Full name",
+        "Age",
+        "Nationality",
+        "Passport information",
+        "Diet",
+        "Medical particulars"
+      ],
+      "dataSharing": [
+        "Tanzania wildlife area administration for entry permits",
+        "Accommodation providers for comfortable stay"
+      ]
+    },
+    {
+      "section": 4,
+      "title": "Communications and correspondence",
+      "officialChannels": {
+        "email": "@zanzisafaris.com domain",
+        "phone": "Numbers published on website",
+        "chat": "Online chat on website"
+      },
+      "verificationContact": {
+        "email": "info@zanzisafaris.com",
+        "phone": "+255752777701"
+      }
+    },
+    {
+      "section": 6,
+      "title": "Prices",
+      "pricePolicy": "Price locked after booking confirmation",
+      "exceptions": [
+        "Government of Tanzania increases park fees, taxes, or tourism payments"
+      ],
+      "optionsOnPriceIncrease": [
+        "Cancel tour and receive refund per cancellation policy",
+        "Agree to price change and pay difference"
+      ]
+    },
+    {
+      "section": 7,
+      "title": "Changes to the itinerary",
+      "changesByClient": {
+        "freeChanges": "Changes free if no extra costs incurred",
+        "costCoverage": "Client covers any extra costs",
+        "earlyDeparture": "Client liable for extra costs if discontinuing tour",
+        "refundPolicy": "No refund for missed services or meals"
+      },
+      "changesByCompany": {
+        "reason": "Situations like poor weather making routes inaccessible",
+        "notification": "Company will inform promptly"
+      },
+      "changesByThirdParties": {
+        "liability": "Company not liable for delays/disruptions outside control",
+        "examples": [
+          "Third-party actions",
+          "Flight delays",
+          "Force majeure events"
+        ],
+        "costCoverage": "Client or insurance covers extra expenses"
+      }
+    },
+    {
+      "section": 8,
+      "title": "Changes to travel dates",
+      "requirements": {
+        "noticeRequired": "60 days before original start date",
+        "dateWindow": "New dates must fall within one year of original dates"
+      },
+      "additionalCosts": {
+        "flights": "Domestic carriers do not reschedule",
+        "accommodation": "Hotels may apply penalties and seasonal pricing",
+        "responsibility": "Client covers extra costs"
+      }
+    },
+    {
+      "section": 9,
+      "title": "Payments and Cancellations",
+      "payment": {
+        "deposit": "10% of total trip price required after confirmation",
+        "purpose": "Confirmation and organizing pre-bookings"
+      },
+      "cancellationByClient": {
+        "refundSchedule": [
+          {
+            "daysBeforeStart": "90+",
+            "refundPercentage": 90
+          },
+          {
+            "daysBeforeStart": "60+",
+            "refundPercentage": 70
+          },
+          {
+            "daysBeforeStart": "30+",
+            "refundPercentage": 50
+          },
+          {
+            "daysBeforeStart": "less than 30",
+            "refundPercentage": 0
+          }
+        ],
+        "deductions": [
+          "Non-refundable expenses (hotel reservations, air tickets)",
+          "Fund transfer costs (banking commissions, credit card surcharges)"
+        ],
+        "covidPolicy": "Payment returned (minus expenses) if unable to travel due to COVID-19"
+      },
+      "cancellationByCompany": {
+        "refund": "100% refund of all payments"
+      }
+    },
+    {
+      "section": 10,
+      "title": "Travel documents, visa, and entry to Tanzania",
+      "requirements": {
+        "passportValidity": "Must not expire within 6 months of entering Tanzania",
+        "blankPages": "At least 2 blank pages for visa and stamps",
+        "visa": "Required for entering Tanzania",
+        "visaApplication": "Online through Tanzania Immigration Department"
+      },
+      "clientResponsibility": [
+        "All travel documents",
+        "Visa and entry-related costs",
+        "Verification of requirements with embassy"
+      ],
+      "companyLiability": {
+        "deniedEntry": "No liability if entry denied",
+        "noRefund": "No refunds if unable to enter country",
+        "reason": "Park fees prepaid and expenses incurred"
+      }
+    },
+    {
+      "section": 11,
+      "title": "Accommodation",
+      "hotels": {
+        "arrangement": "Individual agreement for private adventures",
+        "included": "Hotel accommodation as described in packages",
+        "alternatives": "Alternative hotel of same standard if fully booked"
+      },
+      "kilimanjaro": {
+        "singleTent": "Available for solo travelers",
+        "exception": "Not available on Marangu route due to park regulations"
+      }
+    },
+    {
+      "section": 12,
+      "title": "Fitness and Medical information",
+      "clientResponsibility": [
+        "Determine physical fitness for climb or safari",
+        "Assess health conditions",
+        "Seek qualified medical opinion if unsure"
+      ],
+      "medicalForm": {
+        "required": "For Kilimanjaro and Meru climbs",
+        "signatureRequired": "Licensed medical practitioner signature for pre-existing conditions",
+        "consequence": "Failure may result in cancellation with fees"
+      },
+      "companyRights": {
+        "decline": "May decline participation if medically unfit",
+        "cancel": "May cancel without refund if information false or condition deteriorates"
+      },
+      "specialRequirements": {
+        "notice": "30 days before arrival",
+        "dietOptions": ["Vegetarian", "Vegan", "Gluten-free", "Halal"],
+        "liability": "Company not liable for failure to meet other special needs"
+      }
+    },
+    {
+      "section": 13,
+      "title": "Medical Treatments and Travel Insurance",
+      "medicalCosts": {
+        "responsibility": "Client responsible for all medical treatment costs",
+        "insurance": "Must have current, valid, comprehensive travel medical insurance"
+      },
+      "rescueFees": {
+        "included": "Basic rescue fees in park fees for Kilimanjaro/Meru",
+        "coverage": "Stretcher down mountain and car transfer to hospital",
+        "notIncluded": "Helicopter or advanced transport"
+      },
+      "recommendation": "All travelers arrange personal travel insurance"
+    },
+    {
+      "section": 14,
+      "title": "Vaccinations",
+      "recommendations": [
+        "Medical check before attempting mountain",
+        "Consult doctor for vaccination requirements",
+        "Check if high altitude trekking permissible",
+        "Verify medications don't affect altitude acclimatization",
+        "Take malaria precautions"
+      ]
+    },
+    {
+      "section": 15,
+      "title": "Authorities and our Guides",
+      "mandatoryCompliance": [
+        "Follow all safety instructions",
+        "Follow guide rules"
+      ],
+      "guideAuthority": {
+        "chiefGuide": "Final decision on expedition arrangements and team management",
+        "healthDecision": "May require descent if physical condition dangerous",
+        "assistance": "Assistant and porters help with descent"
+      }
+    },
+    {
+      "section": 16,
+      "title": "You accept all risk of travel to Tanzania",
+      "acknowledgments": [
+        "Travel may involve visiting remote areas",
+        "Medical standards may differ from home country or be unavailable",
+        "Adventures may involve risks to health and safety (wildlife, high-altitude)",
+        "Client has evaluated risks and assumes full responsibility"
+      ],
+      "release": "Client releases company from all claims arising from inherent travel risks"
+    },
+    {
+      "section": 17,
+      "title": "Your liability for damaged or destroyed property",
+      "clientLiability": [
+        "Willful destruction or damage of company property",
+        "Kilimanjaro tents",
+        "Safari vehicles",
+        "Personal gear hired from company",
+        "Hotel furniture and items",
+        "Properties of accommodation providers",
+        "Air carrier properties"
+      ],
+      "settlement": "Must be settled in Tanzania before departure"
+    },
+    {
+      "section": 18,
+      "title": "Equipment and gear for Kilimanjaro climbs",
+      "included": "All group camping equipment",
+      "notIncluded": "Personal outfit and clothes",
+      "hiring": {
+        "available": "Personal gear available for hire",
+        "cost": "Extra fees apply, not included in tour price"
+      },
+      "inspection": "Chief guide may inspect personal equipment before trek"
+    },
+    {
+      "section": 19,
+      "title": "Your luggage and valuables",
+      "companyNotResponsible": [
+        "Luggage lost, destroyed, or delayed by airline",
+        "Tracking luggage status",
+        "Transporting delayed luggage from airport"
+      ],
+      "luggageDelivery": "Client pays luggage delivery fee from airport to hotel",
+      "valuables": "Client responsible for keeping money, gadgets, jewelry, possessions"
+    },
+    {
+      "section": 20,
+      "title": "Images and marketing",
+      "consent": "By participating, client agrees to use of photos/videos for marketing",
+      "usage": "Company and partners may use without royalty payments",
+      "optOut": "Inform staff if you don't want image captured"
+    },
+    {
+      "section": 21,
+      "title": "Force Majeure",
+      "companyNotLiable": [
+        "Natural cataclysms",
+        "War or military operations",
+        "Mechanical breakdowns",
+        "Fire",
+        "Civil disturbances",
+        "Labor strikes",
+        "Government actions",
+        "Political unrest",
+        "Extreme weather conditions",
+        "Other situations beyond reasonable control"
+      ]
+    },
+    {
+      "section": 22,
+      "title": "The Laws of Tanzania shall apply",
+      "jurisdiction": "Laws of United Republic of Tanzania",
+      "liability": "Only company liable, not individual employees or partners"
+    }
+  ]
+}

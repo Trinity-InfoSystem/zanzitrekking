@@ -1,0 +1,308 @@
+const axios = require("axios");
+const { isTripDateInPast } = require("./bookingRestrictions");
+
+class WeTravelService {
+  constructor() {
+    this.apiKey = process.env.WETRAVEL_API_KEY;
+    this.authUrl = "https://api.demo.wetravel.to/v2/auth/tokens/access";
+    this.apiUrl = "https://api.demo.wetravel.to/v2";
+    this.accessToken = null;
+  }
+
+  /**
+   * Get access token from WeTravel API
+   */
+  async getAccessToken() {
+    try {
+      const response = await axios.post(
+        this.authUrl,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      this.accessToken = response.data.access_token;
+      return this.accessToken;
+    } catch (error) {
+      console.error(
+        "❌ Error getting WeTravel access token:",
+        error.response?.data || error.message
+      );
+      console.error("Status Code:", error.response?.status);
+      console.error("Full error:", error);
+      throw new Error("Failed to obtain WeTravel access token");
+    }
+  }
+
+  /**
+   * Check if trip dates are in the past
+   * @param {string} startDate - Trip start date (YYYY-MM-DD)
+   * @param {string} endDate - Trip end date (YYYY-MM-DD) - optional
+   * @returns {boolean} - True if dates are in the past
+   */
+  isTripDateInPast(startDate, endDate = null) {
+    return isTripDateInPast(startDate);
+  }
+
+  /**
+   * Create a payment link for an order
+   * @param {Object} orderData - Order data including trip details and pricing
+   * @returns {Promise<Object>} - Payment link data
+   */
+  async createPaymentLink(orderData) {
+    try {
+      // Ensure we have an access token
+      if (!this.accessToken) {
+        await this.getAccessToken();
+      }
+
+      const {
+        tripTitle,
+        tripId,
+        startDate,
+        endDate,
+        totalAmount,
+        currency = "USD",
+        daysBeforeDeparture = 2,
+      } = orderData;
+
+      // Validate that trip dates are not in the past
+      if (this.isTripDateInPast(startDate, endDate)) {
+        const errorMessage = `Cannot create payment link: Trip start date (${startDate}) is in the past`;
+        console.error(`❌ ${errorMessage}`);
+        throw new Error(errorMessage);
+      }
+
+      const paymentLinkData = {
+        data: {
+          trip: {
+            participant_fees: "all",
+            title: tripTitle,
+            trip_id: tripId,
+            start_date: startDate,
+            end_date: endDate,
+            currency: currency,
+          },
+          pricing: {
+            payment_plan: {
+              allow_auto_payment: false,
+              allow_partial_payment: false,
+              deposit: 0,
+              installments: [
+                {
+                  price: totalAmount,
+                  days_before_departure: daysBeforeDeparture,
+                },
+              ],
+            },
+            price: totalAmount,
+            days_before_departure: daysBeforeDeparture,
+          },
+        },
+      };
+
+
+      const response = await axios.post(
+        `${this.apiUrl}/payment_links`,
+        paymentLinkData,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          params: {
+            publish_immediately: "true",
+          },
+        }
+      );
+
+      console.log(
+        "✅ WeTravel payment link created successfully:",
+        response.data.data.trip.url
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error(
+        "❌ Error creating WeTravel payment link:",
+        error.response?.data || error.message
+      );
+      console.error("Status Code:", error.response?.status);
+
+      // If token expired, try to refresh and retry once
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log("Access token may be expired, refreshing...");
+        await this.getAccessToken();
+
+        // Prepare the data again for retry
+        const {
+          tripTitle,
+          tripId,
+          startDate,
+          endDate,
+          totalAmount,
+          currency = "USD",
+          daysBeforeDeparture = 2,
+        } = orderData;
+
+        const paymentLinkData = {
+          data: {
+            trip: {
+              participant_fees: "all",
+              title: tripTitle,
+              trip_id: tripId,
+              start_date: startDate,
+              end_date: endDate,
+              currency: currency,
+            },
+            pricing: {
+              payment_plan: {
+                allow_auto_payment: false,
+                allow_partial_payment: false,
+                deposit: 0,
+                installments: [
+                  {
+                    price: totalAmount,
+                    days_before_departure: daysBeforeDeparture,
+                  },
+                ],
+              },
+              price: totalAmount,
+              days_before_departure: daysBeforeDeparture,
+            },
+          },
+        };
+
+        // Retry the request once
+        try {
+          const response = await axios.post(
+            `${this.apiUrl}/payment_links`,
+            paymentLinkData,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+              params: {
+                publish_immediately: "true",
+              },
+            }
+          );
+          return response.data.data;
+        } catch (retryError) {
+          console.error(
+            "❌ Retry failed:",
+            retryError.response?.data || retryError.message
+          );
+          console.error("Status Code:", retryError.response?.status);
+          throw new Error("Failed to create WeTravel payment link after retry");
+        }
+      }
+
+      throw new Error("Failed to create WeTravel payment link");
+    }
+  }
+
+  /**
+   * Sanitize title for WeTravel API (remove special chars, limit length)
+   * @param {string} title - Original title
+   * @returns {string} - Sanitized title
+   */
+  sanitizeTitle(title) {
+    if (!title) return "Safari Trip";
+    // Remove special characters, keep alphanumeric, spaces, and basic punctuation
+    let sanitized = title.replace(/[^\w\s\-.,&()]/g, "").trim();
+    // Limit to 100 characters
+    if (sanitized.length > 100) {
+      sanitized = sanitized.substring(0, 97) + "...";
+    }
+    return sanitized || "Safari Trip";
+  }
+
+  /**
+   * Format order data for WeTravel payment link creation
+   * @param {Object} order - MongoDB order document
+   * @returns {Object} - Formatted data for WeTravel API
+   */
+  formatOrderForPaymentLink(order) {
+    // Get the first trip's start date or use the earliest date from cart items
+    const startDate =
+      order.cartItems && order.cartItems.length > 0
+        ? new Date(order.cartItems[0].startingDate)
+        : new Date();
+
+    // Get cart item details for booking restriction check
+    const firstCartItem =
+      order.cartItems && order.cartItems.length > 0 ? order.cartItems[0] : null;
+
+    // Calculate end date based on days (if available) or default to start date + 7 days
+    const daysCount =
+      order.cartItems && order.cartItems.length > 0
+        ? order.cartItems[0].days || 7
+        : 7;
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + daysCount);
+
+    // Calculate days before departure (days between now and trip start)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset time to start of day
+    const tripStart = new Date(startDate);
+    tripStart.setHours(0, 0, 0, 0); // Reset time to start of day
+
+    // Calculate difference in days
+    const daysDiff = Math.ceil((tripStart - now) / (1000 * 60 * 60 * 24));
+
+    // Determine if this is a Midrange/Luxury Safari (requires 4-day rule)
+    const isMidrangeOrLuxury =
+      firstCartItem &&
+      (firstCartItem.selectedCategory === "midRange" ||
+        firstCartItem.selectedCategory === "luxury");
+
+    const categoryName = firstCartItem?.categoryName
+      ? firstCartItem.categoryName.toLowerCase()
+      : "";
+    const isSafariCategory = categoryName.includes("safari");
+    const isMidrangeLuxurySafari = isMidrangeOrLuxury && isSafariCategory;
+
+    // Set days before departure based on booking restrictions:
+    // - Midrange/Luxury Safaris: require payment at least 4 days before departure
+    // - All other trips: allow payment until 1 day before departure
+    let daysBeforeDeparture;
+    if (daysDiff <= 0) {
+      daysBeforeDeparture = 0; // Trip is today or past, allow immediate payment
+    } else if (daysDiff === 1) {
+      daysBeforeDeparture = 0; // Trip is tomorrow, allow payment today
+    } else if (isMidrangeLuxurySafari && daysDiff >= 4) {
+      // For Midrange/Luxury Safaris with 4+ days until trip: require payment 4 days before
+      // This means payment deadline is (daysDiff - 4) days from now
+      daysBeforeDeparture = 4; // Payment must be completed at least 4 days before departure
+    } else {
+      // For all other trips: allow payment until 1 day before
+      daysBeforeDeparture = Math.min(daysDiff - 1, 365); // Allow until 1 day before trip
+    }
+
+    // Create a descriptive title (sanitized for WeTravel API)
+    const itemCount = order.cartItems?.length || 0;
+    let rawTitle =
+      itemCount === 1
+        ? order.cartItems[0].mainTitle
+        : `${itemCount} Safari Trips - ${order.orderNumber}`;
+    const tripTitle = this.sanitizeTitle(rawTitle);
+
+    return {
+      tripTitle,
+      tripId: order.orderNumber,
+      startDate: startDate.toISOString().split("T")[0], // Format: YYYY-MM-DD
+      endDate: endDate.toISOString().split("T")[0],
+      totalAmount: order.totalAmount,
+      currency: "USD",
+      daysBeforeDeparture: daysBeforeDeparture,
+    };
+  }
+}
+
+// Export a singleton instance
+module.exports = new WeTravelService();
