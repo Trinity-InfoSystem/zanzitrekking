@@ -1,0 +1,2 @@
+# This file ensures the newsletter directory is tracked by git
+# Actual newsletter files are ignored but directory structure is preserved

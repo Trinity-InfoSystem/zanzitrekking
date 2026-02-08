@@ -1,0 +1,2 @@
+# This file ensures the pdfs directory is tracked by git
+# Actual PDF files are ignored but directory structure is preserved
