@@ -17,35 +17,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        working-directory: ./zanzitrekking-frontend
-        run: |
-          echo "📦 Installing dependencies..."
-          npm ci
-          echo "✅ Dependencies installed"
-
-      - name: Build frontend
-        working-directory: ./zanzitrekking-frontend
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://api.zanzisafaris.com' }}
-        run: |
-          echo "🔨 Building frontend..."
-          npm run build
-          echo "✅ Build completed"
-
-      - name: Verify build output
+      - name: Verify dist folder exists
         working-directory: ./zanzitrekking-frontend
         run: |
           if [ ! -d "dist" ]; then
-            echo "❌ ERROR: dist folder not found after build!"
+            echo "❌ ERROR: dist folder not found!"
+            echo "Please build the frontend locally and commit the dist folder."
             exit 1
           fi
-          echo "✅ Build output verified"
+          echo "✅ Dist folder found"
           echo "📁 Contents of dist folder:"
           ls -la dist | head -20
           echo ""
