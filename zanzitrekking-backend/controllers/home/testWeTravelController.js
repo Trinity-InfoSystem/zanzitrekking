@@ -24,12 +24,25 @@ class TestWeTravelController {
       }
 
       // Extract key ID from JWT token (first part of the token)
+      let tokenKeyId = "unknown";
+      let tokenAccountId = "unknown";
       try {
         const tokenParts = process.env.WETRAVEL_API_KEY.split(".");
-        if (tokenParts.length >= 1) {
+        if (tokenParts.length >= 2) {
           const header = JSON.parse(Buffer.from(tokenParts[0], "base64").toString());
-          console.log("[Test] Token Key ID (kid):", header.kid);
+          const payload = JSON.parse(Buffer.from(tokenParts[1], "base64").toString());
+          tokenKeyId = header.kid;
+          tokenAccountId = payload.id;
+          console.log("[Test] Token Key ID (kid):", tokenKeyId);
+          console.log("[Test] Token Account ID:", tokenAccountId);
           console.log("[Test] Token Algorithm:", header.alg);
+          
+          // Check if key ID matches available keys
+          if (tokenKeyId !== "d61bc312" && tokenKeyId !== "44b0c789") {
+            console.warn("[Test] ⚠️ WARNING: Token key ID does not match available keys!");
+            console.warn("[Test] Expected: d61bc312 or 44b0c789");
+            console.warn("[Test] Found:", tokenKeyId);
+          }
         }
       } catch (e) {
         console.log("[Test] Could not parse token header:", e.message);
@@ -78,6 +91,8 @@ class TestWeTravelController {
             apiUrl: apiUrl,
             apiTestSuccessful: true,
             paymentLinksCount: testResponse.data?.data?.length || 0,
+            tokenKeyId: tokenKeyId,
+            tokenAccountId: tokenAccountId,
           },
         });
       } catch (apiError) {
@@ -93,11 +108,28 @@ class TestWeTravelController {
       }
     } catch (error) {
       console.error("[Test] ❌ WeTravel API test error:", error);
-      return responseReturn(res, 500, {
-        error: "WeTravel API test failed",
-        message: error.message,
-        details: error.response?.data || error.stack,
-      });
+        // Extract key ID from error if available
+        let errorKeyId = "unknown";
+        if (error.response?.data?.error) {
+          const errorMsg = error.response.data.error;
+          if (errorMsg.includes("Unknown key id:")) {
+            const match = errorMsg.match(/Unknown key id: ([a-f0-9]+)/);
+            if (match) errorKeyId = match[1];
+          }
+        }
+
+        return responseReturn(res, 500, {
+          error: "WeTravel API test failed",
+          message: error.message,
+          details: {
+            apiError: error.response?.data || error.message,
+            currentTokenKeyId: tokenKeyId,
+            currentTokenAccountId: tokenAccountId,
+            errorKeyId: errorKeyId,
+            expectedKeyIds: ["d61bc312", "44b0c789"],
+            fix: "Update WETRAVEL_API_KEY in .env file on cPanel with the production key and restart the Node.js app",
+          },
+        });
     }
   };
 }
