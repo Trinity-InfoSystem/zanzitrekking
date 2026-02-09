@@ -401,8 +401,7 @@ class WeTravelService {
       return `${year}-${month}-${day}`;
     };
 
-    // Get selected category from first cart item (for reference)
-    const selectedCategory = firstCartItem?.selectedCategory || "standard";
+    // selectedCategory is already declared above (line 376) for packageTypeLabel
 
     return {
       tripTitle,
