@@ -76,6 +76,7 @@ class WeTravelService {
         daysBeforeDeparture = 2,
         participantInfo, // Customer/participant information
         travelersNumber = 1, // Number of travelers
+        selectedCategory, // Package type: standard, midRange, luxury
       } = orderData;
 
       // Validate that trip dates are not in the past
@@ -84,6 +85,28 @@ class WeTravelService {
         console.error(`❌ ${errorMessage}`);
         throw new Error(errorMessage);
       }
+
+      // Build participants array if participantInfo is provided
+      const participants = participantInfo
+        ? [
+            {
+              first_name: participantInfo.firstName,
+              last_name: participantInfo.lastName,
+              email: participantInfo.email,
+              phone_number: participantInfo.phone,
+              // Include billing address if available (optional for WeTravel)
+              ...(participantInfo.address && {
+                address: {
+                  street: participantInfo.address.street,
+                  city: participantInfo.address.city,
+                  state: participantInfo.address.state,
+                  zip: participantInfo.address.zip,
+                  country: participantInfo.address.country,
+                },
+              }),
+            },
+          ]
+        : [];
 
       const paymentLinkData = {
         data: {
@@ -113,6 +136,9 @@ class WeTravelService {
             price: totalAmount,
             days_before_departure: daysBeforeDeparture,
           },
+          // Include participants array to pre-fill customer information
+          // This helps WeTravel identify the customer and prevents "please select your package" errors
+          ...(participants.length > 0 && { participants }),
         },
       };
 
@@ -366,6 +392,9 @@ class WeTravelService {
       return `${year}-${month}-${day}`;
     };
 
+    // Get selected category from first cart item (for reference)
+    const selectedCategory = firstCartItem?.selectedCategory || "standard";
+
     return {
       tripTitle,
       tripId: order.orderNumber,
@@ -375,6 +404,7 @@ class WeTravelService {
       currency: "USD",
       daysBeforeDeparture: daysBeforeDeparture,
       travelersNumber: totalTravelers,
+      selectedCategory, // Package type: standard, midRange, luxury
       // Include participant/customer information (billing address is optional in WeTravel)
       participantInfo: order.personalInfo
         ? {
