@@ -74,6 +74,8 @@ class WeTravelService {
         totalAmount,
         currency = "USD",
         daysBeforeDeparture = 2,
+        participantInfo, // Customer/participant information
+        travelersNumber = 1, // Number of travelers
       } = orderData;
 
       // Validate that trip dates are not in the past
@@ -92,6 +94,9 @@ class WeTravelService {
             start_date: startDate,
             end_date: endDate,
             currency: currency,
+            // Set capacity to allow multiple bookings (or don't set it for unlimited)
+            // Note: Setting a high capacity to prevent "sold out" issue
+            capacity: Math.max(travelersNumber || 1, 100), // Allow at least 100 bookings
           },
           pricing: {
             payment_plan: {
@@ -298,6 +303,12 @@ class WeTravelService {
         : `${itemCount} Safari Trips - ${order.orderNumber}`;
     const tripTitle = this.sanitizeTitle(rawTitle);
 
+    // Get total travelers number from all cart items
+    const totalTravelers = order.cartItems.reduce(
+      (sum, item) => sum + (item.travelersNumber || 1),
+      0
+    );
+
     return {
       tripTitle,
       tripId: order.orderNumber,
@@ -306,6 +317,16 @@ class WeTravelService {
       totalAmount: order.totalAmount,
       currency: "USD",
       daysBeforeDeparture: daysBeforeDeparture,
+      travelersNumber: totalTravelers,
+      // Include participant/customer information
+      participantInfo: order.personalInfo
+        ? {
+            firstName: order.personalInfo.firstName,
+            lastName: order.personalInfo.lastName,
+            email: order.personalInfo.email,
+            phone: order.personalInfo.phone,
+          }
+        : null,
     };
   }
 }
