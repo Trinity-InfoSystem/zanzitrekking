@@ -342,18 +342,51 @@ class WeTravelWebhookController {
           const customerEmail =
             order.personalInfo?.email || order.customerId?.email;
 
+          console.log(
+            `[Webhook] 📧 Email check for order ${order.orderNumber}:`,
+            {
+              hasPersonalInfoEmail: !!order.personalInfo?.email,
+              hasCustomerIdEmail: !!order.customerId?.email,
+              customerEmail: customerEmail || "NOT FOUND",
+            }
+          );
+
           if (customerEmail) {
             console.log(
-              `[Webhook] 📧 Preparing payment confirmation email for order ${order.orderNumber}`
+              `[Webhook] 📧 Preparing payment confirmation email for order ${order.orderNumber} to ${customerEmail}`
             );
 
             // Populate order data for email
-            await order.populate([
-              { path: "customerId", select: "name email" },
-              { path: "cartItems.tripId", select: "title mainImage days" },
-            ]);
+            try {
+              await order.populate([
+                { path: "customerId", select: "name email" },
+                { path: "cartItems.tripId", select: "title mainImage days" },
+              ]);
+              console.log(
+                `[Webhook] ✅ Order populated successfully. Cart items: ${order.cartItems?.length || 0}`
+              );
+            } catch (populateError) {
+              console.error(
+                `[Webhook] ❌ Error populating order:`,
+                populateError
+              );
+              throw populateError;
+            }
 
-            const emailData = await generatePaymentConfirmationEmail(order);
+            let emailData;
+            try {
+              emailData = await generatePaymentConfirmationEmail(order);
+              console.log(
+                `[Webhook] ✅ Email HTML generated successfully (${emailData.html?.length || 0} chars)`
+              );
+            } catch (emailGenError) {
+              console.error(
+                `[Webhook] ❌ Error generating email HTML:`,
+                emailGenError
+              );
+              throw emailGenError;
+            }
+
             emailQueue.add({
               subject: `Payment Confirmed - Booking #${order.orderNumber}`,
               content: emailData.html,
@@ -362,18 +395,19 @@ class WeTravelWebhookController {
             });
 
             console.log(
-              `[Webhook] ✅ Payment confirmation email queued for order ${order.orderNumber}`
+              `[Webhook] ✅ Payment confirmation email queued for order ${order.orderNumber} to ${customerEmail}`
             );
           } else {
             console.warn(
-              `[Webhook] ⚠️ No email found for order ${order.orderNumber}`
+              `[Webhook] ⚠️ No email found for order ${order.orderNumber}. PersonalInfo: ${JSON.stringify(order.personalInfo)}, CustomerId: ${order.customerId?._id || 'null'}`
             );
           }
         } catch (emailError) {
           console.error(
-            `[Webhook] ❌ Error sending confirmation email:`,
-            emailError
+            `[Webhook] ❌ Error sending confirmation email for order ${order.orderNumber}:`,
+            emailError.message || emailError
           );
+          console.error(`[Webhook] Full error stack:`, emailError.stack);
           // Don't fail the webhook if email fails
         }
       }
