@@ -371,10 +371,19 @@ class WeTravelService {
     }
 
     // Create a descriptive title (sanitized for WeTravel API)
+    // Include package type in title to help WeTravel identify the package
     const itemCount = order.cartItems?.length || 0;
+    const selectedCategory = firstCartItem?.selectedCategory || "standard";
+    const packageTypeLabel = 
+      selectedCategory === "standard" ? "Budget" :
+      selectedCategory === "midRange" ? "Mid-Range" :
+      selectedCategory === "luxury" ? "Luxury" : "";
+    
     let rawTitle =
       itemCount === 1
-        ? order.cartItems[0].mainTitle
+        ? packageTypeLabel 
+          ? `${order.cartItems[0].mainTitle} (${packageTypeLabel})`
+          : order.cartItems[0].mainTitle
         : `${itemCount} Safari Trips - ${order.orderNumber}`;
     const tripTitle = this.sanitizeTitle(rawTitle);
 
