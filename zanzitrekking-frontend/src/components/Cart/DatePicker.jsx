@@ -48,18 +48,49 @@ export const DatePicker = ({
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 280 });
 
   // Convert date to Date object if it's a string
+  // CRITICAL: Use UTC to prevent timezone shifts
   const getDateValue = () => {
     if (!date) {
-      return addDays(new Date(), 1);
+      const tomorrow = addDays(new Date(), 1);
+      return new Date(Date.UTC(
+        tomorrow.getUTCFullYear(),
+        tomorrow.getUTCMonth(),
+        tomorrow.getUTCDate(),
+        12, 0, 0, 0
+      ));
     }
     if (date instanceof Date) {
-      return date;
+      // Extract UTC components to create a stable date at UTC noon
+      return new Date(Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        12, 0, 0, 0
+      ));
     }
-    // Parse YYYY-MM-DD strings as local date to avoid timezone issues
+    // Parse YYYY-MM-DD strings using UTC to avoid timezone issues
     if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return parse(date, "yyyy-MM-dd", new Date());
+      const [year, month, day] = date.split("-").map(Number);
+      return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
     }
-    return new Date(date);
+    // For ISO strings, extract UTC components
+    if (typeof date === "string" && date.includes("T")) {
+      const parsed = new Date(date);
+      return new Date(Date.UTC(
+        parsed.getUTCFullYear(),
+        parsed.getUTCMonth(),
+        parsed.getUTCDate(),
+        12, 0, 0, 0
+      ));
+    }
+    // Fallback - extract UTC components
+    const parsed = new Date(date);
+    return new Date(Date.UTC(
+      parsed.getUTCFullYear(),
+      parsed.getUTCMonth(),
+      parsed.getUTCDate(),
+      12, 0, 0, 0
+    ));
   };
 
   const dateValue = getDateValue();
@@ -160,7 +191,15 @@ export const DatePicker = ({
     if (isBefore(dayStart, minDate)) {
       return;
     }
-    onChange(dayStart);
+    // Create a Date object at UTC noon to prevent timezone shifts when formatted
+    // This ensures the date stays the same regardless of timezone
+    const utcDate = new Date(Date.UTC(
+      dayStart.getFullYear(),
+      dayStart.getMonth(),
+      dayStart.getDate(),
+      12, 0, 0, 0 // Noon UTC to prevent timezone shifts
+    ));
+    onChange(utcDate);
     setIsOpen(false);
   };
 
@@ -179,11 +218,23 @@ export const DatePicker = ({
   const formatDateForInput = () => {
     try {
       if (!dateValue || isNaN(dateValue.getTime())) {
-        return format(addDays(new Date(), 1), "yyyy-MM-dd");
+        const tomorrow = addDays(new Date(), 1);
+        const year = tomorrow.getUTCFullYear();
+        const month = String(tomorrow.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(tomorrow.getUTCDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
       }
-      return format(dateValue, "yyyy-MM-dd");
+      // Format using UTC components to prevent timezone shifts
+      const year = dateValue.getUTCFullYear();
+      const month = String(dateValue.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(dateValue.getUTCDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     } catch {
-      return format(addDays(new Date(), 1), "yyyy-MM-dd");
+      const tomorrow = addDays(new Date(), 1);
+      const year = tomorrow.getUTCFullYear();
+      const month = String(tomorrow.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(tomorrow.getUTCDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     }
   };
 

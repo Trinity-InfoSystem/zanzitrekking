@@ -37,30 +37,49 @@ const Cart = () => {
         if (trip && trip._id) {
         let dateValue;
         if (trip.startingDate) {
-          // Parse date string - backend now returns YYYY-MM-DD format
+          // Parse date string - backend returns YYYY-MM-DD format
+          // CRITICAL: Use UTC to prevent timezone shifts
           if (typeof trip.startingDate === "string") {
             if (/^\d{4}-\d{2}-\d{2}$/.test(trip.startingDate)) {
-              // Pure date string YYYY-MM-DD - parse as local
-              dateValue = parse(trip.startingDate, "yyyy-MM-dd", new Date());
+              // Pure date string YYYY-MM-DD - parse and create at UTC noon
+              const [year, month, day] = trip.startingDate.split("-").map(Number);
+              dateValue = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
             } else if (trip.startingDate.includes("T")) {
-              // Fallback for ISO strings (shouldn't happen with new backend, but handle it)
-              const datePart = trip.startingDate.split("T")[0];
-              dateValue = parse(datePart, "yyyy-MM-dd", new Date());
+              // ISO string - extract UTC date components
+              const parsed = new Date(trip.startingDate);
+              const utcYear = parsed.getUTCFullYear();
+              const utcMonth = parsed.getUTCMonth();
+              const utcDay = parsed.getUTCDate();
+              dateValue = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
             } else {
-              dateValue = new Date(trip.startingDate);
+              // Other format - extract UTC components
+              const parsed = new Date(trip.startingDate);
+              const utcYear = parsed.getUTCFullYear();
+              const utcMonth = parsed.getUTCMonth();
+              const utcDay = parsed.getUTCDate();
+              dateValue = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
             }
           } else {
-            // If it's already a Date object or other type
-            dateValue = new Date(trip.startingDate);
+            // If it's already a Date object - extract UTC components
+            const parsed = new Date(trip.startingDate);
+            const utcYear = parsed.getUTCFullYear();
+            const utcMonth = parsed.getUTCMonth();
+            const utcDay = parsed.getUTCDate();
+            dateValue = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
           }
           // Validate the date
           if (isNaN(dateValue.getTime())) {
             dateValue = tomorrow;
           } else {
-            dateValue.setHours(0, 0, 0, 0);
-            // Ensure date is at least tomorrow
-            if (dateValue < tomorrow) {
-              dateValue = tomorrow;
+            // Ensure date is at least tomorrow (compare UTC dates)
+            const tomorrowUTC = new Date(Date.UTC(
+              tomorrow.getUTCFullYear(),
+              tomorrow.getUTCMonth(),
+              tomorrow.getUTCDate(),
+              12, 0, 0, 0
+            ));
+            if (dateValue < tomorrowUTC) {
+              dateValue = tomorrowUTC;
             }
           }
         } else {
@@ -238,10 +257,16 @@ const Cart = () => {
     }));
 
     // Update backend - format ONLY when sending to API
+    // CRITICAL: Use UTC date components to prevent timezone shifts
     const trip = cart_trips.find((t) => t._id === tripId);
     if (trip) {
       const category = selectedCategories[tripId] || trip.selectedCategory || "standard";
-      const dateStringToSend = format(dateValue, "yyyy-MM-dd");
+      
+      // Format date using UTC components to preserve the intended date
+      const year = dateValue.getUTCFullYear();
+      const month = String(dateValue.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(dateValue.getUTCDate()).padStart(2, "0");
+      const dateStringToSend = `${year}-${month}-${day}`;
 
       try {
         await dispatch(
@@ -249,7 +274,7 @@ const Cart = () => {
             userId: userInfo.id,
             cartId: tripId,
             travelersNumber: trip.travelersNumber,
-            startingDate: dateStringToSend, // Format only here
+            startingDate: dateStringToSend, // Format using UTC to prevent day shifts
             selectedCategory: category,
           }),
         );
