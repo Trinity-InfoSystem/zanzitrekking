@@ -240,10 +240,48 @@ class WeTravelService {
    */
   formatOrderForPaymentLink(order) {
     // Get the first trip's start date or use the earliest date from cart items
-    const startDate =
-      order.cartItems && order.cartItems.length > 0
-        ? new Date(order.cartItems[0].startingDate)
-        : new Date();
+    // CRITICAL: Extract UTC date components to avoid timezone shifts
+    let startDateObj;
+    if (order.cartItems && order.cartItems.length > 0 && order.cartItems[0].startingDate) {
+      const dateInput = order.cartItems[0].startingDate;
+      
+      // Handle different date formats
+      if (typeof dateInput === "string") {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+          // YYYY-MM-DD format - parse directly
+          const [year, month, day] = dateInput.split("-").map(Number);
+          startDateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+        } else if (dateInput.includes("T")) {
+          // ISO string - extract UTC date components to preserve intended date
+          const parsed = new Date(dateInput);
+          const utcYear = parsed.getUTCFullYear();
+          const utcMonth = parsed.getUTCMonth();
+          const utcDay = parsed.getUTCDate();
+          startDateObj = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+        } else {
+          // Other string format - parse and extract UTC components
+          const parsed = new Date(dateInput);
+          const utcYear = parsed.getUTCFullYear();
+          const utcMonth = parsed.getUTCMonth();
+          const utcDay = parsed.getUTCDate();
+          startDateObj = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+        }
+      } else {
+        // Date object - extract UTC components
+        const parsed = new Date(dateInput);
+        const utcYear = parsed.getUTCFullYear();
+        const utcMonth = parsed.getUTCMonth();
+        const utcDay = parsed.getUTCDate();
+        startDateObj = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+      }
+    } else {
+      // No date provided - use today
+      const now = new Date();
+      const utcYear = now.getUTCFullYear();
+      const utcMonth = now.getUTCMonth();
+      const utcDay = now.getUTCDate();
+      startDateObj = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+    }
 
     // Get cart item details for booking restriction check
     const firstCartItem =
@@ -254,17 +292,28 @@ class WeTravelService {
       order.cartItems && order.cartItems.length > 0
         ? order.cartItems[0].days || 7
         : 7;
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + daysCount);
+    
+    // Calculate end date using UTC to avoid timezone shifts
+    const endDateObj = new Date(startDateObj);
+    endDateObj.setUTCDate(endDateObj.getUTCDate() + daysCount);
 
     // Calculate days before departure (days between now and trip start)
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // Reset time to start of day
-    const tripStart = new Date(startDate);
-    tripStart.setHours(0, 0, 0, 0); // Reset time to start of day
+    const nowUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    const tripStartUTC = new Date(Date.UTC(
+      startDateObj.getUTCFullYear(),
+      startDateObj.getUTCMonth(),
+      startDateObj.getUTCDate(),
+      0, 0, 0, 0
+    ));
 
     // Calculate difference in days
-    const daysDiff = Math.ceil((tripStart - now) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.ceil((tripStartUTC - nowUTC) / (1000 * 60 * 60 * 24));
 
     // Determine if this is a Midrange/Luxury Safari (requires 4-day rule)
     const isMidrangeOrLuxury =
@@ -309,22 +358,40 @@ class WeTravelService {
       0
     );
 
+    // Format dates as YYYY-MM-DD using UTC components to avoid timezone shifts
+    const formatDateAsYYYYMMDD = (dateObj) => {
+      const year = dateObj.getUTCFullYear();
+      const month = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getUTCDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
     return {
       tripTitle,
       tripId: order.orderNumber,
-      startDate: startDate.toISOString().split("T")[0], // Format: YYYY-MM-DD
-      endDate: endDate.toISOString().split("T")[0],
+      startDate: formatDateAsYYYYMMDD(startDateObj), // Format: YYYY-MM-DD using UTC
+      endDate: formatDateAsYYYYMMDD(endDateObj),
       totalAmount: order.totalAmount,
       currency: "USD",
       daysBeforeDeparture: daysBeforeDeparture,
       travelersNumber: totalTravelers,
-      // Include participant/customer information
+      // Include participant/customer information (billing address is optional in WeTravel)
       participantInfo: order.personalInfo
         ? {
             firstName: order.personalInfo.firstName,
             lastName: order.personalInfo.lastName,
             email: order.personalInfo.email,
             phone: order.personalInfo.phone,
+            // Include billing address if available (WeTravel allows this but it's optional)
+            ...(order.billingAddress && {
+              address: {
+                street: order.billingAddress.street,
+                city: order.billingAddress.city,
+                state: order.billingAddress.state,
+                zip: order.billingAddress.zip,
+                country: order.billingAddress.country,
+              },
+            }),
           }
         : null,
     };

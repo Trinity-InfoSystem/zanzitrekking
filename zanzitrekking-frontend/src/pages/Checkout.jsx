@@ -513,6 +513,7 @@ const Checkout = () => {
     const { personalInfo, billingAddress } = formData;
 
     // Check if all required fields are filled
+    // Note: Billing address is required for our records but WeTravel API doesn't require it
     const requiredFieldsEmpty = [
       !personalInfo.firstName,
       !personalInfo.lastName,
@@ -522,11 +523,12 @@ const Checkout = () => {
       !billingAddress.city,
       !billingAddress.state,
       !billingAddress.zip,
+      !billingAddress.country,
     ].some(Boolean);
 
     if (requiredFieldsEmpty) {
       toast.error(
-        "Please fill in all required fields before placing your order.",
+        "Please fill in all required fields (including billing address) before placing your order.",
       );
       return;
     }
