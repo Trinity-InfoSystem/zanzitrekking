@@ -3,6 +3,7 @@ const router = express.Router();
 const wetravelWebhookController = require("../../controllers/home/wetravelWebhookController");
 const testWeTravelController = require("../../controllers/home/testWeTravelController");
 const testPaymentController = require("../../controllers/home/testPaymentController");
+const testEmailController = require("../../controllers/home/testEmailController");
 
 // WeTravel webhook endpoint
 // This endpoint receives webhook events from WeTravel when payments are completed
@@ -23,5 +24,12 @@ router.post("/wetravel/test/order", testPaymentController.createTestOrder);
 
 // POST /api/webhooks/wetravel/test/webhook - Simulate webhook event
 router.post("/wetravel/test/webhook", testPaymentController.simulateWebhook);
+
+// Test email endpoints
+// GET /api/webhooks/wetravel/test/email/config - Check email configuration
+router.get("/wetravel/test/email/config", testEmailController.checkEmailConfig);
+
+// POST /api/webhooks/wetravel/test/email - Send test email
+router.post("/wetravel/test/email", testEmailController.testEmail);
 
 module.exports = router;
