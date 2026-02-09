@@ -89,30 +89,54 @@ const formatDateTime = (date) => {
 const generatePaymentConfirmationEmail = async (order) => {
   // Validate that all trips in cartItems still exist in the database
   if (order.cartItems && order.cartItems.length > 0) {
-    const tripIds = order.cartItems
-      .map((item) => item.tripId)
-      .filter((id) => id); // Filter out null/undefined
+    // Extract trip IDs - handle both populated objects and plain IDs
+    const tripData = order.cartItems
+      .map((item) => {
+        if (!item.tripId) return null;
+        // Check if tripId is populated (has _id property) - if so, it exists
+        const isPopulated = item.tripId && typeof item.tripId === 'object' && item.tripId._id;
+        const tripId = isPopulated ? item.tripId._id : item.tripId;
+        return { tripId, isPopulated };
+      })
+      .filter((data) => data && data.tripId); // Filter out null/undefined
 
-    if (tripIds.length > 0) {
+    // Separate populated trips (already verified) from unpopulated ones (need DB check)
+    const populatedTripIds = tripData
+      .filter((data) => data.isPopulated)
+      .map((data) => data.tripId.toString());
+    
+    const unpopulatedTripIds = tripData
+      .filter((data) => !data.isPopulated)
+      .map((data) => data.tripId);
+
+    // Only check unpopulated trips in database
+    if (unpopulatedTripIds.length > 0) {
       const existingTrips = await Trip.find({
-        _id: { $in: tripIds },
+        _id: { $in: unpopulatedTripIds },
       }).select("_id");
 
       const existingTripIds = new Set(
         existingTrips.map((trip) => trip._id.toString())
       );
-      const missingTripIds = tripIds.filter(
+      const missingTripIds = unpopulatedTripIds.filter(
         (id) => !existingTripIds.has(id.toString())
       );
 
       if (missingTripIds.length > 0) {
         console.warn(
-          `[Email Templates] Cannot generate confirmation email for order ${order.orderNumber}: Some trips no longer exist (tripIds: ${missingTripIds.join(", ")})`
+          `[Email Templates] Cannot generate confirmation email for order ${order.orderNumber}: Some trips no longer exist (tripIds: ${missingTripIds.map(id => id.toString()).join(", ")})`
         );
         throw new Error(
           `Cannot generate email: Some trips in order no longer exist in database`
         );
       }
+    }
+    
+    // If we have populated trips, they're already verified to exist
+    if (populatedTripIds.length > 0) {
+      console.log(
+        `[Email Templates] Skipping DB check for ${populatedTripIds.length} populated trip(s) in order ${order.orderNumber}`
+      );
     }
   }
 
