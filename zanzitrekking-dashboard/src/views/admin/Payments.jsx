@@ -26,6 +26,7 @@ import {
 } from "../../store/Reducers/orderReducer";
 import { Link } from "react-router-dom";
 import { isAdmin } from "../../utils/roleVerification";
+import QRCodeDisplay from "../../components/QRCodeDisplay";
 
 const Payments = () => {
   const dispatch = useDispatch();
@@ -354,6 +355,23 @@ const Payments = () => {
                   </div>
                 </div>
               </div>
+
+              {/* QR Code Section - Only show for completed payments */}
+              {selectedOrder.payment?.status === "completed" && (
+                <div className="mt-6 rounded-xl bg-gradient-to-br from-primary-50 to-secondary-50 p-6 ring-2 ring-primary-200">
+                  <h3 className="mb-4 text-center text-lg font-semibold text-primary-800">
+                    Booking QR Code
+                  </h3>
+                  <QRCodeDisplay orderNumber={selectedOrder.orderNumber} />
+                  <div className="mt-4 rounded-lg bg-white/80 p-3 text-center">
+                    <p className="text-xs text-text">
+                      <span className="font-semibold text-primary-800">Note:</span> This QR code
+                      is automatically generated when payment is completed. It can be scanned at
+                      check-in to quickly access booking details.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Trip Details */}
               <div className="mt-6 rounded-xl bg-primary-50/50 p-4 ring-1 ring-primary-100">
