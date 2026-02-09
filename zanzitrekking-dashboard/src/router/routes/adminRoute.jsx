@@ -38,6 +38,7 @@ const EditImpactStat = lazy(() => import("../../views/admin/EditImpactStat"));
 const Clients = lazy(() => import("../../views/admin/Clients"));
 const AddClient = lazy(() => import("../../views/admin/AddClient"));
 const EditClient = lazy(() => import("../../views/admin/EditClient"));
+const QRCodeScanner = lazy(() => import("../../views/admin/QRCodeScanner"));
 const adminRoutes = [
   { path: "admin/dashboard", element: <AdminDashboard />, role: "admin" },
   { path: "admin/dashboard/categories", element: <Category />, role: "admin" },
@@ -75,6 +76,12 @@ const adminRoutes = [
   {
     path: "/admin/dashboard/payments",
     element: <Payments />,
+    role: "admin",
+    status: "active",
+  },
+  {
+    path: "/admin/dashboard/qr-scanner",
+    element: <QRCodeScanner />,
     role: "admin",
     status: "active",
   },

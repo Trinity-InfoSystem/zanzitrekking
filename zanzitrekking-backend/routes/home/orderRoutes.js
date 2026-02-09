@@ -8,6 +8,7 @@ const {
 
 // Order management routes
 router.post("/create", orderController.createOrder);
+router.get("/number/:orderNumber", orderController.getOrderByNumber); // For QR code scanning
 router.get("/:orderId", orderController.getOrderById);
 router.put("/:orderId/status", orderController.updateOrderStatus);
 router.put("/:orderId/payment", orderController.updatePaymentStatus);

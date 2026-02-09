@@ -25,6 +25,7 @@ import {
   FaBriefcase,
   FaFileLines,
   FaTriangleExclamation,
+  FaQrcode,
 } from "react-icons/fa6";
 
 export const allNav = [
@@ -54,6 +55,13 @@ export const allNav = [
     title: "Payments",
     icon: <MdPayment />,
     path: "/admin/dashboard/payments",
+    onlyAdmin: false,
+  },
+  {
+    id: 4.1,
+    title: "QR Code Scanner",
+    icon: <FaQrcode />,
+    path: "/admin/dashboard/qr-scanner",
     onlyAdmin: false,
   },
   {

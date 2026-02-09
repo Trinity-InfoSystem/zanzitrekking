@@ -453,6 +453,38 @@ class OrderController {
     }
   };
 
+  // Get order by order number (for QR code scanning)
+  getOrderByNumber = async (req, res) => {
+    const { orderNumber } = req.params;
+
+    try {
+      const order = await Order.findOne({ orderNumber })
+        .populate([
+          { path: "customerId", select: "name email phone" },
+          {
+            path: "cartItems.tripId",
+            select: "mainTitle mainImage description days",
+          },
+        ])
+        .lean();
+
+      if (!order) {
+        return responseReturn(res, 404, {
+          error: "Order not found",
+          orderNumber,
+        });
+      }
+
+      return responseReturn(res, 200, {
+        message: "Order found successfully",
+        order,
+      });
+    } catch (error) {
+      console.error("Get order by number error:", error);
+      return responseReturn(res, 500, { error: "Internal Server Error" });
+    }
+  };
+
   // Get order by ID
   getOrderById = async (req, res) => {
     const { orderId } = req.params;
