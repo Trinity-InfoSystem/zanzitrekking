@@ -182,8 +182,6 @@ const AddJob = () => {
     };
 
     // Submit job data
-    });
-
     if (jobId) {
       dispatch(update_job({ jobData, jobId })).then(() => {
         navigate("/admin/dashboard/jobs");

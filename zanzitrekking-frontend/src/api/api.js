@@ -8,7 +8,7 @@ const local = "http://localhost:5000";
  * Base URL for API requests.
  * Currently uses production URL. Uncomment the conditional to switch based on environment.
  */
-const baseURL = `${local}/api`;
+const baseURL = `${production}/api`;
 
 
 /**

@@ -109,7 +109,7 @@ const Checkout = () => {
   }, [checkoutTrips]);
 
   // Calculate total price
-  const serviceFee = 25;
+  const serviceFee = 0;
 
   // Check booking restrictions for all trips
   const checkBookingRestrictions = async () => {
@@ -642,6 +642,7 @@ const Checkout = () => {
           method: "wetravel",
           status: "pending",
         },
+        serviceFee: serviceFee, // Include service fee in order
       };
 
       // Check for missing required fields

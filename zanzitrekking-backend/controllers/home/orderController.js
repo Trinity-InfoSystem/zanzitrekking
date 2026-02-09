@@ -17,7 +17,7 @@ const {
 class OrderController {
   // Create new order from cart items
   createOrder = async (req, res) => {
-    const { customerId, cartItems, personalInfo, billingAddress, paymentInfo } =
+    const { customerId, cartItems, personalInfo, billingAddress, paymentInfo, serviceFee } =
       req.body;
 
     try {
@@ -205,6 +205,14 @@ class OrderController {
         },
         orderNumber
       );
+
+      // Set service fee if provided and recalculate total
+      if (serviceFee !== undefined && serviceFee !== null) {
+        order.serviceFee = Number(serviceFee) || 0;
+        // Recalculate total amount with service fee
+        order.calculateOrderTotals();
+        await order.save();
+      }
 
       // Generate WeTravel payment link
       try {

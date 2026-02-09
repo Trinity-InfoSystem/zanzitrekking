@@ -146,6 +146,10 @@ const orderSchema = new Schema(
       type: Number,
       default: 0,
     },
+    serviceFee: {
+      type: Number,
+      default: 0,
+    },
     subtotal: {
       type: Number,
       required: true,
@@ -459,7 +463,8 @@ orderSchema.methods.calculateOrderTotals = function () {
   });
 
   this.subtotal = subtotal;
-  this.totalAmount = subtotal - this.orderDiscount;
+  // totalAmount includes serviceFee
+  this.totalAmount = subtotal + (this.serviceFee || 0) - this.orderDiscount;
 
   // Don't call save() here, just calculate and set the values
   return this;

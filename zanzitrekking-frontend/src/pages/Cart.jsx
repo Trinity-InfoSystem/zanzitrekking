@@ -27,7 +27,7 @@ const Cart = () => {
   const [selectedDates, setSelectedDates] = useState({});
   const [selectedCategories, setSelectedCategories] = useState({});
   const [totalPrice, setTotalPrice] = useState(0);
-  const serviceFee = 25;
+  const serviceFee = 0;
 
   useEffect(() => {
     const tomorrow = addDays(new Date(), 1);

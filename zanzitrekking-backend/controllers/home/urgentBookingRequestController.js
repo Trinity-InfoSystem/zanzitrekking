@@ -6,6 +6,7 @@ const { checkBookingRestriction } = require("../../utilities/bookingRestrictions
 const emailQueue = require("../../workers/emailQueue");
 const {
   generateRequestConfirmationEmail,
+  generateAdminNotificationEmail,
 } = require("../../utilities/urgentBookingEmailTemplates");
 const mongoose = require("mongoose");
 
@@ -166,7 +167,7 @@ class UrgentBookingRequestController {
       await request.populate("tripId", "mainTitle");
       await request.populate("customerId", "name email");
 
-      // Send confirmation email
+      // Send confirmation email to customer
       try {
         const emailContent = await generateRequestConfirmationEmail(request);
         emailQueue.add({
@@ -175,6 +176,24 @@ class UrgentBookingRequestController {
           recipients: [request.personalInfo.email],
         });
       } catch (emailError) {
+        console.error("Error sending customer confirmation email:", emailError);
+        // Don't fail the request creation if email fails
+      }
+
+      // Send notification email to admin
+      try {
+        const adminEmailContent = await generateAdminNotificationEmail(request);
+        const customerNameForSubject = request.personalInfo?.firstName && request.personalInfo?.lastName
+          ? `${request.personalInfo.firstName} ${request.personalInfo.lastName}`
+          : customer?.name || "Customer";
+        emailQueue.add({
+          subject: `New Availability Request - ${trip.mainTitle} - ${customerNameForSubject}`,
+          content: adminEmailContent,
+          recipients: ["notifications@zanzisafaris.com"],
+        });
+        console.log(`[Email] Admin notification email queued for request ${request._id}`);
+      } catch (emailError) {
+        console.error("Error sending admin notification email:", emailError);
         // Don't fail the request creation if email fails
       }
 

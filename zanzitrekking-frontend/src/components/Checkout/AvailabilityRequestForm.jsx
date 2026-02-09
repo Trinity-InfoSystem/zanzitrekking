@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearMessage, createUrgentBookingRequest } from "../../store/reducers/urgentBookingRequestReducer";
 import toast from "react-hot-toast";
@@ -46,6 +46,22 @@ const AvailabilityRequestForm = ({
     (state) => state.urgentBookingRequest,
   );
   const [submittedRequests, setSubmittedRequests] = useState([]);
+  const successRef = useRef(null);
+
+  // Scroll to top when success message is shown
+  useEffect(() => {
+    if (submittedRequests.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        if (successRef.current) {
+          // Scroll the success message into view at the top of the viewport
+          successRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        // Also ensure window scrolls to show the top of the page
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 150);
+    }
+  }, [submittedRequests.length]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -246,7 +262,7 @@ const AvailabilityRequestForm = ({
 
   if (submittedRequests.length > 0) {
     return (
-      <div className="rounded-xl border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
+      <div ref={successRef} className="rounded-xl border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-6 shadow-lg">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500">
             <Send className="h-8 w-8 text-white" />
