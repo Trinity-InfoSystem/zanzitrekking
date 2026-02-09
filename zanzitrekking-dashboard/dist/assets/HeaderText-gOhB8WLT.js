@@ -1,0 +1,1 @@
+import{j as e}from"./index-DPua6rV6.js";function d({title:t}){return e.jsx("div",{className:"mb-6 flex items-center justify-between rounded-lg bg-white p-4 shadow-md lg:hidden dark:bg-gray-800",children:e.jsx("h1",{className:"text-xl font-bold text-gray-800 dark:text-white",children:t})})}export{d as H};

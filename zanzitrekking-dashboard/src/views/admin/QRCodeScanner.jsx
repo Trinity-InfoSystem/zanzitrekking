@@ -63,15 +63,48 @@ const QRCodeScanner = () => {
   };
 
   const startScanning = async () => {
+    setError(null); // Clear any previous errors
+    
     try {
+      // Check if we're on HTTPS (required for camera access)
+      if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+        setError(
+          "Camera requires HTTPS connection. Please use HTTPS or try manual entry."
+        );
+        return;
+      }
+
       const html5QrCode = new Html5Qrcode("reader");
       html5QrCodeRef.current = html5QrCode;
 
+      // Try to get available cameras first
+      let cameraId = null;
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          // Prefer back camera, fallback to first available
+          const backCamera = devices.find(
+            (device) => device.label.toLowerCase().includes("back") ||
+            device.label.toLowerCase().includes("rear") ||
+            device.label.toLowerCase().includes("environment")
+          );
+          cameraId = backCamera ? backCamera.id : devices[0].id;
+        }
+      } catch (err) {
+        console.log("Could not enumerate cameras, using default:", err);
+      }
+
+      // Start scanner with camera ID or facing mode
+      const config = cameraId
+        ? { deviceId: { exact: cameraId } }
+        : { facingMode: "environment" }; // Fallback to facing mode
+
       await html5QrCode.start(
-        { facingMode: "environment" }, // Use back camera
+        config,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
         },
         (decodedText) => {
           // Success callback
@@ -79,13 +112,33 @@ const QRCodeScanner = () => {
         },
         (errorMessage) => {
           // Error callback - ignore, scanner will keep trying
+          // Only log if it's not a common scanning error
+          if (!errorMessage.includes("NotFoundException")) {
+            console.debug("Scanning error (normal):", errorMessage);
+          }
         }
       );
 
       setScanning(true);
+      setError(null);
     } catch (err) {
       console.error("Error starting scanner:", err);
-      setError("Failed to start camera. Please check permissions.");
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to start camera. ";
+      
+      if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+        errorMessage += "Please allow camera access in your browser settings and try again.";
+      } else if (err.name === "NotFoundError" || err.message?.includes("camera")) {
+        errorMessage += "No camera found. Please use manual entry or connect a camera.";
+      } else if (err.message?.includes("HTTPS")) {
+        errorMessage += "Camera requires HTTPS connection. Please use HTTPS.";
+      } else {
+        errorMessage += `Error: ${err.message || "Unknown error"}. Try manual entry as an alternative.`;
+      }
+      
+      setError(errorMessage);
+      setScanning(false);
     }
   };
 
@@ -109,6 +162,7 @@ const QRCodeScanner = () => {
 
   const handleManualSearch = () => {
     if (manualInput.trim()) {
+      setError(null); // Clear any previous errors
       fetchOrderByNumber(manualInput.trim());
     }
   };
@@ -182,18 +236,30 @@ const QRCodeScanner = () => {
             {/* Scanner */}
             <div className="mb-4">
               {!scanning ? (
-                <button
-                  onClick={startScanning}
-                  className="w-full rounded-xl bg-gradient-to-r from-primary to-secondary px-6 py-4 text-white font-semibold transition-all hover:shadow-lg flex items-center justify-center gap-2"
-                >
-                  <FaQrcode />
-                  Start Camera Scanner
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={startScanning}
+                    className="w-full rounded-xl bg-gradient-to-r from-primary to-secondary px-6 py-4 text-white font-semibold transition-all hover:shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <FaQrcode />
+                    Start Camera Scanner
+                  </button>
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                    <p className="font-semibold mb-1">📷 Camera Requirements:</p>
+                    <ul className="list-disc list-inside space-y-1 text-blue-700">
+                      <li>HTTPS connection required (secure site)</li>
+                      <li>Camera permissions must be granted</li>
+                      <li>Works best on mobile devices or tablets</li>
+                      <li>Use manual entry if camera is unavailable</li>
+                    </ul>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div
                     id="reader"
                     className="rounded-xl border-2 border-primary-200 overflow-hidden"
+                    style={{ minHeight: "300px" }}
                   ></div>
                   <button
                     onClick={stopScanning}
@@ -215,9 +281,12 @@ const QRCodeScanner = () => {
 
             {error && (
               <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4">
-                <p className="text-red-800 font-semibold flex items-center gap-2">
+                <p className="text-red-800 font-semibold flex items-center gap-2 mb-2">
                   <FaTimesCircle />
                   {error}
+                </p>
+                <p className="text-sm text-red-700 mt-2">
+                  💡 <strong>Tip:</strong> You can always use the manual entry above to search by order number.
                 </p>
               </div>
             )}
