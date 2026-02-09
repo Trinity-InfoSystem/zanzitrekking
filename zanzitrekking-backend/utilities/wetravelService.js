@@ -3,9 +3,15 @@ const { isTripDateInPast } = require("./bookingRestrictions");
 
 class WeTravelService {
   constructor() {
+    // Use production API by default, fallback to demo if WETRAVEL_USE_DEMO is set
+    const useDemo = process.env.WETRAVEL_USE_DEMO === "true";
     this.apiKey = process.env.WETRAVEL_API_KEY;
-    this.authUrl = "https://api.demo.wetravel.to/v2/auth/tokens/access";
-    this.apiUrl = "https://api.demo.wetravel.to/v2";
+    this.authUrl = useDemo
+      ? "https://api.demo.wetravel.to/v2/auth/tokens/access"
+      : "https://api.wetravel.com/v2/auth/tokens/access";
+    this.apiUrl = useDemo
+      ? "https://api.demo.wetravel.to/v2"
+      : "https://api.wetravel.com/v2";
     this.accessToken = null;
   }
 

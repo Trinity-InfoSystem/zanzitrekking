@@ -33,6 +33,7 @@ const reviewRouter = require("./routes/home/reviewRoutes");
 const jobRouter = require("./routes/home/jobRoutes");
 const jobApplicationRouter = require("./routes/home/jobApplicationRoutes");
 const urgentBookingRequestRouter = require("./routes/home/urgentBookingRequestRoutes"); // ADDED
+const wetravelWebhookRouter = require("./routes/home/wetravelWebhookRoutes"); // ADDED
 
 // Dashboard routes
 const authRoute = require("./routes/authRoutes");
@@ -72,8 +73,8 @@ const allowedOrigins = [
   "https://zanzisafaris.com", // Add main domain
   "https://www.zanzisafaris.com", // Add www version
   "https://admin.zanzisafaris.com",
-  "https://zanzitrekking-dashboard.vercel.app",
-  "https://zanzitrekking-frontend.vercel.app",
+  "https://www.admin.zanzisafaris.com",
+  
 ];
 
 const corsOptions = {
@@ -264,6 +265,7 @@ app.use("/api/reviews", reviewRouter);
 app.use("/api", jobRouter);
 app.use("/api", jobApplicationRouter);
 app.use("/api", urgentBookingRequestRouter); // ADDED
+app.use("/api/webhooks", wetravelWebhookRouter); // ADDED - WeTravel webhook endpoint
 
 // Dashboard routes
 app.use("/api", authRoute);
