@@ -1,5 +1,7 @@
 const emailQueue = require("../../workers/emailQueue");
 const { responseReturn } = require("../../utilities/response");
+const Order = require("../../models/order");
+const { generatePaymentConfirmationEmail } = require("../../utilities/orderEmailTemplates");
 
 /**
  * Test Email Controller
@@ -122,6 +124,97 @@ class TestEmailController {
     } catch (error) {
       return responseReturn(res, 500, {
         error: "Failed to check email configuration",
+        message: error.message,
+      });
+    }
+  };
+
+  /**
+   * Manually send payment confirmation email for an existing order
+   */
+  sendPaymentConfirmationEmail = async (req, res) => {
+    try {
+      const { orderNumber } = req.body;
+
+      if (!orderNumber) {
+        return responseReturn(res, 400, {
+          error: "orderNumber is required",
+        });
+      }
+
+      // Find the order
+      const order = await Order.findOne({ orderNumber });
+
+      if (!order) {
+        return responseReturn(res, 404, {
+          error: "Order not found",
+          orderNumber,
+        });
+      }
+
+      // Check if payment is completed
+      if (order.payment?.status !== "completed") {
+        return responseReturn(res, 400, {
+          error: "Payment is not completed",
+          currentStatus: order.payment?.status,
+          note: "Payment confirmation email can only be sent for completed payments",
+        });
+      }
+
+      // Get customer email
+      const customerEmail =
+        order.personalInfo?.email || order.customerId?.email;
+
+      if (!customerEmail) {
+        return responseReturn(res, 400, {
+          error: "Customer email not found",
+          orderNumber,
+        });
+      }
+
+      console.log(
+        `[Manual Email] 📧 Sending payment confirmation email for order ${orderNumber} to ${customerEmail}`
+      );
+
+      // Populate order data for email
+      await order.populate([
+        { path: "customerId", select: "name email" },
+        { path: "cartItems.tripId", select: "title mainImage days" },
+      ]);
+
+      // Generate email
+      const emailData = await generatePaymentConfirmationEmail(order);
+
+      // Queue email
+      emailQueue.add({
+        subject: `Payment Confirmed - Booking #${order.orderNumber}`,
+        content: emailData.html,
+        recipients: [customerEmail],
+        attachment: emailData.attachment,
+      });
+
+      // Update email notification flag
+      if (!order.emailNotifications) {
+        order.emailNotifications = {};
+      }
+      order.emailNotifications.paymentConfirmation = true;
+      await order.save();
+
+      console.log(
+        `[Manual Email] ✅ Payment confirmation email queued for order ${orderNumber} to ${customerEmail}`
+      );
+
+      return responseReturn(res, 200, {
+        message: "Payment confirmation email queued successfully",
+        orderNumber,
+        recipientEmail: customerEmail,
+        emailQueued: true,
+        emailNotificationUpdated: true,
+      });
+    } catch (error) {
+      console.error("[Manual Email] ❌ Error:", error);
+      return responseReturn(res, 500, {
+        error: "Failed to send payment confirmation email",
         message: error.message,
       });
     }

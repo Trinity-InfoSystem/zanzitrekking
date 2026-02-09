@@ -32,4 +32,7 @@ router.get("/wetravel/test/email/config", testEmailController.checkEmailConfig);
 // POST /api/webhooks/wetravel/test/email - Send test email
 router.post("/wetravel/test/email", testEmailController.testEmail);
 
+// POST /api/webhooks/wetravel/test/email/payment-confirmation - Manually send payment confirmation email
+router.post("/wetravel/test/email/payment-confirmation", testEmailController.sendPaymentConfirmationEmail);
+
 module.exports = router;

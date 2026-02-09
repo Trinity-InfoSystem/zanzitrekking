@@ -394,6 +394,13 @@ class WeTravelWebhookController {
               attachment: emailData.attachment,
             });
 
+            // Update email notification flag
+            if (!order.emailNotifications) {
+              order.emailNotifications = {};
+            }
+            order.emailNotifications.paymentConfirmation = true;
+            await order.save();
+
             console.log(
               `[Webhook] ✅ Payment confirmation email queued for order ${order.orderNumber} to ${customerEmail}`
             );
