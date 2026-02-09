@@ -52,10 +52,19 @@ const QRCodeScanner = () => {
       setScannedOrder(data.order);
       setError(null);
     } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          `Order "${orderNumber}" not found. Please check the QR code and try again.`
-      );
+      console.error("Error fetching order:", err);
+      
+      // Handle 401 authentication errors
+      if (err.response?.status === 401) {
+        setError(
+          "Authentication required. Please log in again and try again."
+        );
+      } else {
+        setError(
+          err.response?.data?.error ||
+            `Order "${orderNumber}" not found. Please check the QR code and try again.`
+        );
+      }
       setScannedOrder(null);
     } finally {
       setLoading(false);
@@ -71,6 +80,20 @@ const QRCodeScanner = () => {
         setError(
           "Camera requires HTTPS connection. Please use HTTPS or try manual entry."
         );
+        return;
+      }
+
+      // First, set scanning to true so the DOM element is rendered
+      setScanning(true);
+      
+      // Wait for the DOM element to be available
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Check if element exists
+      const readerElement = document.getElementById("reader");
+      if (!readerElement) {
+        setScanning(false);
+        setError("Scanner element not found. Please refresh the page and try again.");
         return;
       }
 
@@ -119,7 +142,6 @@ const QRCodeScanner = () => {
         }
       );
 
-      setScanning(true);
       setError(null);
     } catch (err) {
       console.error("Error starting scanner:", err);
