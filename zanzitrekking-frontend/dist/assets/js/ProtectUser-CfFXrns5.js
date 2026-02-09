@@ -1,1 +1,0 @@
-import{x as s,v as o,bd as r,bl as t}from"./react-vendor-YKt0K_kh.js";import"./socket-vendor-BVzeCAoG.js";const e=()=>{const{userInfo:e}=s(s=>s.auth);return e?o.jsx(r,{}):o.jsx(t,{to:"/login",replace:!0})};export{e as default};

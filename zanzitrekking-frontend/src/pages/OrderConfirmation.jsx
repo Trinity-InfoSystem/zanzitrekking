@@ -9,6 +9,7 @@ import {
   resetOrderCreationStatus,
 } from "../store/reducers/orderReducer";
 import { IMAGES_URL } from "../utils/constants";
+import QRCodeDisplay from "../components/QRCodeDisplay";
 
 const OrderConfirmation = () => {
   const location = useLocation();
@@ -476,6 +477,22 @@ const OrderConfirmation = () => {
               </div>
             </div>
           </div>
+
+          {/* QR Code Section - Only show for completed payments */}
+          {orderDetails.payment?.status === "completed" && (
+            <div className="mb-8 rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-8 shadow-lg">
+              <h3 className="mb-6 text-center text-2xl font-bold text-gray-900">
+                🎉 Payment Confirmed - Your Booking QR Code
+              </h3>
+              <QRCodeDisplay orderNumber={orderDetails.orderNumber} />
+              <div className="mt-6 rounded-lg bg-white/80 p-4 text-center">
+                <p className="text-sm text-gray-700">
+                  <strong>Important:</strong> Save this QR code to your phone or print it. 
+                  Present it at check-in for quick access to your booking details.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Customer Information */}
           <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import QRCodeDisplay from "../components/QRCodeDisplay";
 
 const OrderDetail = () => {
   const { orderId } = useParams();
@@ -387,6 +388,25 @@ const OrderDetail = () => {
                 )}
               </div>
             </div>
+
+            {/* QR Code Section - Only show for completed payments */}
+            {currentOrder.payment?.status === "completed" && (
+              <div
+                className="rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-white to-secondary/5 p-8 shadow-nature-large backdrop-blur-xl"
+                data-aos="fade-up"
+              >
+                <h2 className="mb-6 text-center text-xl font-bold text-primary">
+                  Your Booking QR Code
+                </h2>
+                <QRCodeDisplay orderNumber={currentOrder.orderNumber} />
+                <div className="mt-6 rounded-lg bg-primary/10 p-4 text-center">
+                  <p className="text-sm text-text-dark">
+                    <strong>Note:</strong> This QR code is automatically generated when payment is completed. 
+                    You can download or print it to present at check-in for quick access to your booking details.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Cart Items */}
             <div
