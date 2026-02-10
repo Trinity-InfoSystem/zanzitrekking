@@ -562,6 +562,10 @@ class OrderController {
 
       const query = { customerId };
 
+      // Only show orders that have payment links (successfully created bookings)
+      // This filters out pending booking requests and ensures only real bookings are shown
+      query["payment.weTravelPaymentLink"] = { $exists: true, $ne: null };
+
       // Filter by status if provided
       if (status) {
         query.orderStatus = status;
