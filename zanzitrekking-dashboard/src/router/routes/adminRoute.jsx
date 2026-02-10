@@ -82,7 +82,7 @@ const adminRoutes = [
   {
     path: "/admin/dashboard/qr-scanner",
     element: <QRCodeScanner />,
-    role: "admin",
+    role: ["admin", "editor"], // Allow both admin and editor roles
     status: "active",
   },
 

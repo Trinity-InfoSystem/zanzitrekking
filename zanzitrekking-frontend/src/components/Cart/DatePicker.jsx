@@ -48,49 +48,26 @@ export const DatePicker = ({
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 280 });
 
   // Convert date to Date object if it's a string
-  // CRITICAL: Use UTC to prevent timezone shifts
+  // For display: use local date to show correct day
+  // For API: format using UTC components when sending
   const getDateValue = () => {
     if (!date) {
-      const tomorrow = addDays(new Date(), 1);
-      return new Date(Date.UTC(
-        tomorrow.getUTCFullYear(),
-        tomorrow.getUTCMonth(),
-        tomorrow.getUTCDate(),
-        12, 0, 0, 0
-      ));
+      return addDays(new Date(), 1);
     }
     if (date instanceof Date) {
-      // Extract UTC components to create a stable date at UTC noon
-      return new Date(Date.UTC(
-        date.getUTCFullYear(),
-        date.getUTCMonth(),
-        date.getUTCDate(),
-        12, 0, 0, 0
-      ));
+      return date;
     }
-    // Parse YYYY-MM-DD strings using UTC to avoid timezone issues
+    // Parse YYYY-MM-DD strings as local date for correct display
     if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      const [year, month, day] = date.split("-").map(Number);
-      return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+      return parse(date, "yyyy-MM-dd", new Date());
     }
-    // For ISO strings, extract UTC components
+    // For ISO strings, extract date part and parse as local
     if (typeof date === "string" && date.includes("T")) {
-      const parsed = new Date(date);
-      return new Date(Date.UTC(
-        parsed.getUTCFullYear(),
-        parsed.getUTCMonth(),
-        parsed.getUTCDate(),
-        12, 0, 0, 0
-      ));
+      const datePart = date.split("T")[0];
+      return parse(datePart, "yyyy-MM-dd", new Date());
     }
-    // Fallback - extract UTC components
-    const parsed = new Date(date);
-    return new Date(Date.UTC(
-      parsed.getUTCFullYear(),
-      parsed.getUTCMonth(),
-      parsed.getUTCDate(),
-      12, 0, 0, 0
-    ));
+    // Fallback
+    return new Date(date);
   };
 
   const dateValue = getDateValue();
@@ -134,12 +111,15 @@ export const DatePicker = ({
 
   // Check for warning message based on booking restrictions
   useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today at local midnight for accurate day calculation
+    const today = startOfDay(new Date());
 
-    const selectedDate = new Date(dateValue);
-    selectedDate.setHours(0, 0, 0, 0);
-    const daysUntilTrip = differenceInDays(selectedDate, today);
+    // Ensure selected date is also at local midnight
+    const selectedDate = startOfDay(dateValue);
+
+    // Calculate days until trip using manual calculation (matching backend logic)
+    // This ensures consistent calculation regardless of timezone
+    const daysUntilTrip = Math.ceil((selectedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     const isBudget = selectedCategory === "standard";
     const isMidOrLux =
@@ -191,51 +171,21 @@ export const DatePicker = ({
     if (isBefore(dayStart, minDate)) {
       return;
     }
-    // Create a Date object at UTC noon to prevent timezone shifts when formatted
-    // This ensures the date stays the same regardless of timezone
-    const utcDate = new Date(Date.UTC(
-      dayStart.getFullYear(),
-      dayStart.getMonth(),
-      dayStart.getDate(),
-      12, 0, 0, 0 // Noon UTC to prevent timezone shifts
-    ));
-    onChange(utcDate);
+    // Pass the local date - Cart component will format it using UTC when sending to API
+    onChange(dayStart);
     setIsOpen(false);
   };
 
-  const handleTodayClick = () => {
-    onChange(format(minDate, "yyyy-MM-dd"));
+  const handleTomorrowClick = () => {
+    onChange(minDate);
     setViewMonth(startOfMonth(minDate));
     setIsOpen(false);
   };
 
   const handleClearClick = () => {
-    onChange(format(minDate, "yyyy-MM-dd"));
+    onChange(minDate);
     setViewMonth(startOfMonth(minDate));
     setIsOpen(false);
-  };
-
-  const formatDateForInput = () => {
-    try {
-      if (!dateValue || isNaN(dateValue.getTime())) {
-        const tomorrow = addDays(new Date(), 1);
-        const year = tomorrow.getUTCFullYear();
-        const month = String(tomorrow.getUTCMonth() + 1).padStart(2, "0");
-        const day = String(tomorrow.getUTCDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      }
-      // Format using UTC components to prevent timezone shifts
-      const year = dateValue.getUTCFullYear();
-      const month = String(dateValue.getUTCMonth() + 1).padStart(2, "0");
-      const day = String(dateValue.getUTCDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    } catch {
-      const tomorrow = addDays(new Date(), 1);
-      const year = tomorrow.getUTCFullYear();
-      const month = String(tomorrow.getUTCMonth() + 1).padStart(2, "0");
-      const day = String(tomorrow.getUTCDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
   };
 
   // Build calendar grid: weeks from start of week of month start to end of week of month end
@@ -321,14 +271,14 @@ export const DatePicker = ({
         })}
       </div>
 
-      {/* Today and Clear buttons */}
+      {/* Tomorrow and Clear buttons */}
       <div className="mt-3 flex gap-2 border-t border-gray-200 pt-3">
         <button
           type="button"
-          onClick={handleTodayClick}
+          onClick={handleTomorrowClick}
           className="flex-1 rounded border border-black bg-white px-3 py-1.5 text-sm font-medium text-black transition-colors hover:bg-gray-100"
         >
-          Today
+          Tomorrow
         </button>
         <button
           type="button"

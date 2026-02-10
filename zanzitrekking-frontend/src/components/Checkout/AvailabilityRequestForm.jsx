@@ -71,17 +71,13 @@ const AvailabilityRequestForm = ({
       return;
     }
 
-    // Validate required fields
-    const { personalInfo, billingAddress } = formData;
+    // Validate required fields (billing address not required for availability requests)
+    const { personalInfo } = formData;
     if (
       !personalInfo.firstName ||
       !personalInfo.lastName ||
       !personalInfo.email ||
-      !personalInfo.phone ||
-      !billingAddress.street ||
-      !billingAddress.city ||
-      !billingAddress.state ||
-      !billingAddress.zip
+      !personalInfo.phone
     ) {
       toast.error("Please fill in all required fields");
       return;
@@ -203,13 +199,8 @@ const AvailabilityRequestForm = ({
               email: personalInfo.email.trim(),
               phone: personalInfo.phone.trim(),
             },
-            billingAddress: {
-              street: billingAddress.street.trim(),
-              city: billingAddress.city.trim(),
-              state: billingAddress.state.trim(),
-              zip: billingAddress.zip.trim(),
-              country: billingAddress.country || "United States",
-            },
+            // Billing address not required for availability requests
+            billingAddress: null,
           };
 
           const result = await dispatch(createUrgentBookingRequest(requestData));
@@ -484,90 +475,6 @@ const AvailabilityRequestForm = ({
           </div>
         </div>
 
-        <div className="rounded-lg border border-orange-200 bg-white/70 p-6">
-          <h4 className="mb-4 text-lg font-semibold text-orange-900">
-            Billing Address
-          </h4>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Street Address *
-              </label>
-              <input
-                type="text"
-                value={formData.billingAddress.street}
-                onChange={(e) =>
-                  handleChange("billingAddress", "street", e.target.value)
-                }
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                placeholder="123 Main St"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  value={formData.billingAddress.city}
-                  onChange={(e) =>
-                    handleChange("billingAddress", "city", e.target.value)
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                  placeholder="New York"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  State *
-                </label>
-                <input
-                  type="text"
-                  value={formData.billingAddress.state}
-                  onChange={(e) =>
-                    handleChange("billingAddress", "state", e.target.value)
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                  placeholder="NY"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  ZIP Code *
-                </label>
-                <input
-                  type="text"
-                  value={formData.billingAddress.zip}
-                  onChange={(e) =>
-                    handleChange("billingAddress", "zip", e.target.value)
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                  placeholder="10001"
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Country *
-              </label>
-              <input
-                type="text"
-                value={formData.billingAddress.country}
-                onChange={(e) =>
-                  handleChange("billingAddress", "country", e.target.value)
-                }
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                placeholder="United States"
-                required
-              />
-            </div>
-          </div>
-        </div>
 
         <div className="flex justify-end gap-4">
           <button

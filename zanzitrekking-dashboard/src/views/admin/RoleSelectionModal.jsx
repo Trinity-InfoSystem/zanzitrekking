@@ -37,6 +37,11 @@ const RoleSelectionModal = ({
       description: "View payment information",
     },
     {
+      id: "qr-scanner",
+      name: "QR Code Scanner",
+      description: "Scan QR codes for check-in",
+    },
+    {
       id: "partners",
       name: "Partners",
       description: "Manage partners",

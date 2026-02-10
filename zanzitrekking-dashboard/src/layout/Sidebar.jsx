@@ -50,6 +50,7 @@ const Sidebar = ({ showSideBar, setShowSidebar }) => {
           Category: "categories",
           Customers: "customers",
           Payments: "payments",
+          "QR Code Scanner": "qr-scanner",
           "Chat-Customer": "chat-customer",
           Profile: "profile",
           Inclusions: "inclusions",

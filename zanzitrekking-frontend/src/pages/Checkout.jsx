@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
@@ -149,8 +149,11 @@ const Checkout = () => {
       // For cart items: trip.tripId is the actual trip ID, trip._id is the cart item ID
       // For direct trips: trip._id is the trip ID
       const tripId = trip.tripId || trip._id;
+      // Get selected category - use current state, fallback to trip's default
       const selectedCategory =
-        selectedCategories[tripId] || trip.selectedCategory || "standard";
+        selectedCategories[tripId] !== undefined
+          ? selectedCategories[tripId]
+          : trip.selectedCategory || "standard";
       // Parse date correctly to avoid timezone issues
       let startingDate = null;
       if (trip.startingDate) {
@@ -328,8 +331,19 @@ const Checkout = () => {
 
       setBlockedTrips(blocked);
       setExistingRequests(matchedRequests);
-      // Show form only if there are blocked trips without existing requests
+      // Show form only if there are blocked trips
+      // This will show the availability form for blocked trips, and checkout for allowed trips
       setShowAvailabilityForm(blocked.length > 0);
+      
+      // Log for debugging (can be removed in production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Checkout] Availability check results:', {
+          totalTrips: checkoutTrips.length,
+          blockedTrips: blocked.length,
+          allowedTrips: checkoutTrips.length - blocked.length,
+          blockedTripIds: blocked.map(bt => bt.tripId?.toString() || bt.trip?._id?.toString()),
+        });
+      }
     } catch (error) {
       // On error, allow checkout but log the error
       setBlockedTrips([]);
@@ -339,7 +353,7 @@ const Checkout = () => {
     }
   };
 
-  // Check restrictions when trips or categories change
+  // Check restrictions when trips change
   useEffect(() => {
     // Important: in direct-trip checkout, `checkoutTrips` can be temporarily empty
     // while the trip is fetching. Avoid getting stuck in a perpetual loading state.
@@ -350,7 +364,25 @@ const Checkout = () => {
 
     checkBookingRestrictions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkoutTrips.length, selectedCategories, userInfo?.id]);
+  }, [checkoutTrips.length, userInfo?.id]);
+
+  // Re-check restrictions when categories change (category affects blocking rules)
+  // Use a ref to track previous categories to avoid unnecessary re-checks
+  const prevCategoriesRef = useRef(JSON.stringify(selectedCategories));
+  useEffect(() => {
+    const currentCategoriesStr = JSON.stringify(selectedCategories);
+    // Only re-check if categories actually changed and we have trips
+    if (
+      checkoutTrips.length > 0 &&
+      userInfo?.id &&
+      currentCategoriesStr !== prevCategoriesRef.current &&
+      Object.keys(selectedCategories).length > 0
+    ) {
+      prevCategoriesRef.current = currentCategoriesStr;
+      checkBookingRestrictions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategories, checkoutTrips.length, userInfo?.id]);
 
   // Helper function to get applicable rates based on pricing type and date
   const getApplicableRates = (trip) => {
@@ -964,16 +996,19 @@ const Checkout = () => {
             });
 
             // FINAL SAFEGUARD: If blocked trips count equals checkout trips count and none are approved, block checkout
+            // This handles the case where ALL trips are blocked (single trip or multiple)
             if (blockedTrips.length === checkoutTrips.length && checkoutTrips.length > 0) {
               const allBlockedHaveApproval = blockedTrips.every((blockedTrip) => {
+                // Check if this blocked trip has an approved request
                 if (blockedTrip.existingRequest?.status === "approved") {
                   return true;
                 }
                 const tripId = blockedTrip.tripId?.toString() || blockedTrip.trip?._id?.toString();
-                return existingRequests.some((req) => {
+                const approvedRequest = existingRequests.find((req) => {
                   const reqTripId = req.tripId?.toString() || req.tripId?._id?.toString();
                   return reqTripId === tripId && req.request?.status === "approved";
                 });
+                return Boolean(approvedRequest);
               });
 
               if (!allBlockedHaveApproval) {

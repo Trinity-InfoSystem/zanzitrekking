@@ -1,0 +1,1 @@
+import{a as i,j as e,e as n,N as a}from"./index-BGy26H0q.js";const d=()=>{const{userInfo:r,loader:t,isInitialized:s}=i(o=>o.auth);return t||!s?e.jsx(n,{}):r?e.jsx(a,{to:"/admin/dashboard",replace:!0}):e.jsx(a,{to:"/admin/login",replace:!0})};export{d as default};

@@ -38,48 +38,30 @@ const Cart = () => {
         let dateValue;
         if (trip.startingDate) {
           // Parse date string - backend returns YYYY-MM-DD format
-          // CRITICAL: Use UTC to prevent timezone shifts
+          // Parse as local date for correct display
           if (typeof trip.startingDate === "string") {
             if (/^\d{4}-\d{2}-\d{2}$/.test(trip.startingDate)) {
-              // Pure date string YYYY-MM-DD - parse and create at UTC noon
-              const [year, month, day] = trip.startingDate.split("-").map(Number);
-              dateValue = new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0));
+              // Pure date string YYYY-MM-DD - parse as local date
+              dateValue = parse(trip.startingDate, "yyyy-MM-dd", new Date());
             } else if (trip.startingDate.includes("T")) {
-              // ISO string - extract UTC date components
-              const parsed = new Date(trip.startingDate);
-              const utcYear = parsed.getUTCFullYear();
-              const utcMonth = parsed.getUTCMonth();
-              const utcDay = parsed.getUTCDate();
-              dateValue = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+              // ISO string - extract date part and parse as local
+              const datePart = trip.startingDate.split("T")[0];
+              dateValue = parse(datePart, "yyyy-MM-dd", new Date());
             } else {
-              // Other format - extract UTC components
-              const parsed = new Date(trip.startingDate);
-              const utcYear = parsed.getUTCFullYear();
-              const utcMonth = parsed.getUTCMonth();
-              const utcDay = parsed.getUTCDate();
-              dateValue = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+              dateValue = new Date(trip.startingDate);
             }
           } else {
-            // If it's already a Date object - extract UTC components
-            const parsed = new Date(trip.startingDate);
-            const utcYear = parsed.getUTCFullYear();
-            const utcMonth = parsed.getUTCMonth();
-            const utcDay = parsed.getUTCDate();
-            dateValue = new Date(Date.UTC(utcYear, utcMonth, utcDay, 12, 0, 0, 0));
+            // If it's already a Date object
+            dateValue = new Date(trip.startingDate);
           }
           // Validate the date
           if (isNaN(dateValue.getTime())) {
             dateValue = tomorrow;
           } else {
-            // Ensure date is at least tomorrow (compare UTC dates)
-            const tomorrowUTC = new Date(Date.UTC(
-              tomorrow.getUTCFullYear(),
-              tomorrow.getUTCMonth(),
-              tomorrow.getUTCDate(),
-              12, 0, 0, 0
-            ));
-            if (dateValue < tomorrowUTC) {
-              dateValue = tomorrowUTC;
+            dateValue.setHours(0, 0, 0, 0);
+            // Ensure date is at least tomorrow
+            if (dateValue < tomorrow) {
+              dateValue = tomorrow;
             }
           }
         } else {
@@ -257,15 +239,16 @@ const Cart = () => {
     }));
 
     // Update backend - format ONLY when sending to API
-    // CRITICAL: Use UTC date components to prevent timezone shifts
+    // Use LOCAL date components - backend stores YYYY-MM-DD as-is without timezone conversion
     const trip = cart_trips.find((t) => t._id === tripId);
     if (trip) {
       const category = selectedCategories[tripId] || trip.selectedCategory || "standard";
       
-      // Format date using UTC components to preserve the intended date
-      const year = dateValue.getUTCFullYear();
-      const month = String(dateValue.getUTCMonth() + 1).padStart(2, "0");
-      const day = String(dateValue.getUTCDate()).padStart(2, "0");
+      // Format date using LOCAL date components (what user selected)
+      // Backend will store this as-is without timezone conversion
+      const year = dateValue.getFullYear();
+      const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+      const day = String(dateValue.getDate()).padStart(2, "0");
       const dateStringToSend = `${year}-${month}-${day}`;
 
       try {
