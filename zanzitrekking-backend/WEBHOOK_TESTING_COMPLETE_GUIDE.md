@@ -35,6 +35,9 @@ Before testing, ensure:
 - `payment.weTravelPaymentLink` (payment link exists)
 - `payment.weTravelTripUuid` (trip UUID stored)
 - Payment status: `pending` or `processing`
+- Order status: `pending` (NOT cancelled or refunded)
+
+**⚠️ Critical**: Test with a **fresh pending order**. If you test with an order that's already cancelled/refunded, the status won't change as expected. The webhook will process, but the order state won't update because it's already in a final state.
 
 ### Step 2: Get Order Information
 
@@ -57,7 +60,7 @@ Use the test endpoint to simulate a payment completion:
 curl -X POST https://api.zanzisafaris.com/api/webhooks/wetravel/test/webhook \
   -H "Content-Type: application/json" \
   -d '{
-    "orderNumber": "ZT-20260210-0021",
+    "orderNumber": "ZT-20260210-0022",
     "status": "paid"
   }'
 ```
@@ -421,7 +424,7 @@ Look for:
 
 ### Quick Test (5 minutes)
 
-1. Create order through checkout
+1. **Create a FRESH order** through checkout (must be pending, not cancelled/refunded)
 2. Get order number
 3. Call test endpoint:
    ```bash
@@ -429,8 +432,13 @@ Look for:
      -H "Content-Type: application/json" \
      -d '{"orderNumber": "YOUR_ORDER_NUMBER", "status": "paid"}'
    ```
-4. Check dashboard - order should be confirmed
-5. Check customer email - confirmation should be received
+4. **Verify response** shows:
+   - `paymentStatus: "completed"` (was "pending")
+   - `orderStatus: "confirmed"` (was "pending")
+5. Check dashboard - order should be confirmed
+6. Check customer email - confirmation should be received
+
+**⚠️ Important**: If you see `orderStatus: "cancelled"` in the response, the order was already cancelled. Create a fresh order for proper testing.
 
 ### Full Test (15 minutes)
 
