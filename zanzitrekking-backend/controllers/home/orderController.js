@@ -12,6 +12,7 @@ const emailQueue = require("../../workers/emailQueue");
 const {
   generatePaymentConfirmationEmail,
   generatePaymentRejectionEmail,
+  generateRefundEmail,
 } = require("../../utilities/orderEmailTemplates");
 
 class OrderController {
@@ -792,6 +793,21 @@ class OrderController {
             });
             console.log(
               `[Email] ✅ Payment rejection email queued successfully for order ${order.orderNumber} to ${customerEmail}`
+            );
+          } else if (normalizedStatus === "refunded") {
+            // Send refund notification email
+            console.log(
+              `[Email] Preparing refund notification email for order ${order.orderNumber} to ${customerEmail}`
+            );
+            const emailData = await generateRefundEmail(order);
+            emailQueue.add({
+              subject: `Refund Processed - Booking #${order.orderNumber}`,
+              content: emailData.html,
+              recipients: [customerEmail],
+              attachment: emailData.attachment,
+            });
+            console.log(
+              `[Email] ✅ Refund notification email queued successfully for order ${order.orderNumber} to ${customerEmail}`
             );
           } else {
             console.log(
