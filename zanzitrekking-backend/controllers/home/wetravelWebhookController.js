@@ -17,9 +17,9 @@ class WeTravelWebhookController {
    * @param {string} signature - Webhook signature from headers
    * @returns {boolean} - True if signature is valid
    */
-  verifyWebhookSignature(payload, signature) {
+  verifyWebhookSignature(payload, signature, req = null) {
     // If webhook secret is configured, verify signature
-    const webhookSecret = process.env.WETRAVEL_WEBHOOK_SECRET;
+    let webhookSecret = process.env.WETRAVEL_WEBHOOK_SECRET;
     if (!webhookSecret) {
       // If no secret configured, log warning but allow (for development)
       console.warn(
@@ -28,10 +28,14 @@ class WeTravelWebhookController {
       return true; // Allow in development, but should be configured in production
     }
 
+    // Check for Svix signature format (svix-signature header)
+    if (req && req.headers["svix-signature"]) {
+      return this.verifySvixSignature(payload, req, webhookSecret);
+    }
+
+    // Standard signature verification (WeTravel direct or other formats)
     if (!signature) {
       console.warn("[Webhook] ⚠️ No signature provided - allowing in development");
-      // In production, you might want to return false here
-      // For now, allow if no signature (development/testing)
       return true;
     }
 
@@ -69,6 +73,79 @@ class WeTravelWebhookController {
       return isValid;
     } catch (error) {
       console.error("[Webhook] ❌ Error verifying signature:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Verify Svix webhook signature
+   * Svix uses format: v1,<signature> where signature is HMAC SHA256 of svix-id:svix-timestamp:body
+   * The secret can be in whsec_ format (base64) or plain format
+   */
+  verifySvixSignature(payload, req, secret) {
+    try {
+      const svixSignature = req.headers["svix-signature"];
+      const svixId = req.headers["svix-id"];
+      const svixTimestamp = req.headers["svix-timestamp"];
+
+      if (!svixSignature || !svixId || !svixTimestamp) {
+        console.error("[Webhook] ❌ Missing Svix headers (svix-signature, svix-id, svix-timestamp)");
+        return false;
+      }
+
+      // Get raw body for signature verification
+      const rawBody = req.rawBody || (typeof payload === "string" ? payload : JSON.stringify(payload));
+
+      // Handle Svix secret format (whsec_ prefix means base64 encoded)
+      let signingSecret = secret;
+      if (secret.startsWith("whsec_")) {
+        try {
+          // Decode base64 secret
+          signingSecret = Buffer.from(secret.substring(6), "base64").toString("utf8");
+          console.log("[Webhook] 🔐 Detected Svix whsec_ format - decoded");
+        } catch (error) {
+          console.warn("[Webhook] ⚠️ Could not decode whsec_ secret, using as-is");
+        }
+      }
+
+      // Svix signature format: v1,<signature1> v1,<signature2> (can have multiple)
+      const signatures = svixSignature.split(" ");
+
+      // Create the signed content: svix-id:svix-timestamp:body
+      const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
+
+      // Verify each signature
+      for (const signatureEntry of signatures) {
+        const [version, signature] = signatureEntry.split(",");
+        if (version !== "v1") continue;
+
+        // Calculate expected signature (Svix uses base64 output)
+        const expectedSignature = crypto
+          .createHmac("sha256", signingSecret)
+          .update(signedContent)
+          .digest("base64");
+
+        // Compare signatures (constant-time comparison)
+        try {
+          const isValid = crypto.timingSafeEqual(
+            Buffer.from(signature),
+            Buffer.from(expectedSignature)
+          );
+
+          if (isValid) {
+            console.log("[Webhook] ✅ Svix webhook signature verified successfully");
+            return true;
+          }
+        } catch (error) {
+          // Continue to next signature if this one fails
+          continue;
+        }
+      }
+
+      console.error("[Webhook] ❌ Invalid Svix webhook signature");
+      return false;
+    } catch (error) {
+      console.error("[Webhook] ❌ Error verifying Svix signature:", error);
       return false;
     }
   }
@@ -203,7 +280,10 @@ class WeTravelWebhookController {
       // Use raw body if available (for signature verification), otherwise use parsed body
       const rawBody = req.rawBody || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
       const payload = typeof req.body === 'object' ? req.body : JSON.parse(req.body || '{}');
-      const signature = req.headers["x-wetravel-signature"] || req.headers["wetravel-signature"] || req.headers["signature"];
+      // Check for Svix signature headers first, then fallback to standard headers
+      const signature = req.headers["svix-signature"] 
+        ? null // Svix uses svix-signature header, handled separately in verifyWebhookSignature
+        : req.headers["x-wetravel-signature"] || req.headers["wetravel-signature"] || req.headers["signature"];
 
       console.log("[Webhook] 📥 Received WeTravel webhook event");
       console.log("[Webhook] Event type:", payload.event || payload.type || "unknown");
@@ -212,9 +292,9 @@ class WeTravelWebhookController {
       console.log("[Webhook] Has signature:", !!signature);
 
       // Verify webhook signature (if configured)
-      // Use raw body for signature verification if available, otherwise use parsed payload
+      // Pass req object to support Svix format verification
       const signaturePayload = req.rawBody || rawBody;
-      if (!this.verifyWebhookSignature(signaturePayload, signature)) {
+      if (!this.verifyWebhookSignature(signaturePayload, signature, req)) {
         console.error("[Webhook] ❌ Invalid webhook signature");
         return responseReturn(res, 401, {
           error: "Invalid webhook signature",
