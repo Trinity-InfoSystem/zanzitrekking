@@ -118,11 +118,50 @@ class UrgentBookingRequestController {
         });
       }
 
+      // Normalize requestedDate to UTC for checking existing requests
+      // Extract UTC date components from the requested date string
+      let year, month, day;
+      
+      if (typeof requestedDate === "string") {
+        // If it's an ISO string, extract the date part (YYYY-MM-DD)
+        if (requestedDate.includes("T")) {
+          const datePart = requestedDate.split("T")[0]; // e.g., "2026-02-10"
+          const [yearStr, monthStr, dayStr] = datePart.split("-");
+          year = parseInt(yearStr, 10);
+          month = parseInt(monthStr, 10) - 1; // JavaScript months are 0-indexed
+          day = parseInt(dayStr, 10);
+        } else {
+          // Already in YYYY-MM-DD format
+          const [yearStr, monthStr, dayStr] = requestedDate.split("-");
+          year = parseInt(yearStr, 10);
+          month = parseInt(monthStr, 10) - 1;
+          day = parseInt(dayStr, 10);
+        }
+      } else if (requestedDate instanceof Date) {
+        // Date object - extract UTC components
+        year = requestedDate.getUTCFullYear();
+        month = requestedDate.getUTCMonth();
+        day = requestedDate.getUTCDate();
+      } else {
+        // Fallback: try to parse as Date
+        const dateObj = new Date(requestedDate);
+        year = dateObj.getUTCFullYear();
+        month = dateObj.getUTCMonth();
+        day = dateObj.getUTCDate();
+      }
+      
+      // Create UTC date at midnight for consistent comparison
+      const normalizedRequestedDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      const normalizedRequestedDateEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
+
       // Check if user already has a pending or approved request for this trip-date combination
       const existingRequest = await UrgentBookingRequest.findOne({
         customerId: customerObjectId,
         tripId: tripObjectId,
-        requestedDate: new Date(requestedDate),
+        requestedDate: {
+          $gte: normalizedRequestedDate,
+          $lte: normalizedRequestedDateEnd,
+        },
         selectedCategory,
         status: { $in: ["pending", "approved"] },
       });
@@ -135,11 +174,11 @@ class UrgentBookingRequestController {
         });
       }
 
-      // Create the request
+      // Create the request (using normalizedRequestedDate from above)
       const requestData = {
         customerId: customerObjectId,
         tripId: tripObjectId,
-        requestedDate: new Date(requestedDate),
+        requestedDate: normalizedRequestedDate,
         selectedCategory,
         travelersNumber: parseInt(travelersNumber),
         personalInfo: {

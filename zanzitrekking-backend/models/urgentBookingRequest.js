@@ -198,13 +198,43 @@ urgentBookingRequestSchema.statics.isBookingAllowed = async function (
   selectedCategory
 ) {
   try {
-    // Normalize the requested date to start of day for accurate comparison
-    const requestedDateObj = new Date(requestedDate);
-    requestedDateObj.setHours(0, 0, 0, 0);
+    // Normalize the requested date to UTC start of day for accurate comparison
+    // Extract UTC date components to avoid timezone shifts
+    let year, month, day;
     
-    // Calculate end of day for range query
-    const requestedDateEnd = new Date(requestedDateObj);
-    requestedDateEnd.setHours(23, 59, 59, 999);
+    if (typeof requestedDate === "string") {
+      // If it's an ISO string, extract the date part (YYYY-MM-DD)
+      if (requestedDate.includes("T")) {
+        const datePart = requestedDate.split("T")[0]; // e.g., "2026-02-10"
+        const [yearStr, monthStr, dayStr] = datePart.split("-");
+        year = parseInt(yearStr, 10);
+        month = parseInt(monthStr, 10) - 1; // JavaScript months are 0-indexed
+        day = parseInt(dayStr, 10);
+      } else {
+        // Already in YYYY-MM-DD format
+        const [yearStr, monthStr, dayStr] = requestedDate.split("-");
+        year = parseInt(yearStr, 10);
+        month = parseInt(monthStr, 10) - 1;
+        day = parseInt(dayStr, 10);
+      }
+    } else if (requestedDate instanceof Date) {
+      // Date object - extract UTC components
+      year = requestedDate.getUTCFullYear();
+      month = requestedDate.getUTCMonth();
+      day = requestedDate.getUTCDate();
+    } else {
+      // Fallback: try to parse as Date
+      const dateObj = new Date(requestedDate);
+      year = dateObj.getUTCFullYear();
+      month = dateObj.getUTCMonth();
+      day = dateObj.getUTCDate();
+    }
+    
+    // Create UTC date at midnight for the requested date
+    const requestedDateStart = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+    
+    // Calculate end of day in UTC
+    const requestedDateEnd = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
     
     // Check if there's an approved request for this exact combination
     // Use date range to match any time on that day
@@ -212,7 +242,7 @@ urgentBookingRequestSchema.statics.isBookingAllowed = async function (
       customerId: new mongoose.Types.ObjectId(customerId),
       tripId: new mongoose.Types.ObjectId(tripId),
       requestedDate: {
-        $gte: requestedDateObj,
+        $gte: requestedDateStart,
         $lte: requestedDateEnd,
       },
       selectedCategory,
