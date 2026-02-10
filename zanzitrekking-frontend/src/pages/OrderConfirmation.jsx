@@ -180,31 +180,169 @@ const OrderConfirmation = () => {
     );
   }
 
+  // Check for cancelled payment in URL params or location state
+  const urlParams = new URLSearchParams(window.location.search);
+  const locationState = location.state || {};
+  const paymentCancelled = urlParams.get("cancelled") === "true" || 
+                          urlParams.get("payment_cancelled") === "true" ||
+                          urlParams.get("cancel") === "true" ||
+                          locationState.paymentCancelled === true;
+
+  // Determine payment status
+  const paymentStatus = orderDetails?.payment?.status;
+  const isPaymentPending = paymentStatus === "pending" || paymentStatus === "processing";
+  const isPaymentCompleted = paymentStatus === "completed";
+  const isPaymentFailed = paymentStatus === "failed" || paymentCancelled;
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
       <main className="flex-grow py-12">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          {/* Success Header */}
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 h-16 w-16 text-green-500">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+          {/* Conditional Header based on payment status */}
+          {isPaymentCompleted ? (
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-4 h-16 w-16 text-green-500">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h1 className="mb-2 text-3xl font-bold text-gray-900">
+                🎉 Payment Confirmed!
+              </h1>
+              <p className="text-lg text-gray-600">
+                Your booking has been confirmed. We&apos;ll send you a confirmation email shortly.
+              </p>
             </div>
-            <h1 className="mb-2 text-3xl font-bold text-gray-900">
-              Booking Confirmed!
-            </h1>
-            <p className="text-lg text-gray-600">
-              Thank you for your booking. Please complete your payment to secure
-              your reservation.
-            </p>
-          </div>
+          ) : isPaymentFailed ? (
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-4 h-16 w-16 text-red-500">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h1 className="mb-2 text-3xl font-bold text-gray-900">
+                Payment Not Completed
+              </h1>
+              <p className="text-lg text-gray-600">
+                Your payment was cancelled or failed. Don&apos;t worry, your booking is still reserved.
+              </p>
+            </div>
+          ) : (
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-4 h-16 w-16 text-amber-500">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h1 className="mb-2 text-3xl font-bold text-gray-900">
+                Booking Reserved
+              </h1>
+              <p className="text-lg text-gray-600">
+                Thank you for your booking. Please complete your payment to secure your reservation.
+              </p>
+            </div>
+          )}
+
+          {/* Cancelled/Failed Payment Alert */}
+          {isPaymentFailed && orderDetails.payment?.weTravelPaymentLink && (
+            <div className="mb-8 rounded-xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-6 shadow-lg">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500">
+                    <svg
+                      className="h-6 w-6 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="mb-2 text-xl font-bold text-gray-900">
+                    ⚠️ Payment Not Completed
+                  </h3>
+                  <p className="mb-4 text-gray-700">
+                    Your payment was cancelled or could not be processed. Your booking is still reserved, but you need to complete payment to confirm it.
+                  </p>
+                  <div className="mb-4 rounded-lg border border-red-200 bg-white p-4">
+                    <p className="mb-2 text-sm font-semibold text-gray-900">
+                      What happened?
+                    </p>
+                    <ul className="list-inside list-disc space-y-1 text-sm text-gray-600">
+                      <li>You may have closed the payment window</li>
+                      <li>There might have been an issue with your payment method</li>
+                      <li>The payment session may have expired</li>
+                    </ul>
+                  </div>
+                  <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
+                    <p className="mb-2 text-sm font-semibold text-green-900">
+                      ✅ Good news: Your booking is still reserved!
+                    </p>
+                    <p className="text-sm text-green-800">
+                      You can complete your payment anytime using the button below. Your booking will be confirmed once payment is successful.
+                    </p>
+                  </div>
+                  <a
+                    href={orderDetails.payment.weTravelPaymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:from-green-700 hover:to-emerald-700 hover:shadow-xl"
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                    Complete Payment Now
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Booking Warning Message */}
           {(() => {
@@ -296,8 +434,8 @@ const OrderConfirmation = () => {
             ) : null;
           })()}
 
-          {/* Payment Link Section */}
-          {orderDetails.payment?.weTravelPaymentLink && (
+          {/* Payment Link Section - Only show if payment is pending/processing and not failed */}
+          {isPaymentPending && orderDetails.payment?.weTravelPaymentLink && !isPaymentFailed && (
             <div className="mb-8 rounded-xl border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-6 shadow-lg">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0">

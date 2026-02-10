@@ -496,10 +496,10 @@ const Checkout = () => {
       // Clear order messages
       dispatch(clearOrderMessages());
 
-      // Check if WeTravel payment link exists - redirect to payment
+      // Check if WeTravel payment link exists - redirect DIRECTLY to payment
       const paymentLink = currentOrder?.payment?.weTravelPaymentLink;
       if (paymentLink) {
-        // Validate and safely redirect to WeTravel payment page
+        // Validate and safely redirect DIRECTLY to WeTravel payment page
         // Allow WeTravel domains for payment processing
         const allowedDomains = [
           "wetravel.net",
@@ -519,8 +519,11 @@ const Checkout = () => {
             },
           });
         }
+        // If redirect is successful, don't navigate - safeRedirect handles it
+        return; // Exit early to prevent navigation to order-confirmation
       } else {
-        // No payment link available - go to order confirmation with pending status
+        // No payment link available - this shouldn't happen if order was created successfully
+        toast.error("Payment link not available. Please contact support.");
         navigate("/order-confirmation", {
           state: {
             orderId: currentOrder?._id,

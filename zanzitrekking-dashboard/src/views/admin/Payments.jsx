@@ -42,6 +42,9 @@ const Payments = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const [showPaymentStatusModal, setShowPaymentStatusModal] = useState(false);
+  const [pendingPaymentStatus, setPendingPaymentStatus] = useState(null);
+  const [pendingOrderId, setPendingOrderId] = useState(null);
   const role = useSelector((state) => state.auth?.userInfo?.role);
 
   const { orders, totalOrders, loading, currentOrder, summary } = useSelector(
@@ -141,6 +144,20 @@ const Payments = () => {
   };
 
   const handleUpdatePaymentStatus = async (orderId, paymentStatus) => {
+    // Show warning modal for manual payment status updates (except refund which is always manual)
+    if (paymentStatus !== "refunded") {
+      setPendingOrderId(orderId);
+      setPendingPaymentStatus(paymentStatus);
+      setShowPaymentStatusModal(true);
+      return;
+    }
+    
+    // For refunds, proceed directly (always manual)
+    await confirmUpdatePaymentStatus(orderId, paymentStatus);
+  };
+
+  const confirmUpdatePaymentStatus = async (orderId, paymentStatus) => {
+    setShowPaymentStatusModal(false);
     setActionLoading(orderId);
     try {
       await dispatch(updatePaymentStatus({ orderId, paymentStatus }));
@@ -162,6 +179,8 @@ const Payments = () => {
       console.error("Failed to update payment status:", error);
     } finally {
       setActionLoading(null);
+      setPendingOrderId(null);
+      setPendingPaymentStatus(null);
     }
   };
 
@@ -721,12 +740,28 @@ const Payments = () => {
                               }
                               disabled={actionLoading === order._id}
                               className="inline-flex items-center rounded-lg bg-gradient-to-r from-success to-success-600 px-2 py-1 text-xs font-semibold text-white shadow-nature-soft transition-all hover:scale-110 hover:shadow-nature-medium disabled:opacity-50"
-                              title="Mark Payment Complete"
+                              title="Mark Payment Complete (Edge Case Only)"
                             >
                               {actionLoading === order._id ? (
                                 <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent"></div>
                               ) : (
                                 <FaCreditCard />
+                              )}
+                            </button>
+                          )}
+                          {order.payment?.status === "completed" && (
+                            <button
+                              onClick={() =>
+                                handleUpdatePaymentStatus(order._id, "refunded")
+                              }
+                              disabled={actionLoading === order._id}
+                              className="inline-flex items-center rounded-lg bg-gradient-to-r from-warning to-warning-600 px-2 py-1 text-xs font-semibold text-white shadow-sm transition-all hover:scale-110 disabled:opacity-50"
+                              title="Process Refund"
+                            >
+                              {actionLoading === order._id ? (
+                                <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent"></div>
+                              ) : (
+                                <FaDollarSign />
                               )}
                             </button>
                           )}
@@ -836,12 +871,28 @@ const Payments = () => {
                                   }
                                   disabled={actionLoading === order._id}
                                   className="inline-flex items-center rounded-lg bg-gradient-to-r from-success to-success-600 px-2 py-1 text-xs font-semibold text-white shadow-nature-soft transition-all hover:scale-110 hover:shadow-nature-medium disabled:opacity-50"
-                                  title="Mark Payment Complete"
+                                  title="Mark Payment Complete (Edge Case Only)"
                                 >
                                   {actionLoading === order._id ? (
                                     <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent"></div>
                                   ) : (
                                     <FaCreditCard />
+                                  )}
+                                </button>
+                              )}
+                              {order.payment?.status === "completed" && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdatePaymentStatus(order._id, "refunded")
+                                  }
+                                  disabled={actionLoading === order._id}
+                                  className="inline-flex items-center rounded-lg bg-gradient-to-r from-warning to-warning-600 px-2 py-1 text-xs font-semibold text-white shadow-sm transition-all hover:scale-110 disabled:opacity-50"
+                                  title="Process Refund"
+                                >
+                                  {actionLoading === order._id ? (
+                                    <div className="h-3 w-3 animate-spin rounded-full border border-white border-t-transparent"></div>
+                                  ) : (
+                                    <FaDollarSign />
                                   )}
                                 </button>
                               )}
@@ -922,6 +973,74 @@ const Payments = () => {
             </div>
           )}
         </div>
+        )}
+
+        {/* Payment Status Update Warning Modal */}
+        {showPaymentStatusModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-100">
+                  <FaCreditCard className="h-6 w-6 text-warning-600" />
+                </div>
+                <h3 className="text-xl font-bold text-primary-800">
+                  Manual Payment Status Update
+                </h3>
+              </div>
+
+              <div className="mb-6 space-y-4">
+                <div className="rounded-lg border-2 border-warning-200 bg-warning-50 p-4">
+                  <p className="mb-2 text-sm font-semibold text-warning-900">
+                    ⚠️ Edge Cases Only
+                  </p>
+                  <p className="text-sm text-warning-800">
+                    Payment status updates are typically handled automatically via webhooks when payments are completed. Manual updates should only be used for:
+                  </p>
+                  <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-warning-800">
+                    <li>Error recovery (if webhook failed)</li>
+                    <li>Testing purposes</li>
+                    <li>Special circumstances</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-lg border border-primary-200 bg-primary-50 p-4">
+                  <p className="text-sm text-primary-800">
+                    <strong>Note:</strong> Most payment confirmations happen automatically when customers complete payment on WeTravel. This manual update is for exceptional cases only.
+                  </p>
+                </div>
+
+                <p className="text-sm text-text-dark">
+                  Are you sure you want to manually update the payment status to{" "}
+                  <strong className="text-primary-800">{pendingPaymentStatus}</strong>?
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowPaymentStatusModal(false);
+                    setPendingOrderId(null);
+                    setPendingPaymentStatus(null);
+                  }}
+                  className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-text-dark transition-colors hover:bg-neutral-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    confirmUpdatePaymentStatus(
+                      pendingOrderId,
+                      pendingPaymentStatus,
+                    )
+                  }
+                  className="rounded-lg bg-gradient-to-r from-warning to-warning-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:from-warning-600 hover:to-warning-700"
+                >
+                  Confirm Update
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

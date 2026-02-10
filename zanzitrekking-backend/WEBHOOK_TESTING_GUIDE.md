@@ -48,7 +48,7 @@ Use the test endpoint to simulate a payment completion:
 curl -X POST https://api.zanzisafaris.com/api/webhooks/wetravel/test/webhook \
   -H "Content-Type: application/json" \
   -d '{
-    "orderNumber": "ZT-20240115-0001",
+    "orderNumber": "ZT-20260210-0021",
     "status": "paid"
   }'
 ```
