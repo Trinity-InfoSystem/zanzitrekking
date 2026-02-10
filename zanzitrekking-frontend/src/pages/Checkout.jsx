@@ -545,22 +545,17 @@ const Checkout = () => {
     const { personalInfo, billingAddress } = formData;
 
     // Check if all required fields are filled
-    // Note: Billing address is required for our records but WeTravel API doesn't require it
+    // Note: Billing address is optional - WeTravel API doesn't require it
     const requiredFieldsEmpty = [
       !personalInfo.firstName,
       !personalInfo.lastName,
       !personalInfo.email,
       !personalInfo.phone,
-      !billingAddress.street,
-      !billingAddress.city,
-      !billingAddress.state,
-      !billingAddress.zip,
-      !billingAddress.country,
     ].some(Boolean);
 
     if (requiredFieldsEmpty) {
       toast.error(
-        "Please fill in all required fields (including billing address) before placing your order.",
+        "Please fill in all required fields (first name, last name, email, and phone) before placing your order.",
       );
       return;
     }
@@ -665,13 +660,8 @@ const Checkout = () => {
           email: formData.personalInfo.email,
           phone: formData.personalInfo.phone,
         },
-        billingAddress: {
-          street: formData.billingAddress.street,
-          city: formData.billingAddress.city,
-          state: formData.billingAddress.state,
-          zip: formData.billingAddress.zip,
-          country: formData.billingAddress.country,
-        },
+        // Billing address not collected - WeTravel handles it on their payment page
+        billingAddress: undefined,
         paymentInfo: {
           method: "wetravel",
           status: "pending",
@@ -680,6 +670,7 @@ const Checkout = () => {
       };
 
       // Check for missing required fields
+      // Note: billingAddress is optional - only validate if provided
       const missingFields = [];
       if (!requiredFields.customerId) {missingFields.push("customerId");}
       if (!requiredFields.cartItems || requiredFields.cartItems.length === 0)
@@ -692,16 +683,7 @@ const Checkout = () => {
         {missingFields.push("personalInfo.email");}
       if (!requiredFields.personalInfo.phone)
         {missingFields.push("personalInfo.phone");}
-      if (!requiredFields.billingAddress.street)
-        {missingFields.push("billingAddress.street");}
-      if (!requiredFields.billingAddress.city)
-        {missingFields.push("billingAddress.city");}
-      if (!requiredFields.billingAddress.state)
-        {missingFields.push("billingAddress.state");}
-      if (!requiredFields.billingAddress.zip)
-        {missingFields.push("billingAddress.zip");}
-      if (!requiredFields.billingAddress.country)
-        {missingFields.push("billingAddress.country");}
+      // Billing address is optional - no validation needed
 
       if (missingFields.length > 0) {
         return;
@@ -1105,106 +1087,6 @@ const Checkout = () => {
                             className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
                             placeholder="+1234567890"
                           />
-                        </div>
-                      </div>
-
-                      <div className="mt-8 border-t-2 border-gray-100 pt-8">
-                        <h3 className="mb-5 text-lg font-bold text-gray-900">
-                          Billing Address
-                        </h3>
-                        <div className="grid grid-cols-1 gap-5">
-                          <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Street Address *
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.billingAddress.street}
-                              onChange={(e) =>
-                                handleChange(
-                                  "billingAddress",
-                                  "street",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                              placeholder="123 Main St"
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                            <div>
-                              <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                City *
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.billingAddress.city}
-                                onChange={(e) =>
-                                  handleChange(
-                                    "billingAddress",
-                                    "city",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                                placeholder="New York"
-                              />
-                            </div>
-                            <div>
-                              <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                State *
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.billingAddress.state}
-                                onChange={(e) =>
-                                  handleChange(
-                                    "billingAddress",
-                                    "state",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                                placeholder="NY"
-                              />
-                            </div>
-                            <div>
-                              <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                ZIP Code *
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.billingAddress.zip}
-                                onChange={(e) =>
-                                  handleChange(
-                                    "billingAddress",
-                                    "zip",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                                placeholder="10001"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
-                              Country *
-                            </label>
-                            <input
-                              type="text"
-                              value={formData.billingAddress.country}
-                              onChange={(e) =>
-                                handleChange(
-                                  "billingAddress",
-                                  "country",
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                              placeholder="United States"
-                            />
-                          </div>
                         </div>
                       </div>
                     </div>

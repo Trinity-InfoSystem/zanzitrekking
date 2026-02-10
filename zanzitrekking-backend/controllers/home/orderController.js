@@ -22,16 +22,16 @@ class OrderController {
 
     try {
       // Validate required fields
+      // Note: billingAddress is optional - WeTravel API doesn't require it
       if (
         !customerId ||
         !cartItems ||
         !personalInfo ||
-        !billingAddress ||
         !paymentInfo
       ) {
         return responseReturn(res, 400, {
           error:
-            "Missing required fields: customerId, cartItems, personalInfo, billingAddress, paymentInfo",
+            "Missing required fields: customerId, cartItems, personalInfo, paymentInfo",
         });
       }
 
@@ -190,14 +190,64 @@ class OrderController {
         return orderNumber;
       };
 
+      // Generate WeTravel payment link FIRST - only create order if payment link is successfully created
+      // This ensures orders are only created when payment links exist, preventing incomplete orders
+      let weTravelResponse;
+      try {
+        // Check if API key is configured
+        if (!process.env.WETRAVEL_API_KEY) {
+          throw new Error("WeTravel API key is not configured");
+        }
+
+        // Prepare order data for payment link creation (without creating order yet)
+        const tempOrder = new Order({
+          customerId,
+          cartItems: validatedCartItems,
+          personalInfo,
+          billingAddress: billingAddress || undefined,
+          payment: {
+            ...paymentInfo,
+            method: "wetravel",
+            status: "pending",
+          },
+        });
+
+        // Calculate totals for payment link
+        tempOrder.calculateOrderTotals();
+        
+        // Set service fee if provided
+        if (serviceFee !== undefined && serviceFee !== null) {
+          tempOrder.serviceFee = Number(serviceFee) || 0;
+          tempOrder.calculateOrderTotals();
+        }
+
+        const orderData = weTravelService.formatOrderForPaymentLink(tempOrder);
+
+        // Create payment link with WeTravel
+        weTravelResponse = await weTravelService.createPaymentLink(orderData);
+
+        console.log("✅ WeTravel payment link created successfully");
+      } catch (error) {
+        console.error(
+          "❌ Error generating WeTravel payment link:",
+          error.message
+        );
+        console.error("Error details:", error);
+        // Don't create order if payment link creation fails
+        return responseReturn(res, 500, {
+          error: "Failed to create payment link",
+          message: error.message || "Unable to generate payment link. Please try again.",
+        });
+      }
+
+      // Only create order AFTER payment link is successfully created
       const orderNumber = await generateOrderNumber();
 
-      // Create order using the static method
       const order = await Order.createFromCartItems(
         customerId,
         validatedCartItems,
         personalInfo,
-        billingAddress,
+        billingAddress || undefined,
         {
           ...paymentInfo,
           method: "wetravel",
@@ -209,39 +259,15 @@ class OrderController {
       // Set service fee if provided and recalculate total
       if (serviceFee !== undefined && serviceFee !== null) {
         order.serviceFee = Number(serviceFee) || 0;
-        // Recalculate total amount with service fee
         order.calculateOrderTotals();
-        await order.save();
       }
 
-      // Generate WeTravel payment link
-      try {
-        // Check if API key is configured
-        if (!process.env.WETRAVEL_API_KEY) {
-          throw new Error("WeTravel API key is not configured");
-        }
+      // Update order with WeTravel payment link (already created above)
+      order.payment.weTravelPaymentLink = weTravelResponse.trip.url;
+      order.payment.weTravelTripUuid = weTravelResponse.trip.uuid;
+      order.payment.weTravelTripUrl = weTravelResponse.trip.url;
 
-        const orderData = weTravelService.formatOrderForPaymentLink(order);
-
-        const weTravelResponse = await weTravelService.createPaymentLink(
-          orderData
-        );
-
-        // Update order with WeTravel payment link
-        order.payment.weTravelPaymentLink = weTravelResponse.trip.url;
-        order.payment.weTravelTripUuid = weTravelResponse.trip.uuid;
-        order.payment.weTravelTripUrl = weTravelResponse.trip.url;
-
-        await order.save();
-      } catch (error) {
-        console.error(
-          "❌ Error generating WeTravel payment link:",
-          error.message
-        );
-        console.error("Error details:", error);
-        // Continue with order creation even if payment link generation fails
-        // Admin can manually create the payment link later
-      }
+      await order.save();
 
       // Populate customer and trip details
       await order.populate([
@@ -590,6 +616,10 @@ class OrderController {
 
       const query = {};
 
+      // Only show orders that have payment links (successfully created)
+      // This filters out orders that were cancelled before payment link creation
+      query["payment.weTravelPaymentLink"] = { $exists: true, $ne: null };
+
       // Search by order number, customer name, or email
       if (searchValue) {
         query.$or = [
@@ -623,16 +653,19 @@ class OrderController {
 
       const orders = await Order.paginate(query, options);
 
-      // Calculate summary statistics
-      const totalOrders = orders.totalDocs;
-      const totalRevenue = orders.docs.reduce(
+      // Calculate summary statistics from all orders with payment links (not just current page)
+      const summaryQuery = { "payment.weTravelPaymentLink": { $exists: true, $ne: null } };
+      const allOrdersForSummary = await Order.find(summaryQuery);
+      
+      const totalOrders = allOrdersForSummary.length;
+      const totalRevenue = allOrdersForSummary.reduce(
         (sum, order) => sum + (order.totalAmount || 0),
         0
       );
-      const pendingOrders = orders.docs.filter(
+      const pendingOrders = allOrdersForSummary.filter(
         (order) => order.orderStatus === "pending"
       ).length;
-      const completedOrders = orders.docs.filter(
+      const completedOrders = allOrdersForSummary.filter(
         (order) => order.orderStatus === "completed"
       ).length;
 

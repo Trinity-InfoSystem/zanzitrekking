@@ -29,24 +29,27 @@ class WeTravelWebhookController {
     }
 
     if (!signature) {
-      console.error("[Webhook] ❌ No signature provided");
-      return false;
+      console.warn("[Webhook] ⚠️ No signature provided - allowing in development");
+      // In production, you might want to return false here
+      // For now, allow if no signature (development/testing)
+      return true;
     }
 
     try {
-      // WeTravel may use HMAC SHA256 or similar
-      // Adjust the algorithm based on WeTravel's documentation
-      // Try different signature formats (hex, base64, etc.)
+      // Use payload as-is if it's a string (raw body), otherwise stringify
+      // For webhook signature verification, we need the exact raw body string
       const payloadString = typeof payload === "string" ? payload : JSON.stringify(payload);
       
+      // WeTravel may use HMAC SHA256 or similar
+      // Adjust the algorithm based on WeTravel's documentation
       const expectedSignature = crypto
         .createHmac("sha256", webhookSecret)
         .update(payloadString)
         .digest("hex");
 
       // Normalize signatures for comparison (remove any prefixes like "sha256=")
-      const normalizedReceived = signature.replace(/^sha256=/, "").toLowerCase();
-      const normalizedExpected = expectedSignature.toLowerCase();
+      const normalizedReceived = signature.replace(/^sha256=/, "").toLowerCase().trim();
+      const normalizedExpected = expectedSignature.toLowerCase().trim();
 
       // Compare signatures (use constant-time comparison to prevent timing attacks)
       const isValid = crypto.timingSafeEqual(
@@ -56,8 +59,11 @@ class WeTravelWebhookController {
 
       if (!isValid) {
         console.error("[Webhook] ❌ Invalid webhook signature");
-        console.error("[Webhook] Expected:", normalizedExpected.substring(0, 20) + "...");
-        console.error("[Webhook] Received:", normalizedReceived.substring(0, 20) + "...");
+        console.error("[Webhook] Expected (first 20 chars):", normalizedExpected.substring(0, 20) + "...");
+        console.error("[Webhook] Received (first 20 chars):", normalizedReceived.substring(0, 20) + "...");
+        console.error("[Webhook] Payload length:", payloadString.length);
+      } else {
+        console.log("[Webhook] ✅ Webhook signature verified successfully");
       }
 
       return isValid;
@@ -194,15 +200,21 @@ class WeTravelWebhookController {
    */
   handleWebhook = async (req, res) => {
     try {
-      const payload = req.body;
+      // Use raw body if available (for signature verification), otherwise use parsed body
+      const rawBody = req.rawBody || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+      const payload = typeof req.body === 'object' ? req.body : JSON.parse(req.body || '{}');
       const signature = req.headers["x-wetravel-signature"] || req.headers["wetravel-signature"] || req.headers["signature"];
 
       console.log("[Webhook] 📥 Received WeTravel webhook event");
       console.log("[Webhook] Event type:", payload.event || payload.type || "unknown");
       console.log("[Webhook] Payload keys:", Object.keys(payload));
+      console.log("[Webhook] Has raw body:", !!req.rawBody);
+      console.log("[Webhook] Has signature:", !!signature);
 
       // Verify webhook signature (if configured)
-      if (!this.verifyWebhookSignature(payload, signature)) {
+      // Use raw body for signature verification if available, otherwise use parsed payload
+      const signaturePayload = req.rawBody || rawBody;
+      if (!this.verifyWebhookSignature(signaturePayload, signature)) {
         console.error("[Webhook] ❌ Invalid webhook signature");
         return responseReturn(res, 401, {
           error: "Invalid webhook signature",

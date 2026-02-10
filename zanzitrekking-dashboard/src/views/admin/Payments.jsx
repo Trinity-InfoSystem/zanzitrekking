@@ -75,6 +75,39 @@ const Payments = () => {
     sortOrder,
   ]);
 
+  // Auto-refresh orders every 30 seconds to catch webhook updates
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      dispatch(
+        getAllOrders({
+          parPage,
+          currentPage,
+          searchValue,
+          status: statusFilter,
+          paymentStatus: paymentStatusFilter,
+          dateFrom,
+          dateTo,
+          sortBy,
+          sortOrder,
+        }),
+      );
+    }, 30000); // Refresh every 30 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(refreshInterval);
+  }, [
+    dispatch,
+    currentPage,
+    parPage,
+    searchValue,
+    statusFilter,
+    paymentStatusFilter,
+    dateFrom,
+    dateTo,
+    sortBy,
+    sortOrder,
+  ]);
+
   const handleViewOrder = (orderId) => {
     dispatch(getOrderById(orderId)).then(() => {
       setSelectedOrder(currentOrder);

@@ -8,7 +8,12 @@ const testEmailController = require("../../controllers/home/testEmailController"
 // WeTravel webhook endpoint
 // This endpoint receives webhook events from WeTravel when payments are completed
 // POST /api/webhooks/wetravel
-router.post("/wetravel", wetravelWebhookController.handleWebhook);
+// Note: The webhook route should use express.raw() or express.json() middleware
+// The controller handles signature verification with the parsed/raw body
+router.post("/wetravel", express.json({ verify: (req, res, buf) => {
+  // Store raw body for signature verification
+  req.rawBody = buf.toString('utf8');
+}}), wetravelWebhookController.handleWebhook);
 
 // Health check endpoint for webhook verification
 // GET /api/webhooks/wetravel/health

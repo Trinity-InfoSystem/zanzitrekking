@@ -179,27 +179,27 @@ const orderSchema = new Schema(
       },
     },
 
-    // Billing Address
+    // Billing Address (optional - WeTravel API doesn't require it)
     billingAddress: {
       street: {
         type: String,
-        required: true,
+        required: false,
       },
       city: {
         type: String,
-        required: true,
+        required: false,
       },
       state: {
         type: String,
-        required: true,
+        required: false,
       },
       zip: {
         type: String,
-        required: true,
+        required: false,
       },
       country: {
         type: String,
-        required: true,
+        required: false,
         default: "United States",
       },
     },
