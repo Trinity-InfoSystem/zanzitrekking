@@ -191,9 +191,6 @@ const OrderDetail = () => {
               <p className="text-sm text-text-lighter">
                 Booked on {formatDate(currentOrder.createdAt)}
               </p>
-              <div className="mt-2 rounded-lg bg-blue-50 border border-blue-200 p-2 text-xs text-blue-800">
-                <strong>Booking Policy:</strong> Budget packages and all Trekking, Cultural Tours, and Zanzibar trips can be booked up to 1 day before departure. Midrange and Luxury Safaris require 4+ days advance booking; bookings within 4 days require contacting us first to confirm availability.
-              </div>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -206,8 +203,8 @@ const OrderDetail = () => {
           </div>
         </div>
 
-        {/* Payment Link Section - Show if payment is processing */}
-        {currentOrder.payment?.status === "processing" &&
+        {/* Payment Link Section - Show if payment is pending/processing and link exists */}
+        {(currentOrder.payment?.status === "pending" || currentOrder.payment?.status === "processing") &&
           currentOrder.payment?.weTravelPaymentLink && (
             <div
               className="mb-6 rounded-xl border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-6 shadow-lg"
@@ -317,76 +314,40 @@ const OrderDetail = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Main Content */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Order Summary */}
+            {/* Booking Status Card - Simplified */}
             <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
+              className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-white to-primary/5 p-6 shadow-lg"
               data-aos="fade-up"
             >
-              <h2 className="mb-4 text-lg font-bold text-primary">
-                Booking Summary
-              </h2>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-text-light">Booking Number:</span>
-                  <span className="font-semibold text-text-dark">
-                    #{currentOrder.orderNumber}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-light">Booking Date:</span>
-                  <span className="font-semibold text-text-dark">
-                    {formatDateTime(currentOrder.createdAt)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-light">Booking Status:</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-text-light mb-1">Booking Status</p>
                   <span
-                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${getStatusColor(currentOrder.orderStatus)}`}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-bold ${getStatusColor(currentOrder.orderStatus)}`}
                   >
-                    {currentOrder.orderStatus}
+                    {getStatusIcon(currentOrder.orderStatus)}
+                    <span className="ml-2 capitalize">{currentOrder.orderStatus}</span>
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-text-light">Payment Status:</span>
+                <div>
+                  <p className="text-xs font-medium text-text-light mb-1">Payment Status</p>
                   <span
-                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${getPaymentStatusColor(currentOrder.payment?.status)}`}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-bold ${getPaymentStatusColor(currentOrder.payment?.status)}`}
                   >
-                    {currentOrder.payment?.status || "pending"}
+                    {currentOrder.payment?.status === "completed" ? (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Clock className="h-4 w-4 mr-2" />
+                    )}
+                    <span className="capitalize">{currentOrder.payment?.status || "pending"}</span>
                   </span>
                 </div>
-                {currentOrder.payment?.paymentDate && (
-                  <div className="flex justify-between">
-                    <span className="text-text-light">Payment Date:</span>
-                    <span className="font-semibold text-text-dark">
-                      {formatDateTime(currentOrder.payment.paymentDate)}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.confirmedAt && (
-                  <div className="flex justify-between">
-                    <span className="text-text-light">Confirmed Date:</span>
-                    <span className="font-semibold text-text-dark">
-                      {formatDateTime(currentOrder.confirmedAt)}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.completedAt && (
-                  <div className="flex justify-between">
-                    <span className="text-text-light">Completed Date:</span>
-                    <span className="font-semibold text-text-dark">
-                      {formatDateTime(currentOrder.completedAt)}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.cancelledAt && (
-                  <div className="flex justify-between">
-                    <span className="text-text-light">Cancelled Date:</span>
-                    <span className="font-semibold text-text-dark">
-                      {formatDateTime(currentOrder.cancelledAt)}
-                    </span>
-                  </div>
-                )}
               </div>
+              {currentOrder.payment?.paymentDate && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-text-light">Paid on {formatDate(currentOrder.payment.paymentDate)}</p>
+                </div>
+              )}
             </div>
 
             {/* QR Code Section - Only show for completed payments */}
@@ -408,61 +369,54 @@ const OrderDetail = () => {
               </div>
             )}
 
-            {/* Cart Items */}
+            {/* Trip Details - Cleaner Design */}
             <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
+              className="rounded-2xl border-2 border-primary/20 bg-white p-6 shadow-lg"
               data-aos="fade-up"
             >
-              <h2 className="mb-4 text-lg font-bold text-primary">
+              <h2 className="mb-4 text-xl font-bold text-primary">
                 Trip Details
               </h2>
               <div className="space-y-4">
                 {currentOrder.cartItems?.map((item, index) => (
                   <div
                     key={index}
-                    className="rounded-2xl border border-primary/10 bg-white/80 p-4 shadow-nature-soft"
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-5"
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-primary">
+                        <h3 className="text-lg font-bold text-primary mb-2">
                           {item.mainTitle}
                         </h3>
-                        <div className="mt-2 grid grid-cols-2 gap-4 text-sm text-text-light">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <span className="font-medium">Starting Date:</span>
-                            <p>{formatDate(item.startingDate)}</p>
+                            <span className="font-semibold text-text-dark">Date:</span>
+                            <p className="text-text-light">{formatDate(item.startingDate)}</p>
                           </div>
                           <div>
-                            <span className="font-medium">Travelers:</span>
-                            <p>{item.travelersNumber} person(s)</p>
+                            <span className="font-semibold text-text-dark">Travelers:</span>
+                            <p className="text-text-light">{item.travelersNumber} person{item.travelersNumber > 1 ? 's' : ''}</p>
                           </div>
                           <div>
-                            <span className="font-medium">Trip Status:</span>
+                            <span className="font-semibold text-text-dark">Package:</span>
+                            <p className="text-text-light">{getCategoryName(item.selectedCategory)}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-text-dark">Status:</span>
                             <span
-                              className={`ml-1 inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${getStatusColor(item.itemStatus)}`}
+                              className={`ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${getStatusColor(item.itemStatus)}`}
                             >
                               {item.itemStatus}
                             </span>
                           </div>
                         </div>
-                        {item.specialRequests && (
-                          <div className="mt-2">
-                            <span className="font-medium text-text-dark">
-                              Special Requests:
-                            </span>
-                            <p className="mt-1 text-sm text-text-light">
-                              {item.specialRequests}
-                            </p>
-                          </div>
-                        )}
                       </div>
-                      <div className="ml-4 text-right">
-                        <div className="text-lg font-bold text-text-dark">
-                          <p>${item.itemTotal?.toFixed(2)}</p>
-                          <p>{getCategoryName(item.selectedCategory)}</p>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">
+                          ${item.itemTotal?.toFixed(2)}
                         </div>
                         {item.discount > 0 && (
-                          <div className="text-sm text-success">
+                          <div className="text-sm text-success mt-1">
                             -${item.discount?.toFixed(2)} discount
                           </div>
                         )}
@@ -473,262 +427,178 @@ const OrderDetail = () => {
               </div>
             </div>
 
-            {/* Order Timeline */}
-            <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
-              data-aos="fade-up"
-            >
-              <h2 className="mb-4 text-lg font-bold text-primary">
-                Booking Timeline
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
-                      <CheckCircle className="h-5 w-5 text-success" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-text-dark">
-                      Booking Placed
-                    </p>
-                    <p className="text-xs text-text-lighter">
-                      {formatDateTime(currentOrder.createdAt)}
-                    </p>
-                  </div>
-                </div>
-
-                {currentOrder.confirmedAt && (
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
-                        <CheckCircle className="h-5 w-5 text-secondary" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-text-dark">
-                        Booking Confirmed
-                      </p>
-                      <p className="text-xs text-text-lighter">
-                        {formatDateTime(currentOrder.confirmedAt)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentOrder.completedAt && (
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
-                        <CheckCircle className="h-5 w-5 text-success" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-text-dark">
-                        Booking Completed
-                      </p>
-                      <p className="text-xs text-text-lighter">
-                        {formatDateTime(currentOrder.completedAt)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {currentOrder.cancelledAt && (
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-                        <XCircle className="h-5 w-5 text-red-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-text-dark">
-                        Booking Cancelled
-                      </p>
-                      <p className="text-xs text-text-lighter">
-                        {formatDateTime(currentOrder.cancelledAt)}
-                      </p>
-                      {currentOrder.cancellationReason && (
-                        <p className="mt-1 text-xs text-text-light">
-                          Reason: {currentOrder.cancellationReason}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Customer Information */}
+            {/* Customer Information - Compact */}
             <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
+              className="rounded-2xl border-2 border-primary/20 bg-white p-6 shadow-lg"
               data-aos="fade-up"
             >
               <h2 className="mb-4 text-lg font-bold text-primary">
-                Customer Information
+                Contact Information
               </h2>
               <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-text-light">
-                    {currentOrder.personalInfo?.firstName}{" "}
-                    {currentOrder.personalInfo?.lastName}
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <User className="h-5 w-5 text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-text-dark">
+                      {currentOrder.personalInfo?.firstName}{" "}
+                      {currentOrder.personalInfo?.lastName}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-text-light">
+                <div className="flex items-center space-x-3">
+                  <Mail className="h-5 w-5 text-primary flex-shrink-0" />
+                  <p className="text-sm text-text-light break-all">
                     {currentOrder.personalInfo?.email}
-                  </span>
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-text-light">
+                <div className="flex items-center space-x-3">
+                  <Phone className="h-5 w-5 text-primary flex-shrink-0" />
+                  <p className="text-sm text-text-light">
                     {currentOrder.personalInfo?.phone}
-                  </span>
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Billing Address */}
+            {/* Billing Address - Only show if address exists */}
+            {currentOrder.billingAddress && 
+             (currentOrder.billingAddress.street || 
+              currentOrder.billingAddress.city || 
+              currentOrder.billingAddress.state) && (
+              <div
+                className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
+                data-aos="fade-up"
+              >
+                <h2 className="mb-4 text-lg font-bold text-primary">
+                  Billing Address
+                </h2>
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-2">
+                    <MapPin className="mt-0.5 h-4 w-4 text-primary" />
+                    <div className="text-sm text-text-light">
+                      {currentOrder.billingAddress.street && (
+                        <p>{currentOrder.billingAddress.street}</p>
+                      )}
+                      {(currentOrder.billingAddress.city || currentOrder.billingAddress.state || currentOrder.billingAddress.zip) && (
+                        <p>
+                          {currentOrder.billingAddress.city && `${currentOrder.billingAddress.city}, `}
+                          {currentOrder.billingAddress.state && `${currentOrder.billingAddress.state} `}
+                          {currentOrder.billingAddress.zip}
+                        </p>
+                      )}
+                      {currentOrder.billingAddress.country && (
+                        <p>{currentOrder.billingAddress.country}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Information - Simplified */}
             <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
+              className="rounded-2xl border-2 border-primary/20 bg-white p-6 shadow-lg"
               data-aos="fade-up"
             >
               <h2 className="mb-4 text-lg font-bold text-primary">
-                Billing Address
+                Payment Details
+              </h2>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-xs font-medium text-text-light">Method:</span>
+                  <p className="text-sm font-semibold capitalize text-text-dark mt-1">
+                    {currentOrder.payment?.method?.replace("-", " ") || "WeTravel"}
+                  </p>
+                </div>
+                {/* Payment Link Button - Prominent for pending/processing */}
+                {(currentOrder.payment?.status === "pending" || currentOrder.payment?.status === "processing") &&
+                  currentOrder.payment?.weTravelPaymentLink && (
+                    <div className="mt-4">
+                      <a
+                        href={currentOrder.payment.weTravelPaymentLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-base font-bold text-white shadow-lg transition-all hover:from-emerald-700 hover:to-teal-700 hover:shadow-xl hover:scale-105"
+                      >
+                        <svg
+                          className="h-6 w-6"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                          />
+                        </svg>
+                        Complete Payment Now
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 7l5 5m0 0l-5 5m5-5H6"
+                          />
+                        </svg>
+                      </a>
+                      <p className="mt-2 text-xs text-center text-text-light">
+                        Click to complete your payment securely
+                      </p>
+                    </div>
+                  )}
+                {currentOrder.payment?.transactionId && (
+                  <div className="pt-3 border-t border-gray-200">
+                    <span className="text-xs font-medium text-text-light">Transaction ID:</span>
+                    <p className="text-xs font-mono text-text-dark mt-1 break-all">
+                      {currentOrder.payment.transactionId}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Order Summary - Clean */}
+            <div
+              className="rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-white p-6 shadow-lg"
+              data-aos="fade-up"
+            >
+              <h2 className="mb-4 text-lg font-bold text-primary">
+                Price Summary
               </h2>
               <div className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <MapPin className="mt-0.5 h-4 w-4 text-primary" />
-                  <div className="text-sm text-text-light">
-                    <p>{currentOrder.billingAddress?.streetAddress}</p>
-                    <p>
-                      {currentOrder.billingAddress?.city},{" "}
-                      {currentOrder.billingAddress?.state}{" "}
-                      {currentOrder.billingAddress?.zipCode}
-                    </p>
-                    <p>{currentOrder.billingAddress?.country}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Information */}
-            <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
-              data-aos="fade-up"
-            >
-              <h2 className="mb-4 text-lg font-bold text-primary">
-                Payment Information
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-text-light">
-                    Payment Method:
-                  </span>
-                  <span className="text-sm font-semibold capitalize text-text-dark">
-                    {currentOrder.payment?.method?.replace("-", " ") ||
-                      "Credit Card"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-text-light">
-                    Payment Status:
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold ${getPaymentStatusColor(currentOrder.payment?.status)}`}
-                  >
-                    {currentOrder.payment?.status || "pending"}
-                  </span>
-                </div>
-                {currentOrder.payment?.weTravelTripUuid && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">Trip ID:</span>
-                    <span className="text-sm font-semibold text-text-dark">
-                      {currentOrder.payment.weTravelTripUuid}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.payment?.cardLast4 && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">Card:</span>
-                    <span className="text-sm font-semibold text-text-dark">
-                      **** **** **** {currentOrder.payment.cardLast4}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.payment?.cardBrand && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">Card Type:</span>
-                    <span className="text-sm font-semibold capitalize text-text-dark">
-                      {currentOrder.payment.cardBrand}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.payment?.transactionId && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">
-                      Transaction ID:
-                    </span>
-                    <span className="text-sm font-semibold text-text-dark">
-                      {currentOrder.payment.transactionId}
-                    </span>
-                  </div>
-                )}
-                {currentOrder.payment?.paymentDate && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">
-                      Payment Date:
-                    </span>
-                    <span className="text-sm font-semibold text-text-dark">
-                      {formatDateTime(currentOrder.payment.paymentDate)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Order Summary */}
-            <div
-              className="rounded-3xl border border-primary/10 bg-gradient-to-br from-white via-background-paper to-background-nature/20 p-6 shadow-nature-large backdrop-blur-xl"
-              data-aos="fade-up"
-            >
-              <h2 className="mb-4 text-lg font-bold text-primary">
-                Booking Summary
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-text-light">Subtotal:</span>
-                  <span className="text-sm font-semibold text-text-dark">
-                    ${currentOrder.subtotal?.toFixed(2)}
-                  </span>
-                </div>
-                {currentOrder.taxAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">Tax:</span>
-                    <span className="text-sm font-semibold text-text-dark">
-                      ${currentOrder.taxAmount?.toFixed(2)}
+                {currentOrder.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-light">Subtotal:</span>
+                    <span className="font-semibold text-text-dark">
+                      ${currentOrder.subtotal?.toFixed(2)}
                     </span>
                   </div>
                 )}
                 {currentOrder.discountAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-text-light">Discount:</span>
-                    <span className="text-sm font-semibold text-success">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-light">Discount:</span>
+                    <span className="font-semibold text-success">
                       -${currentOrder.discountAmount?.toFixed(2)}
                     </span>
                   </div>
                 )}
-                <div className="border-t border-gray-200 pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-base font-semibold text-text-dark">
-                      Total Cost:
+                <div className="border-t-2 border-primary/20 pt-3 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-primary">
+                      Total:
                     </span>
-                    <span className="text-base font-semibold text-text-dark">
+                    <span className="text-2xl font-black text-primary">
                       ${currentOrder.totalAmount?.toFixed(2)}
                     </span>
                   </div>

@@ -273,8 +273,9 @@ const Checkout = () => {
 
         if (existingRequest) {
           if (existingRequest.status === "approved") {
-            // User has approved request, allow booking
+            // User has approved request, allow booking - CRITICAL: Set isBlocked to false
             isBlocked = false;
+            console.log(`✅ Approved request found for trip ${tripId}, date ${requestDateStr}, category ${selectedCategory} - allowing booking`);
           } else {
             // User has pending/rejected request, show status
             matchedRequests.push({
@@ -289,7 +290,7 @@ const Checkout = () => {
             });
           }
         } else {
-          // Check eligibility API as fallback
+          // Check eligibility API as fallback - this is important for real-time checks
           try {
             const result = await dispatch(
               checkBookingEligibility({
@@ -302,18 +303,19 @@ const Checkout = () => {
             if (result.payload?.allowed && result.payload?.hasApprovedRequest) {
               // User has approved request, allow booking
               isBlocked = false;
+              console.log(`✅ Approved request found via API for trip ${tripId} - allowing booking`);
             }
           } catch (error) {
+            console.error("Error checking booking eligibility:", error);
             // If check fails, keep blocked status
           }
         }
       }
 
-      // Add to blocked trips if:
-      // 1. Trip is blocked AND has no existing request, OR
-      // 2. Trip is blocked AND has a pending/rejected request (so user can submit new request)
+      // Add to blocked trips ONLY if still blocked after checking for approved requests
+      // If isBlocked is false (because of approved request), don't add to blocked list
       if (isBlocked) {
-        // Only skip if there's an approved request (which unblocks it)
+        // Only add if there's no approved request (approved requests unblock the trip)
         if (!existingRequest || (existingRequest && existingRequest.status !== "approved")) {
           blocked.push({
             trip,
@@ -325,7 +327,11 @@ const Checkout = () => {
             restrictionMessage,
             existingRequest: existingRequest || null, // Include existing request info if any
           });
+        } else {
+          console.log(`✅ Trip ${tripId} has approved request - not adding to blocked list`);
         }
+      } else {
+        console.log(`✅ Trip ${tripId} is not blocked - allowing checkout`);
       }
     }
 
