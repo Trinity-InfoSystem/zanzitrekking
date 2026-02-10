@@ -55,27 +55,26 @@ const urgentBookingRequestSchema = new Schema(
       },
     },
 
-    // Billing address
+    // Billing address (optional for availability requests)
     billingAddress: {
       street: {
         type: String,
-        required: true,
+        default: "",
       },
       city: {
         type: String,
-        required: true,
+        default: "",
       },
       state: {
         type: String,
-        required: true,
+        default: "",
       },
       zip: {
         type: String,
-        required: true,
+        default: "",
       },
       country: {
         type: String,
-        required: true,
         default: "United States",
       },
     },

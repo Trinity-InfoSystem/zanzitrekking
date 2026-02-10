@@ -25,19 +25,18 @@ class UrgentBookingRequestController {
         billingAddress,
       } = req.body;
 
-      // Validate required fields
+      // Validate required fields (billingAddress is optional)
       if (
         !customerId ||
         !tripId ||
         !requestedDate ||
         !selectedCategory ||
         !travelersNumber ||
-        !personalInfo ||
-        !billingAddress
+        !personalInfo
       ) {
         return responseReturn(res, 400, {
           message:
-            "Missing required fields: customerId, tripId, requestedDate, selectedCategory, travelersNumber, personalInfo, and billingAddress are required.",
+            "Missing required fields: customerId, tripId, requestedDate, selectedCategory, travelersNumber, and personalInfo are required.",
         });
       }
 
@@ -149,13 +148,23 @@ class UrgentBookingRequestController {
           email: personalInfo.email.trim(),
           phone: personalInfo.phone.trim(),
         },
-        billingAddress: {
-          street: billingAddress.street.trim(),
-          city: billingAddress.city.trim(),
-          state: billingAddress.state.trim(),
-          zip: billingAddress.zip.trim(),
-          country: billingAddress.country || "United States",
-        },
+        // Billing address is optional for availability requests
+        // Handle null, undefined, or empty object
+        billingAddress: billingAddress && typeof billingAddress === "object" && billingAddress !== null
+          ? {
+              street: (billingAddress.street || "").trim(),
+              city: (billingAddress.city || "").trim(),
+              state: (billingAddress.state || "").trim(),
+              zip: (billingAddress.zip || "").trim(),
+              country: (billingAddress.country || "United States").trim(),
+            }
+          : {
+              street: "",
+              city: "",
+              state: "",
+              zip: "",
+              country: "United States",
+            },
         categoryName: trip.category?.name || "",
         tripTitle: trip.mainTitle || "",
         status: "pending",
