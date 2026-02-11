@@ -1,8 +1,9 @@
 "use client";
 
-import { TagIcon, TagsIcon, XIcon } from "lucide-react";
+import { TagIcon, TagsIcon, XIcon, BabyIcon } from "lucide-react";
 import { DatePicker } from "./DatePicker";
 import { TravelersCounter } from "./TravelersCounter";
+import { ChildrenAgesInput } from "./ChildrenAgesInput";
 import { IMAGES_URL } from "../../utils/constants";
 import toast from "react-hot-toast";
 
@@ -17,6 +18,10 @@ export const CartItem = ({
   onCategoryChange,
   onTravelersChange,
   handleDelete,
+  childrenCount = 0,
+  childrenAges = [],
+  onChildrenCountChange,
+  onChildrenAgesChange,
 }) => {
   const imageName = trip.mainImage
     ? IMAGES_URL + trip.mainImage.split("/").pop()
@@ -102,6 +107,32 @@ export const CartItem = ({
               onChange={(count) => onTravelersChange(trip, count)}
             />
 
+            <div className="flex flex-col gap-1.5">
+              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                <BabyIcon className="h-4 w-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Number of Children</span>
+              </label>
+              <div className="flex h-[38px] items-center overflow-hidden rounded-lg border border-gray-300 bg-white shadow-sm">
+                <button
+                  className="flex h-full items-center justify-center px-3 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => onChildrenCountChange(Math.max(0, childrenCount - 1))}
+                  disabled={childrenCount <= 0}
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
+                <div className="flex h-full flex-1 items-center justify-center border-x border-gray-200 px-3 font-medium text-sm sm:text-base">
+                  {childrenCount}
+                </div>
+                <button
+                  className="flex h-full items-center justify-center px-3 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => onChildrenCountChange(Math.min(10, childrenCount + 1))}
+                  disabled={childrenCount >= 10}
+                >
+                  <TagIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-1">
               <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                 <TagsIcon className="h-4 w-4 text-emerald-600" />
@@ -128,6 +159,14 @@ export const CartItem = ({
               </select>
             </div>
           </div>
+
+          {/* Children Ages Input */}
+          <ChildrenAgesInput
+            childrenCount={childrenCount}
+            childrenAges={childrenAges}
+            onChange={onChildrenAgesChange}
+            tripId={trip._id}
+          />
         </div>
       </div>
     </div>

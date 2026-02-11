@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Award,
@@ -253,33 +253,7 @@ const Categories = () => {
             );
           })}
         </div>
-
-        {/* Call to Action */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex flex-col items-center gap-4 rounded-xl border border-neutral-200 bg-background-subtle p-8 shadow-soft">
-            <div className="flex items-center gap-2">
-              <Compass className="h-5 w-5 text-secondary-600" />
-              <h3 className="text-lg font-bold text-primary-700">
-                Can&apos;t Find What You&apos;re Looking For?
-              </h3>
-            </div>
-            <p className="max-w-md text-sm text-text-light">
-              Our expert team can create custom adventures tailored to your
-              preferences and interests.
-            </p>
-            <Link
-              to="/contact-us"
-              className="group flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition-all duration-200 hover:bg-primary-700 hover:shadow-soft-md"
-            >
-              <Users className="h-4 w-4" />
-              <span>Plan Custom Adventure</span>
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        </div>
       </div>
-      {/* Section divider */}
-      <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-primary-200 to-transparent" />
     </section>
   );
 };

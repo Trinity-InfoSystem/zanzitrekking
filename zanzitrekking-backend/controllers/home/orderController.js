@@ -222,7 +222,21 @@ class OrderController {
           tempOrder.calculateOrderTotals();
         }
 
+        // Extract payment option and deposit amount from paymentInfo
+        const paymentOption = paymentInfo?.paymentOption || "full";
+        const depositAmount = paymentInfo?.depositAmount || 0;
+        const totalAmount = tempOrder.totalAmount;
+
+        // Build return URL for payment callback (when user cancels or completes payment)
+        const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+        const returnUrl = `${frontendUrl}/order-confirmation?orderId=${tempOrder._id || "temp"}&cancelled=false`;
+
         const orderData = weTravelService.formatOrderForPaymentLink(tempOrder);
+        
+        // Add payment option and return URL to order data
+        orderData.paymentOption = paymentOption;
+        orderData.depositAmount = depositAmount;
+        orderData.returnUrl = returnUrl;
 
         // Create payment link with WeTravel
         weTravelResponse = await weTravelService.createPaymentLink(orderData);
@@ -267,6 +281,13 @@ class OrderController {
       order.payment.weTravelPaymentLink = weTravelResponse.trip.url;
       order.payment.weTravelTripUuid = weTravelResponse.trip.uuid;
       order.payment.weTravelTripUrl = weTravelResponse.trip.url;
+      
+      // Store payment option and amounts
+      if (paymentInfo?.paymentOption) {
+        order.payment.paymentOption = paymentInfo.paymentOption;
+        order.payment.depositAmount = paymentInfo.depositAmount || 0;
+        order.payment.remainingAmount = totalAmount - (paymentInfo.depositAmount || 0);
+      }
 
       await order.save();
 

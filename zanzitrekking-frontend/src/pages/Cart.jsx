@@ -26,6 +26,8 @@ const Cart = () => {
 
   const [selectedDates, setSelectedDates] = useState({});
   const [selectedCategories, setSelectedCategories] = useState({});
+  const [childrenCounts, setChildrenCounts] = useState({});
+  const [childrenAges, setChildrenAges] = useState({});
   const [totalPrice, setTotalPrice] = useState(0);
   const serviceFee = 0;
 
@@ -79,10 +81,22 @@ const Cart = () => {
     }, {});
     setSelectedCategories(initialCategories);
 
+    // Initialize children counts and ages
+    const initialChildrenCounts = cart_trips.reduce((acc, trip) => {
+      acc[trip._id] = trip.childrenCount || 0;
+      return acc;
+    }, {});
+    setChildrenCounts(initialChildrenCounts);
+
+    const initialChildrenAges = cart_trips.reduce((acc, trip) => {
+      acc[trip._id] = trip.childrenAges || [];
+      return acc;
+    }, {});
+    setChildrenAges(initialChildrenAges);
 
     calculateTotalPrice();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, cart_trips]);
+  }, [dispatch, cart_trips, childrenCounts, childrenAges, selectedDates, selectedCategories]);
 
   // Helper function to get the applicable season for a given date
   const getApplicableSeason = (trip, date) => {
@@ -121,6 +135,17 @@ const Cart = () => {
     return null;
   };
 
+  // Calculate children discount based on age
+  const calculateChildrenDiscount = (age) => {
+    if (age >= 5 && age <= 12) {
+      return 0.15; // 15% discount for ages 5-12
+    }
+    if (age >= 12 && age <= 15) {
+      return 0.10; // 10% discount for ages 12-15
+    }
+    return 0; // No discount for other ages
+  };
+
   const calculateTripPrice = (
     trip,
     date,
@@ -134,8 +159,12 @@ const Cart = () => {
       trip.selectedCategory ??
       "standard";
 
+    // Get children data for this trip
+    const tripChildrenCount = childrenCounts[trip._id] || 0;
+    const tripChildrenAges = childrenAges[trip._id] || [];
+
     // If this is the initial load and we have stored prices, use them
-    if (!travelers && !category && trip.totalPrice) {
+    if (!travelers && !category && trip.totalPrice && tripChildrenCount === 0) {
       return trip.totalPrice;
     }
 
@@ -153,9 +182,10 @@ const Cart = () => {
       return trip.totalPrice || 0;
     }
 
-    // Get the appropriate rate based on number of travelers
+    // Get the appropriate rate based on number of travelers (adults + children)
+    const totalTravelers = numberOfTravelers + tripChildrenCount;
     let basePrice;
-    switch (numberOfTravelers) {
+    switch (totalTravelers) {
       case 1:
         basePrice = categoryRates.onePerson;
         break;
@@ -178,13 +208,30 @@ const Cart = () => {
       return trip.totalPrice || 0;
     }
 
-    // Apply discount if available
-    const discountAmount = trip.discount
-      ? (basePrice * trip.discount) / 100
-      : 0;
-    const discountedPrice = basePrice - discountAmount;
+    // Calculate adult price (number of travelers without children)
+    const adultPrice = basePrice * numberOfTravelers;
 
-    return discountedPrice * numberOfTravelers;
+    // Calculate children prices with discounts
+    let childrenTotalPrice = 0;
+    tripChildrenAges.forEach((age) => {
+      if (age !== null && age !== undefined) {
+        const discount = calculateChildrenDiscount(age);
+        const childPrice = basePrice * (1 - discount);
+        childrenTotalPrice += childPrice;
+      } else {
+        // If age not provided, charge full price
+        childrenTotalPrice += basePrice;
+      }
+    });
+
+    // Apply trip discount if available
+    const totalWithoutTripDiscount = adultPrice + childrenTotalPrice;
+    const discountAmount = trip.discount
+      ? (totalWithoutTripDiscount * trip.discount) / 100
+      : 0;
+    const finalPrice = totalWithoutTripDiscount - discountAmount;
+
+    return finalPrice;
   };
 
   const calculateTotalPrice = () => {
@@ -193,12 +240,7 @@ const Cart = () => {
       const category =
         selectedCategories[trip._id] || trip.selectedCategory || "standard";
 
-      // Use stored price if available and valid
-      if (trip.totalPrice && trip.totalPrice > 0) {
-        return sum + trip.totalPrice;
-      }
-
-      // Otherwise calculate
+      // Always recalculate to include children discounts
       const calculatedPrice = calculateTripPrice(
         trip,
         tripDate,
@@ -356,6 +398,19 @@ const Cart = () => {
         return acc;
       }, {});
       setSelectedCategories(updatedCategories);
+
+      // Update children counts and ages from cart trips
+      const updatedChildrenCounts = cart_trips.reduce((acc, trip) => {
+        acc[trip._id] = trip.childrenCount || 0;
+        return acc;
+      }, {});
+      setChildrenCounts((prev) => ({ ...prev, ...updatedChildrenCounts }));
+
+      const updatedChildrenAges = cart_trips.reduce((acc, trip) => {
+        acc[trip._id] = trip.childrenAges || [];
+        return acc;
+      }, {});
+      setChildrenAges((prev) => ({ ...prev, ...updatedChildrenAges }));
     }
   }, [cart_trips]);
 
@@ -440,14 +495,19 @@ const Cart = () => {
                         trip,
                         validDate,
                       );
+                      // Recalculate price including children discounts
                       const currentPrice = calculateTripPrice(
                         trip,
                         validDate,
                         null,
                         currentCategory,
                       );
-                      const pricePerPerson =
-                        currentPrice / trip.travelersNumber;
+                      // Calculate price per person (base price without children discounts)
+                      const tripChildrenCount = childrenCounts[trip._id] || 0;
+                      const totalTravelers = trip.travelersNumber + tripChildrenCount;
+                      const pricePerPerson = totalTravelers > 0 
+                        ? currentPrice / totalTravelers 
+                        : currentPrice / trip.travelersNumber;
 
                       return (
                         <CartItem
@@ -469,6 +529,29 @@ const Cart = () => {
                             handleTravelersChange(t, count)
                           }
                           handleDelete={handleDelete}
+                          childrenCount={childrenCounts[trip._id] || 0}
+                          childrenAges={childrenAges[trip._id] || []}
+                          onChildrenCountChange={(count) => {
+                            setChildrenCounts((prev) => ({
+                              ...prev,
+                              [trip._id]: count,
+                            }));
+                            // Reset ages if count decreases
+                            if (count < (childrenAges[trip._id]?.length || 0)) {
+                              setChildrenAges((prev) => ({
+                                ...prev,
+                                [trip._id]: (prev[trip._id] || []).slice(0, count),
+                              }));
+                            }
+                            calculateTotalPrice();
+                          }}
+                          onChildrenAgesChange={(ages) => {
+                            setChildrenAges((prev) => ({
+                              ...prev,
+                              [trip._id]: ages,
+                            }));
+                            calculateTotalPrice();
+                          }}
                         />
                       );
                     })}

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router-dom";
 import { clearOrderMessages, getOrderById } from "../store/reducers/orderReducer";
 import {
   AlertCircle,
@@ -21,6 +21,7 @@ import QRCodeDisplay from "../components/QRCodeDisplay";
 
 const OrderDetail = () => {
   const { orderId } = useParams();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { currentOrder, loader, successMessage, errorMessage } = useSelector(
     (state) => state.order,
@@ -204,7 +205,7 @@ const OrderDetail = () => {
         </div>
 
         {/* Payment Failed/Cancelled Section */}
-        {currentOrder.payment?.status === "failed" &&
+        {(currentOrder.payment?.status === "failed" || location.state?.paymentCancelled) &&
           currentOrder.payment?.weTravelPaymentLink && (
             <div
               className="mb-6 rounded-xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-6 shadow-lg"
@@ -218,11 +219,23 @@ const OrderDetail = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="mb-2 text-xl font-bold text-gray-900">
-                    ⚠️ Payment Not Completed
+                    ⚠️ Payment Cancelled
                   </h3>
                   <p className="mb-4 text-gray-700">
-                    Your payment was cancelled or could not be processed. Your booking is still reserved, but you need to complete payment to confirm it.
+                    {location.state?.paymentCancelled 
+                      ? "You cancelled the payment process. Your booking is still reserved, but you need to complete payment to confirm it."
+                      : "Your payment was cancelled or could not be processed. Your booking is still reserved, but you need to complete payment to confirm it."}
                   </p>
+                  {location.state?.paymentCancelled && (
+                    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                      <p className="text-sm font-semibold text-blue-900">
+                        💡 Next Steps:
+                      </p>
+                      <p className="mt-1 text-sm text-blue-800">
+                        You can complete your payment anytime using the button below. Your booking will be confirmed once payment is successful.
+                      </p>
+                    </div>
+                  )}
                   <div className="mb-4 rounded-lg border border-red-200 bg-white p-4">
                     <p className="mb-2 text-sm font-semibold text-gray-900">
                       What happened?

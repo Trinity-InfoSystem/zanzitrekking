@@ -101,6 +101,14 @@ const cartSchema = new Schema(
       type: String,
       default: "Year Round",
     },
+    childrenCount: {
+      type: Number,
+      default: 0,
+    },
+    childrenAges: {
+      type: [Number],
+      default: [],
+    },
   },
   { timestamps: true }
 );

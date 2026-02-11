@@ -77,6 +77,9 @@ class WeTravelService {
         participantInfo, // Customer/participant information
         travelersNumber = 1, // Number of travelers
         selectedCategory, // Package type: standard, midRange, luxury
+        paymentOption = "full", // "deposit" or "full"
+        depositAmount = 0, // Deposit amount if paymentOption is "deposit"
+        returnUrl, // Return URL for payment callback
       } = orderData;
 
       // Validate that trip dates are not in the past
@@ -124,18 +127,31 @@ class WeTravelService {
           pricing: {
             payment_plan: {
               allow_auto_payment: false,
-              allow_partial_payment: false,
-              deposit: 0,
-              installments: [
-                {
-                  price: totalAmount,
-                  days_before_departure: daysBeforeDeparture,
-                },
-              ],
+              allow_partial_payment: paymentOption === "deposit",
+              deposit: paymentOption === "deposit" ? depositAmount : 0,
+              installments: paymentOption === "deposit" 
+                ? [
+                    {
+                      price: depositAmount,
+                      days_before_departure: 0, // Deposit due immediately
+                    },
+                    {
+                      price: totalAmount - depositAmount,
+                      days_before_departure: daysBeforeDeparture, // Remaining due before trip
+                    },
+                  ]
+                : [
+                    {
+                      price: totalAmount,
+                      days_before_departure: daysBeforeDeparture,
+                    },
+                  ],
             },
-            price: totalAmount,
+            price: paymentOption === "deposit" ? depositAmount : totalAmount,
             days_before_departure: daysBeforeDeparture,
           },
+          // Add return URL if provided
+          ...(returnUrl && { return_url: returnUrl }),
           // Include participants array to pre-fill customer information
           // This helps WeTravel identify the customer and prevents "please select your package" errors
           ...(participants.length > 0 && { participants }),

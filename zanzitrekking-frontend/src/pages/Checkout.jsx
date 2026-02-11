@@ -49,6 +49,8 @@ const Checkout = () => {
   const [showAvailabilityForm, setShowAvailabilityForm] = useState(false);
   const [checkingRestrictions, setCheckingRestrictions] = useState(true);
   const [existingRequests, setExistingRequests] = useState([]);
+  // State for payment option (deposit or full payment)
+  const [paymentOption, setPaymentOption] = useState("deposit"); // "deposit" or "full"
   const { requests: userRequests } = useSelector(
     (state) => state.urgentBookingRequest || { requests: [] },
   );
@@ -659,6 +661,18 @@ const Checkout = () => {
         };
       });
 
+      // Calculate total price to determine payment options
+      const calculatedTotal = total; // Use the total from checkout calculation
+      const isEligibleForDeposit = calculatedTotal >= 150;
+      
+      // Determine payment amount based on selected option
+      let paymentAmount = calculatedTotal;
+      let depositAmount = 0;
+      if (isEligibleForDeposit && paymentOption === "deposit") {
+        depositAmount = calculatedTotal * 0.2; // 20% deposit
+        paymentAmount = depositAmount;
+      }
+
       // Validate required fields
       const requiredFields = {
         customerId: userInfo.id,
@@ -674,6 +688,9 @@ const Checkout = () => {
         paymentInfo: {
           method: "wetravel",
           status: "pending",
+          paymentOption: paymentOption, // "deposit" or "full"
+          depositAmount: depositAmount,
+          totalAmount: calculatedTotal,
         },
         serviceFee: serviceFee, // Include service fee in order
       };
@@ -716,7 +733,7 @@ const Checkout = () => {
   return (
     <div className="from-background-nature via-background-sunset flex min-h-screen flex-col bg-gradient-to-br to-background-paper">
       <Header />
-      <main className="flex-grow py-12">
+      <main className="flex-grow py-12" style={{ minHeight: 'calc(100vh - 200px)' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Checkout Header */}
           <div className="mb-10 text-center">
@@ -1271,6 +1288,87 @@ const Checkout = () => {
                         <p className="text-sm text-green-600">
                           {successMessage}
                         </p>
+                      </div>
+                    )}
+
+                    {/* Payment Options - Show if total >= $150 */}
+                    {(() => {
+                      const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
+                      const tripsWithPendingRequests = new Set(
+                        existingRequests
+                          .filter((req) => req.request?.status !== "approved")
+                          .map((req) => req.tripId?.toString())
+                      );
+                      const allowedTrips = checkoutTrips.filter((trip) => {
+                        const tripId = trip.tripId || trip._id;
+                        return !blockedTripIds.has(tripId?.toString()) &&
+                               !tripsWithPendingRequests.has(tripId?.toString());
+                      });
+                      const calculatedTotal = allowedTrips.reduce((sum, trip) => {
+                        const tripId = trip.tripId || trip._id;
+                        const travelersNumber = trip.travelersNumber || 1;
+                        const rates = getApplicableRates(trip);
+                        if (!rates) return sum;
+                        const selectedCategory = selectedCategories[tripId] || trip.selectedCategory || "standard";
+                        const categoryRates = getCategoryRates(rates, selectedCategory);
+                        if (!categoryRates) return sum;
+                        let pricePerPerson = 0;
+                        switch (travelersNumber) {
+                          case 1: pricePerPerson = categoryRates.onePerson; break;
+                          case 2: pricePerPerson = categoryRates.twoPerson; break;
+                          case 3: pricePerPerson = categoryRates.threePerson; break;
+                          case 4: pricePerPerson = categoryRates.fourPerson; break;
+                          default: pricePerPerson = categoryRates.fiveOrMorePerson; break;
+                        }
+                        if (!pricePerPerson || pricePerPerson <= 0) return sum;
+                        const totalWithoutDiscount = pricePerPerson * travelersNumber;
+                        const discountAmount = (totalWithoutDiscount * (trip.discount || 0)) / 100;
+                        return sum + (totalWithoutDiscount - discountAmount);
+                      }, 0) + serviceFee;
+                      return calculatedTotal >= 150;
+                    })() && (
+                      <div className="mt-8 border-t-2 border-gray-100 pt-6">
+                        <h3 className="mb-4 text-lg font-bold text-gray-900">
+                          Payment Options
+                        </h3>
+                        <div className="space-y-3">
+                          <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 transition-all hover:border-emerald-300 hover:bg-emerald-50/30">
+                            <input
+                              type="radio"
+                              name="paymentOption"
+                              value="deposit"
+                              checked={paymentOption === "deposit"}
+                              onChange={(e) => setPaymentOption(e.target.value)}
+                              className="mt-1 h-5 w-5 cursor-pointer text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900">
+                                Pay Deposit (20%)
+                              </div>
+                              <div className="mt-1 text-sm text-gray-600">
+                                Pay ${(total * 0.2).toFixed(2)} now, remaining ${(total * 0.8).toFixed(2)} due before trip briefing
+                              </div>
+                            </div>
+                          </label>
+                          <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 transition-all hover:border-emerald-300 hover:bg-emerald-50/30">
+                            <input
+                              type="radio"
+                              name="paymentOption"
+                              value="full"
+                              checked={paymentOption === "full"}
+                              onChange={(e) => setPaymentOption(e.target.value)}
+                              className="mt-1 h-5 w-5 cursor-pointer text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900">
+                                Pay Full Amount
+                              </div>
+                              <div className="mt-1 text-sm text-gray-600">
+                                Pay ${total.toFixed(2)} now - no remaining balance
+                              </div>
+                            </div>
+                          </label>
+                        </div>
                       </div>
                     )}
 

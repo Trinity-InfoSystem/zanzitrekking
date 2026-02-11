@@ -10,7 +10,7 @@ import { get_special_trips } from "../store/reducers/tripReducer";
 import SectionDivider from "../components/Home/SectionDivider";
 import CertificationsSection from "../components/Home/CertificationsSection";
 import LatestBlogs from "../components/Home/LatestBlogs";
-import WhyChooseUs from "../components/Home/WhyChooseUs";
+import DiscoverTrips from "../components/Home/DiscoverTrips";
 import AOS from "aos";
 
 // ✅ Lazy load below-the-fold components
@@ -59,8 +59,17 @@ const Home = () => {
       {/* ✅ Critical above-the-fold content loads first */}
       <Banner />
       <Categories />
+
+      {/* Divider between Categories and DiscoverTrips */}
+      <div className="relative w-full py-12">
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary-200 to-transparent" />
+        </div>
+      </div>
+
+      <DiscoverTrips />
       <FeatureTrip trips={ensureArray(trips)} />
-      <WhyChooseUs />
+
       <CertificationsSection />
       <LatestBlogs />
       <SectionDivider />

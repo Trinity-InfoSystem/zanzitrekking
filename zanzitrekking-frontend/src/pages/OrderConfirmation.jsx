@@ -183,10 +183,25 @@ const OrderConfirmation = () => {
   // Check for cancelled payment in URL params or location state
   const urlParams = new URLSearchParams(window.location.search);
   const locationState = location.state || {};
+  const orderIdFromUrl = urlParams.get("orderId");
   const paymentCancelled = urlParams.get("cancelled") === "true" || 
                           urlParams.get("payment_cancelled") === "true" ||
                           urlParams.get("cancel") === "true" ||
                           locationState.paymentCancelled === true;
+
+  // If payment is cancelled, redirect to booking page immediately
+  useEffect(() => {
+    if (paymentCancelled && (orderIdFromUrl || orderDetails?._id) && !isLoading) {
+      const orderId = orderIdFromUrl || orderDetails?._id;
+      // Redirect to booking detail page instead of staying on order confirmation
+      navigate(`/dashboard/orders/${orderId}`, {
+        replace: true,
+        state: {
+          paymentCancelled: true,
+        },
+      });
+    }
+  }, [paymentCancelled, orderIdFromUrl, orderDetails?._id, isLoading, navigate]);
 
   // Determine payment status
   const paymentStatus = orderDetails?.payment?.status;
@@ -521,7 +536,10 @@ const OrderConfirmation = () => {
                   Booking Summary
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Booking #{orderDetails.orderNumber}
+                  Booking Reference: <span className="font-semibold text-gray-700">#{orderDetails.orderNumber}</span>
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Order ID: {orderDetails._id}
                 </p>
               </div>
               <div className="text-right">
@@ -533,6 +551,11 @@ const OrderConfirmation = () => {
                 </span>
                 <p className="mt-1 text-sm text-gray-500">
                   Booked on {formatDate(orderDetails.createdAt)}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Payment Status: <span className={`font-semibold ${isPaymentCompleted ? 'text-green-600' : isPaymentPending ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {paymentStatus || 'pending'}
+                  </span>
                 </p>
               </div>
             </div>

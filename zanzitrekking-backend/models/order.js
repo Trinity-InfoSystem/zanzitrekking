@@ -90,6 +90,14 @@ const orderSchema = new Schema(
           required: true,
           default: 1,
         },
+        childrenCount: {
+          type: Number,
+          default: 0,
+        },
+        childrenAges: {
+          type: [Number],
+          default: [],
+        },
         discount: {
           type: Number,
           default: 0,
