@@ -16,7 +16,7 @@ import { EmptyCart } from "../components/Cart/EmptyCart";
 import { CartItem } from "../components/Cart/CartItem";
 import { OrderSummary } from "../components/Cart/OrderSummary";
 import toast from "react-hot-toast";
-import { addDays, format, parse } from "date-fns";
+import { addDays, format, parse, isSameMonth, startOfMonth } from "date-fns";
 
 const Cart = () => {
   const dispatch = useDispatch();
@@ -96,7 +96,7 @@ const Cart = () => {
 
     calculateTotalPrice();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, cart_trips, childrenCounts, childrenAges, selectedDates, selectedCategories]);
+  }, [dispatch, cart_trips]);
 
   // Helper function to get the applicable season for a given date
   const getApplicableSeason = (trip, date) => {
@@ -397,20 +397,44 @@ const Cart = () => {
         acc[trip._id] = trip.selectedCategory || "standard";
         return acc;
       }, {});
-      setSelectedCategories(updatedCategories);
+      setSelectedCategories((prev) => {
+        // Only update if there are actual changes
+        const hasChanges = Object.keys(updatedCategories).some(
+          (id) => prev[id] !== updatedCategories[id]
+        );
+        return hasChanges ? updatedCategories : prev;
+      });
 
-      // Update children counts and ages from cart trips
+      // Update children counts and ages from cart trips (only if not already set)
       const updatedChildrenCounts = cart_trips.reduce((acc, trip) => {
-        acc[trip._id] = trip.childrenCount || 0;
+        if (trip.childrenCount !== undefined) {
+          acc[trip._id] = trip.childrenCount;
+        }
         return acc;
       }, {});
-      setChildrenCounts((prev) => ({ ...prev, ...updatedChildrenCounts }));
+      if (Object.keys(updatedChildrenCounts).length > 0) {
+        setChildrenCounts((prev) => {
+          const hasChanges = Object.keys(updatedChildrenCounts).some(
+            (id) => prev[id] !== updatedChildrenCounts[id]
+          );
+          return hasChanges ? { ...prev, ...updatedChildrenCounts } : prev;
+        });
+      }
 
       const updatedChildrenAges = cart_trips.reduce((acc, trip) => {
-        acc[trip._id] = trip.childrenAges || [];
+        if (trip.childrenAges && trip.childrenAges.length > 0) {
+          acc[trip._id] = trip.childrenAges;
+        }
         return acc;
       }, {});
-      setChildrenAges((prev) => ({ ...prev, ...updatedChildrenAges }));
+      if (Object.keys(updatedChildrenAges).length > 0) {
+        setChildrenAges((prev) => {
+          const hasChanges = Object.keys(updatedChildrenAges).some(
+            (id) => JSON.stringify(prev[id]) !== JSON.stringify(updatedChildrenAges[id])
+          );
+          return hasChanges ? { ...prev, ...updatedChildrenAges } : prev;
+        });
+      }
     }
   }, [cart_trips]);
 

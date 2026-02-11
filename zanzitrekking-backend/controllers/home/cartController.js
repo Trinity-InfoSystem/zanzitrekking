@@ -490,6 +490,8 @@ class WishlistController {
         travelersNumber,
         startingDate,
         selectedCategory,
+        childrenCount,
+        childrenAges,
       } = req.body;
 
       // Find the cart item
@@ -573,21 +575,34 @@ class WishlistController {
         seasonName = this.getSeasonNameForDate(trip, validatedDate);
       }
 
+      // Calculate total price including children (children prices calculated on frontend)
+      // For now, use base calculation - frontend will handle children discounts
       totalPrice =
         pricePerPerson *
         (parseInt(travelersNumber) || cartItem.travelersNumber);
 
+      // Build update object
+      const updateData = {
+        travelersNumber: travelersNumber || cartItem.travelersNumber,
+        startingDate: validatedDate,
+        selectedCategory: categoryToUse,
+        pricePerPerson,
+        totalPrice,
+        seasonName,
+      };
+
+      // Add children data if provided
+      if (childrenCount !== undefined) {
+        updateData.childrenCount = childrenCount;
+      }
+      if (childrenAges !== undefined && Array.isArray(childrenAges)) {
+        updateData.childrenAges = childrenAges;
+      }
+
       const updatedCart = await Cart.findOneAndUpdate(
         { _id: cartId, userId },
         {
-          $set: {
-            travelersNumber: travelersNumber || cartItem.travelersNumber,
-            startingDate: validatedDate,
-            selectedCategory: categoryToUse,
-            pricePerPerson,
-            totalPrice,
-            seasonName,
-          },
+          $set: updateData,
         },
         { new: true }
       );

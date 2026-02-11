@@ -78,7 +78,14 @@ export const DatePicker = ({
   useEffect(() => {
     if (isOpen) {
       const d = getDateValue();
-      setViewMonth(startOfMonth(d));
+      const newMonth = startOfMonth(d);
+      // Only update if month actually changed to prevent infinite loops
+      setViewMonth((prevMonth) => {
+        if (!isSameMonth(newMonth, prevMonth)) {
+          return newMonth;
+        }
+        return prevMonth;
+      });
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 

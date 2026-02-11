@@ -14,7 +14,7 @@ export const ChildrenAgesInput = ({
   useEffect(() => {
     // Initialize ages array when childrenCount changes
     if (childrenCount > 0) {
-      const newAges = [...ages];
+      const newAges = [...(childrenAges || [])];
       // Add empty ages for new children
       while (newAges.length < childrenCount) {
         newAges.push(null);
@@ -23,13 +23,18 @@ export const ChildrenAgesInput = ({
       if (newAges.length > childrenCount) {
         newAges.splice(childrenCount);
       }
-      setAges(newAges);
-      onChange(newAges);
+      // Only update if there are changes
+      if (JSON.stringify(newAges) !== JSON.stringify(ages)) {
+        setAges(newAges);
+        onChange(newAges);
+      }
     } else {
-      setAges([]);
-      onChange([]);
+      if (ages.length > 0) {
+        setAges([]);
+        onChange([]);
+      }
     }
-  }, [childrenCount]);
+  }, [childrenCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAgeChange = (index, age) => {
     const newAges = [...ages];
