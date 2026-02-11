@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BabyIcon } from "lucide-react";
 
 export const ChildrenAgesInput = ({ 
@@ -9,42 +9,53 @@ export const ChildrenAgesInput = ({
   onChange,
   tripId 
 }) => {
-  const [ages, setAges] = useState(childrenAges || []);
+  const [ages, setAges] = useState(() => childrenAges || []);
+  const prevChildrenCountRef = useRef(childrenCount);
+  const isUpdatingRef = useRef(false);
 
   useEffect(() => {
-    // Initialize ages array when childrenCount changes
-    if (childrenCount > 0) {
-      const newAges = [...(childrenAges || [])];
-      // Add empty ages for new children
-      while (newAges.length < childrenCount) {
-        newAges.push(null);
-      }
-      // Remove extra ages if children count decreased
-      if (newAges.length > childrenCount) {
-        newAges.splice(childrenCount);
-      }
-      // Only update if there are changes
-      if (JSON.stringify(newAges) !== JSON.stringify(ages)) {
+    // Only sync when childrenCount actually changes
+    if (prevChildrenCountRef.current !== childrenCount) {
+      isUpdatingRef.current = true;
+      prevChildrenCountRef.current = childrenCount;
+      
+      if (childrenCount > 0) {
+        const currentAges = childrenAges || [];
+        const newAges = [...currentAges];
+        // Add empty ages for new children
+        while (newAges.length < childrenCount) {
+          newAges.push(null);
+        }
+        // Remove extra ages if children count decreased
+        if (newAges.length > childrenCount) {
+          newAges.splice(childrenCount);
+        }
         setAges(newAges);
-        onChange(newAges);
+        // Only call onChange if ages actually changed
+        if (JSON.stringify(newAges) !== JSON.stringify(currentAges)) {
+          onChange(newAges);
+        }
+      } else {
+        if (ages.length > 0) {
+          setAges([]);
+          onChange([]);
+        }
       }
-    } else {
-      if (ages.length > 0) {
-        setAges([]);
-        onChange([]);
-      }
+      
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 50);
     }
   }, [childrenCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAgeChange = (index, age) => {
+    if (isUpdatingRef.current) return; // Prevent updates during initialization
+    
     const newAges = [...ages];
     const parsedAge = age === "" ? null : parseInt(age);
     newAges[index] = parsedAge;
     setAges(newAges);
-    // Only call onChange if not initializing to prevent loops
-    if (!isInitializingRef.current) {
-      onChange(newAges);
-    }
+    onChange(newAges);
   };
 
   if (childrenCount === 0) {
@@ -67,7 +78,7 @@ export const ChildrenAgesInput = ({
               type="number"
               min="0"
               max="18"
-              value={ages[index] || ""}
+              value={ages[index] !== null && ages[index] !== undefined ? ages[index] : ""}
               onChange={(e) => handleAgeChange(index, e.target.value)}
               placeholder="Age"
               className="w-full rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
@@ -89,7 +100,7 @@ export const ChildrenAgesInput = ({
         ))}
       </div>
       <p className="mt-3 text-xs text-gray-500">
-        💡 Children ages 5-12 receive a 15% discount. Ages 12-15 receive a 10% discount. Ages 16+ are charged at adult rates.
+        💡 Children ages 5-11 receive a 15% discount. Ages 12-15 receive a 10% discount. Ages 16+ are charged at adult rates.
       </p>
     </div>
   );
