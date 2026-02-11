@@ -342,12 +342,16 @@ const Cart = () => {
             travelersNumber: trip.travelersNumber,
             startingDate: dateString,
             selectedCategory: newCategory,
+            childrenCount: childrenCounts[tripId] || 0,
+            childrenAges: childrenAges[tripId] || [],
           }),
         );
 
         // Refresh cart data after successful update
         dispatch(get_cart_trips(userInfo.id));
       } catch (error) {
+        console.error("Error updating category:", error);
+        toast.error("Failed to update package type");
         // Revert local state if backend update failed
         setSelectedCategories((prev) => ({
           ...prev,
@@ -355,8 +359,6 @@ const Cart = () => {
         }));
       }
     }
-
-    calculateTotalPrice();
   };
 
   const handleDelete = (trip) => {
@@ -374,17 +376,24 @@ const Cart = () => {
     const category =
       selectedCategories[trip._id] || trip.selectedCategory || "standard";
 
-    dispatch(
-      update_cart_trip({
-        userId: userInfo.id,
-        cartId: trip._id,
-        travelersNumber: newCount,
-        startingDate: dateString,
-        selectedCategory: category,
-      }),
-    );
+    try {
+      await dispatch(
+        update_cart_trip({
+          userId: userInfo.id,
+          cartId: trip._id,
+          travelersNumber: newCount,
+          startingDate: dateString,
+          selectedCategory: category,
+          childrenCount: childrenCounts[trip._id] || 0,
+          childrenAges: childrenAges[trip._id] || [],
+        }),
+      );
 
-    dispatch(get_cart_trips(userInfo.id));
+      dispatch(get_cart_trips(userInfo.id));
+    } catch (error) {
+      console.error("Error updating travelers:", error);
+      toast.error("Failed to update travelers count");
+    }
   };
 
   useEffect(() => {
