@@ -229,18 +229,18 @@ class OrderController {
         const depositAmount = paymentInfo?.depositAmount || 0;
         const totalAmount = tempOrder.totalAmount;
 
+        // Generate order number first so we can use it in return URL
+        const orderNumber = await generateOrderNumber();
+
         // Build return URL for payment callback (when user cancels or completes payment)
         // WeTravel will append ?cancelled=true if user cancels
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-        const returnUrl = `${frontendUrl}/order-confirmation?orderId=TEMP_ORDER_ID`;
+        const returnUrl = `${frontendUrl}/order-confirmation?orderId=${orderNumber}`;
 
-        // Create a temporary order to format payment link data
-        const tempOrderForPayment = new Order({
-          ...tempOrder.toObject(),
-          orderNumber: orderNumber, // Use the generated order number
-        });
+        // Set order number on temp order for payment link formatting
+        tempOrder.orderNumber = orderNumber;
         
-        const orderData = weTravelService.formatOrderForPaymentLink(tempOrderForPayment);
+        const orderData = weTravelService.formatOrderForPaymentLink(tempOrder);
         
         // Add payment option and return URL to order data
         orderData.paymentOption = paymentOption;
@@ -265,7 +265,7 @@ class OrderController {
       }
 
       // Only create order AFTER payment link is successfully created
-      // Order number already generated above, reuse it
+      // Order number already generated above
 
       const order = await Order.createFromCartItems(
         customerId,
@@ -277,7 +277,7 @@ class OrderController {
           method: "wetravel",
           status: "pending",
         },
-        orderNumber
+        orderNumber // Use the order number generated above
       );
 
       // Set service fee if provided and recalculate total
