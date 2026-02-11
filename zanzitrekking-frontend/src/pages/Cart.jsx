@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   clearMessage,
@@ -95,8 +95,14 @@ const Cart = () => {
     setChildrenAges(initialChildrenAges);
 
     calculateTotalPrice();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, cart_trips]);
+  }, [dispatch, cart_trips, calculateTotalPrice]);
+  
+  // Recalculate price when children data or categories change
+  useEffect(() => {
+    if (cart_trips.length > 0) {
+      calculateTotalPrice();
+    }
+  }, [childrenCounts, childrenAges, selectedCategories, selectedDates, calculateTotalPrice]);
 
   // Helper function to get the applicable season for a given date
   const getApplicableSeason = (trip, date) => {
@@ -136,17 +142,17 @@ const Cart = () => {
   };
 
   // Calculate children discount based on age
-  const calculateChildrenDiscount = (age) => {
-    if (age >= 5 && age <= 12) {
-      return 0.15; // 15% discount for ages 5-12
+  const calculateChildrenDiscount = useCallback((age) => {
+    if (age >= 5 && age < 12) {
+      return 0.15; // 15% discount for ages 5-11
     }
     if (age >= 12 && age <= 15) {
       return 0.10; // 10% discount for ages 12-15
     }
     return 0; // No discount for other ages
-  };
+  }, []);
 
-  const calculateTripPrice = (
+  const calculateTripPrice = useCallback((
     trip,
     date,
     travelers = null,
@@ -232,9 +238,9 @@ const Cart = () => {
     const finalPrice = totalWithoutTripDiscount - discountAmount;
 
     return finalPrice;
-  };
+  }, [selectedCategories, childrenCounts, childrenAges, calculateChildrenDiscount]);
 
-  const calculateTotalPrice = () => {
+  const calculateTotalPrice = useCallback(() => {
     const total = cart_trips.reduce((sum, trip) => {
       const tripDate = selectedDates[trip._id] || new Date();
       const category =
@@ -250,7 +256,7 @@ const Cart = () => {
       return sum + calculatedPrice;
     }, 0);
     setTotalPrice(total);
-  };
+  }, [cart_trips, selectedDates, selectedCategories, calculateTripPrice]);
 
   const handleDateChange = async (tripId, newDate) => {
     const tomorrow = addDays(new Date(), 1);
@@ -555,26 +561,97 @@ const Cart = () => {
                           handleDelete={handleDelete}
                           childrenCount={childrenCounts[trip._id] || 0}
                           childrenAges={childrenAges[trip._id] || []}
-                          onChildrenCountChange={(count) => {
+                          onChildrenCountChange={async (count) => {
+                            // Update local state immediately for responsive UI
                             setChildrenCounts((prev) => ({
                               ...prev,
                               [trip._id]: count,
                             }));
+                            
                             // Reset ages if count decreases
-                            if (count < (childrenAges[trip._id]?.length || 0)) {
+                            let newAges = childrenAges[trip._id] || [];
+                            if (count < newAges.length) {
+                              newAges = newAges.slice(0, count);
                               setChildrenAges((prev) => ({
                                 ...prev,
-                                [trip._id]: (prev[trip._id] || []).slice(0, count),
+                                [trip._id]: newAges,
                               }));
                             }
-                            calculateTotalPrice();
+                            
+                            // Update backend
+                            const tripDate = selectedDates[trip._id] || new Date();
+                            const dateString =
+                              tripDate instanceof Date ? format(tripDate, "yyyy-MM-dd") : tripDate;
+                            const category =
+                              selectedCategories[trip._id] || trip.selectedCategory || "standard";
+                            
+                            try {
+                              await dispatch(
+                                update_cart_trip({
+                                  userId: userInfo.id,
+                                  cartId: trip._id,
+                                  travelersNumber: trip.travelersNumber,
+                                  startingDate: dateString,
+                                  selectedCategory: category,
+                                  childrenCount: count,
+                                  childrenAges: newAges,
+                                }),
+                              );
+                              // Refresh cart to get updated data
+                              await dispatch(get_cart_trips(userInfo.id));
+                            } catch (error) {
+                              console.error("Error updating children count:", error);
+                              toast.error("Failed to update children count");
+                              // Revert on error
+                              setChildrenCounts((prev) => ({
+                                ...prev,
+                                [trip._id]: trip.childrenCount || 0,
+                              }));
+                            }
+                            
+                            // Recalculate price
+                            setTimeout(() => calculateTotalPrice(), 100);
                           }}
-                          onChildrenAgesChange={(ages) => {
+                          onChildrenAgesChange={async (ages) => {
+                            // Update local state immediately for responsive UI
                             setChildrenAges((prev) => ({
                               ...prev,
                               [trip._id]: ages,
                             }));
-                            calculateTotalPrice();
+                            
+                            // Update backend
+                            const tripDate = selectedDates[trip._id] || new Date();
+                            const dateString =
+                              tripDate instanceof Date ? format(tripDate, "yyyy-MM-dd") : tripDate;
+                            const category =
+                              selectedCategories[trip._id] || trip.selectedCategory || "standard";
+                            
+                            try {
+                              await dispatch(
+                                update_cart_trip({
+                                  userId: userInfo.id,
+                                  cartId: trip._id,
+                                  travelersNumber: trip.travelersNumber,
+                                  startingDate: dateString,
+                                  selectedCategory: category,
+                                  childrenCount: childrenCounts[trip._id] || 0,
+                                  childrenAges: ages,
+                                }),
+                              );
+                              // Refresh cart to get updated data
+                              await dispatch(get_cart_trips(userInfo.id));
+                            } catch (error) {
+                              console.error("Error updating children ages:", error);
+                              toast.error("Failed to update children ages");
+                              // Revert on error
+                              setChildrenAges((prev) => ({
+                                ...prev,
+                                [trip._id]: trip.childrenAges || [],
+                              }));
+                            }
+                            
+                            // Recalculate price
+                            setTimeout(() => calculateTotalPrice(), 100);
                           }}
                         />
                       );
