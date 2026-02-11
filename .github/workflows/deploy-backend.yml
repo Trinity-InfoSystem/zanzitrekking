@@ -1,5 +1,7 @@
 name: Deploy Backend to cPanel
 
+# This workflow triggers ONLY when backend files change
+# It will NOT trigger if only frontend files are changed
 on:
   push:
     branches:
