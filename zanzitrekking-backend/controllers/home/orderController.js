@@ -205,6 +205,7 @@ class OrderController {
       // Generate WeTravel payment link FIRST - only create order if payment link is successfully created
       // This ensures orders are only created when payment links exist, preventing incomplete orders
       let weTravelResponse;
+      let orderNumber; // Declare outside try block so it's accessible after
       try {
         // Check if API key is configured
         if (!process.env.WETRAVEL_API_KEY) {
@@ -239,7 +240,7 @@ class OrderController {
         const totalAmount = tempOrder.totalAmount;
 
         // Generate order number first so we can use it in return URL
-        const orderNumber = await generateOrderNumber();
+        orderNumber = await generateOrderNumber();
 
         // Build return URL for payment callback (when user cancels or completes payment)
         // WeTravel will append ?cancelled=true if user cancels

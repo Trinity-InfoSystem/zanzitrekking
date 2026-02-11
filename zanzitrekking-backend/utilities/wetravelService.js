@@ -95,7 +95,15 @@ class WeTravelService {
           throw new Error("Deposit amount must be greater than 0 when deposit option is selected");
         }
         if (depositAmount >= totalAmount) {
-          throw new Error("Deposit amount must be less than total amount");
+          throw new Error(`Deposit amount (${depositAmount}) must be less than total amount (${totalAmount})`);
+        }
+        // Ensure deposit is reasonable (at least 10% and not more than 50%)
+        const depositPercentage = (depositAmount / totalAmount) * 100;
+        if (depositPercentage < 10) {
+          console.warn(`Deposit percentage (${depositPercentage.toFixed(2)}%) is less than 10%`);
+        }
+        if (depositPercentage > 50) {
+          console.warn(`Deposit percentage (${depositPercentage.toFixed(2)}%) is more than 50%`);
         }
       }
 
@@ -107,6 +115,15 @@ class WeTravelService {
       // Validate travelers number (should already include children from formatOrderForPaymentLink)
       if (!travelersNumber || travelersNumber <= 0) {
         throw new Error("Total number of participants (adults + children) must be greater than 0");
+      }
+
+      // Validate that installments sum equals total amount (for deposits)
+      if (paymentOption === "deposit") {
+        const remainingAmount = totalAmount - depositAmount;
+        const installmentsSum = depositAmount + remainingAmount;
+        if (Math.abs(installmentsSum - totalAmount) > 0.01) {
+          throw new Error(`Installments sum (${installmentsSum}) does not match total amount (${totalAmount})`);
+        }
       }
 
       // Build participants array if participantInfo is provided
@@ -206,13 +223,15 @@ class WeTravelService {
         error.response?.data || error.message
       );
       console.error("Status Code:", error.response?.status);
+      console.error("Request Data:", JSON.stringify(paymentLinkData, null, 2));
+      console.error("Full Error:", error);
 
       // If token expired, try to refresh and retry once
       if (error.response?.status === 401 || error.response?.status === 403) {
         console.log("Access token may be expired, refreshing...");
         await this.getAccessToken();
 
-        // Prepare the data again for retry
+        // Prepare the data again for retry - preserve deposit settings
         const {
           tripTitle,
           tripId,
@@ -221,7 +240,33 @@ class WeTravelService {
           totalAmount,
           currency = "USD",
           daysBeforeDeparture = 2,
+          paymentOption = "full",
+          depositAmount = 0,
+          travelersNumber = 1,
+          participantInfo,
+          returnUrl,
         } = orderData;
+
+        // Build participants array again if needed
+        const participants = participantInfo
+          ? [
+              {
+                first_name: participantInfo.firstName,
+                last_name: participantInfo.lastName,
+                email: participantInfo.email,
+                phone_number: participantInfo.phone,
+                ...(participantInfo.address && {
+                  address: {
+                    street: participantInfo.address.street,
+                    city: participantInfo.address.city,
+                    state: participantInfo.address.state,
+                    zip: participantInfo.address.zip,
+                    country: participantInfo.address.country,
+                  },
+                }),
+              },
+            ]
+          : [];
 
         const paymentLinkData = {
           data: {
@@ -232,22 +277,36 @@ class WeTravelService {
               start_date: startDate,
               end_date: endDate,
               currency: currency,
+              capacity: Math.max(travelersNumber || 1, 100),
             },
             pricing: {
               payment_plan: {
                 allow_auto_payment: false,
-                allow_partial_payment: false,
-                deposit: 0,
-                installments: [
-                  {
-                    price: totalAmount,
-                    days_before_departure: daysBeforeDeparture,
-                  },
-                ],
+                allow_partial_payment: paymentOption === "deposit",
+                deposit: paymentOption === "deposit" ? depositAmount : 0,
+                installments: paymentOption === "deposit" 
+                  ? [
+                      {
+                        price: depositAmount,
+                        days_before_departure: 0,
+                      },
+                      {
+                        price: totalAmount - depositAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ]
+                  : [
+                      {
+                        price: totalAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ],
               },
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
             },
+            ...(returnUrl && { return_url: returnUrl }),
+            ...(participants.length > 0 && { participants }),
           },
         };
 
