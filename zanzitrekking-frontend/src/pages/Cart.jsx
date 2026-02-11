@@ -31,79 +31,6 @@ const Cart = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const serviceFee = 0;
 
-  useEffect(() => {
-    const tomorrow = addDays(new Date(), 1);
-    tomorrow.setHours(0, 0, 0, 0);
-
-    const initialDates = cart_trips.reduce((acc, trip) => {
-        if (trip && trip._id) {
-        let dateValue;
-        if (trip.startingDate) {
-          // Parse date string - backend returns YYYY-MM-DD format
-          // Parse as local date for correct display
-          if (typeof trip.startingDate === "string") {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(trip.startingDate)) {
-              // Pure date string YYYY-MM-DD - parse as local date
-              dateValue = parse(trip.startingDate, "yyyy-MM-dd", new Date());
-            } else if (trip.startingDate.includes("T")) {
-              // ISO string - extract date part and parse as local
-              const datePart = trip.startingDate.split("T")[0];
-              dateValue = parse(datePart, "yyyy-MM-dd", new Date());
-            } else {
-              dateValue = new Date(trip.startingDate);
-            }
-          } else {
-            // If it's already a Date object
-            dateValue = new Date(trip.startingDate);
-          }
-          // Validate the date
-          if (isNaN(dateValue.getTime())) {
-            dateValue = tomorrow;
-          } else {
-            dateValue.setHours(0, 0, 0, 0);
-            // Ensure date is at least tomorrow
-            if (dateValue < tomorrow) {
-              dateValue = tomorrow;
-            }
-          }
-        } else {
-          dateValue = tomorrow;
-        }
-        acc[trip._id] = dateValue;
-      }
-      return acc;
-    }, {});
-    setSelectedDates(initialDates);
-
-    const initialCategories = cart_trips.reduce((acc, trip) => {
-      acc[trip._id] = trip.selectedCategory || "standard";
-      return acc;
-    }, {});
-    setSelectedCategories(initialCategories);
-
-    // Initialize children counts and ages
-    const initialChildrenCounts = cart_trips.reduce((acc, trip) => {
-      acc[trip._id] = trip.childrenCount || 0;
-      return acc;
-    }, {});
-    setChildrenCounts(initialChildrenCounts);
-
-    const initialChildrenAges = cart_trips.reduce((acc, trip) => {
-      acc[trip._id] = trip.childrenAges || [];
-      return acc;
-    }, {});
-    setChildrenAges(initialChildrenAges);
-
-    calculateTotalPrice();
-  }, [dispatch, cart_trips, calculateTotalPrice]);
-  
-  // Recalculate price when children data or categories change
-  useEffect(() => {
-    if (cart_trips.length > 0) {
-      calculateTotalPrice();
-    }
-  }, [childrenCounts, childrenAges, selectedCategories, selectedDates, calculateTotalPrice]);
-
   // Helper function to get the applicable season for a given date
   const getApplicableSeason = (trip, date) => {
     if (!trip) {
@@ -257,6 +184,79 @@ const Cart = () => {
     }, 0);
     setTotalPrice(total);
   }, [cart_trips, selectedDates, selectedCategories, calculateTripPrice]);
+
+  useEffect(() => {
+    const tomorrow = addDays(new Date(), 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const initialDates = cart_trips.reduce((acc, trip) => {
+        if (trip && trip._id) {
+        let dateValue;
+        if (trip.startingDate) {
+          // Parse date string - backend returns YYYY-MM-DD format
+          // Parse as local date for correct display
+          if (typeof trip.startingDate === "string") {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(trip.startingDate)) {
+              // Pure date string YYYY-MM-DD - parse as local date
+              dateValue = parse(trip.startingDate, "yyyy-MM-dd", new Date());
+            } else if (trip.startingDate.includes("T")) {
+              // ISO string - extract date part and parse as local
+              const datePart = trip.startingDate.split("T")[0];
+              dateValue = parse(datePart, "yyyy-MM-dd", new Date());
+            } else {
+              dateValue = new Date(trip.startingDate);
+            }
+          } else {
+            // If it's already a Date object
+            dateValue = new Date(trip.startingDate);
+          }
+          // Validate the date
+          if (isNaN(dateValue.getTime())) {
+            dateValue = tomorrow;
+          } else {
+            dateValue.setHours(0, 0, 0, 0);
+            // Ensure date is at least tomorrow
+            if (dateValue < tomorrow) {
+              dateValue = tomorrow;
+            }
+          }
+        } else {
+          dateValue = tomorrow;
+        }
+        acc[trip._id] = dateValue;
+      }
+      return acc;
+    }, {});
+    setSelectedDates(initialDates);
+
+    const initialCategories = cart_trips.reduce((acc, trip) => {
+      acc[trip._id] = trip.selectedCategory || "standard";
+      return acc;
+    }, {});
+    setSelectedCategories(initialCategories);
+
+    // Initialize children counts and ages
+    const initialChildrenCounts = cart_trips.reduce((acc, trip) => {
+      acc[trip._id] = trip.childrenCount || 0;
+      return acc;
+    }, {});
+    setChildrenCounts(initialChildrenCounts);
+
+    const initialChildrenAges = cart_trips.reduce((acc, trip) => {
+      acc[trip._id] = trip.childrenAges || [];
+      return acc;
+    }, {});
+    setChildrenAges(initialChildrenAges);
+
+    calculateTotalPrice();
+  }, [dispatch, cart_trips, calculateTotalPrice]);
+  
+  // Recalculate price when children data or categories change
+  useEffect(() => {
+    if (cart_trips.length > 0) {
+      calculateTotalPrice();
+    }
+  }, [childrenCounts, childrenAges, selectedCategories, selectedDates, calculateTotalPrice]);
 
   const handleDateChange = async (tripId, newDate) => {
     const tomorrow = addDays(new Date(), 1);
@@ -609,8 +609,10 @@ const Cart = () => {
                                   childrenAges: newAges,
                                 }),
                               );
-                              // Refresh cart to get updated data
+                              // Refresh cart to get updated data with recalculated prices
                               await dispatch(get_cart_trips(userInfo.id));
+                              // Recalculate price after refresh
+                              setTimeout(() => calculateTotalPrice(), 200);
                             } catch (error) {
                               console.error("Error updating children count:", error);
                               toast.error("Failed to update children count");
@@ -620,9 +622,6 @@ const Cart = () => {
                                 [trip._id]: trip.childrenCount || 0,
                               }));
                             }
-                            
-                            // Recalculate price
-                            setTimeout(() => calculateTotalPrice(), 100);
                           }}
                           onChildrenAgesChange={async (ages) => {
                             // Update local state immediately for responsive UI

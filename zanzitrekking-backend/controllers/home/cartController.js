@@ -575,11 +575,57 @@ class WishlistController {
         seasonName = this.getSeasonNameForDate(trip, validatedDate);
       }
 
-      // Calculate total price including children (children prices calculated on frontend)
-      // For now, use base calculation - frontend will handle children discounts
-      totalPrice =
-        pricePerPerson *
-        (parseInt(travelersNumber) || cartItem.travelersNumber);
+      // Check if children data changed and recalculate price if needed
+      const finalChildrenCount = childrenCount !== undefined ? childrenCount : cartItem.childrenCount || 0;
+      const finalChildrenAges = childrenAges !== undefined && Array.isArray(childrenAges) ? childrenAges : cartItem.childrenAges || [];
+      const childrenChanged = 
+        (childrenCount !== undefined && childrenCount !== (cartItem.childrenCount || 0)) ||
+        (childrenAges !== undefined && JSON.stringify(childrenAges) !== JSON.stringify(cartItem.childrenAges || []));
+
+      // Recalculate price if children data changed
+      if (childrenChanged) {
+        // Get base price per person (for adults)
+        const basePricePerPerson = pricePerPerson || await this.getPriceForTrip(
+          cartItem.tripId,
+          validatedDate,
+          travelersNumber || cartItem.travelersNumber,
+          categoryToUse
+        );
+        
+        // Calculate total with children discounts
+        const adultCount = parseInt(travelersNumber) || cartItem.travelersNumber;
+        let totalAdultPrice = basePricePerPerson * adultCount;
+        let totalChildrenPrice = 0;
+
+        finalChildrenAges.forEach((age) => {
+          if (age !== null && age !== undefined) {
+            let childDiscountRate = 0;
+            if (age >= 5 && age < 12) {
+              childDiscountRate = 0.15; // 15% discount for ages 5-11
+            } else if (age >= 12 && age <= 15) {
+              childDiscountRate = 0.10; // 10% discount for ages 12-15
+            }
+            // Children 16+ pay full price, under 5 pay full price
+            const childPrice = basePricePerPerson * (1 - childDiscountRate);
+            totalChildrenPrice += childPrice;
+          } else {
+            // If age not provided, charge full price
+            totalChildrenPrice += basePricePerPerson;
+          }
+        });
+
+        // Apply trip discount if available
+        const totalBeforeDiscount = totalAdultPrice + totalChildrenPrice;
+        const discountAmount = cartItem.discount
+          ? (totalBeforeDiscount * cartItem.discount) / 100
+          : 0;
+        totalPrice = totalBeforeDiscount - discountAmount;
+      } else {
+        // Calculate total price normally (no children or children unchanged)
+        totalPrice =
+          pricePerPerson *
+          (parseInt(travelersNumber) || cartItem.travelersNumber);
+      }
 
       // Build update object
       const updateData = {

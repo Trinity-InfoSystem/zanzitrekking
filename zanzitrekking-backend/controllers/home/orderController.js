@@ -76,13 +76,18 @@ class OrderController {
 
         // Get the selected category from cart item, default to 'standard'
         const selectedCategory = item.selectedCategory || "standard";
+        
+        // Get children data from cart item
+        const childrenCount = item.childrenCount || 0;
+        const childrenAges = item.childrenAges || [];
 
         if (trip.pricingType === "yearRound") {
           // Use regular prices for year-round pricing with selected category
           pricePerPerson = this.calculatePricePerPerson(
             trip.regularPrices,
             travelersNumber,
-            selectedCategory
+            selectedCategory,
+            childrenAges
           );
         } else if (trip.pricingType === "seasonal") {
           // Find the appropriate season based on the trip's starting date
@@ -97,7 +102,8 @@ class OrderController {
             pricePerPerson = this.calculatePricePerPerson(
               applicableSeason.rates,
               travelersNumber,
-              selectedCategory
+              selectedCategory,
+              childrenAges
             );
           } else {
             // Fallback to regular prices if no season matches
@@ -107,7 +113,8 @@ class OrderController {
             pricePerPerson = this.calculatePricePerPerson(
               trip.regularPrices,
               travelersNumber,
-              selectedCategory
+              selectedCategory,
+              childrenAges
             );
           }
         } else {
@@ -115,8 +122,10 @@ class OrderController {
           pricePerPerson = 0;
         }
 
-        // Calculate item totals
-        const basePrice = pricePerPerson * travelersNumber;
+        // Calculate item totals including children
+        // pricePerPerson already accounts for children discounts, so multiply by total travelers
+        const totalTravelers = travelersNumber + childrenCount;
+        const basePrice = pricePerPerson * totalTravelers;
         const discountAmount = (basePrice * (item.discount || 0)) / 100;
         const itemSubtotal = basePrice;
         const itemTotal = basePrice - discountAmount;
@@ -317,7 +326,7 @@ class OrderController {
   };
 
   // Helper method to calculate price per person
-  calculatePricePerPerson(pricing, travelersNumber, category = "standard") {
+  calculatePricePerPerson(pricing, travelersNumber, category = "standard", childrenAges = []) {
     // Handle new category-specific pricing structure
     let categoryPricing = null;
     if (pricing && pricing[category]) {
@@ -331,17 +340,51 @@ class OrderController {
       return 0;
     }
 
-    if (travelersNumber === 1) {
-      return categoryPricing.onePerson;
-    } else if (travelersNumber === 2) {
-      return categoryPricing.twoPerson;
-    } else if (travelersNumber === 3) {
-      return categoryPricing.threePerson;
-    } else if (travelersNumber === 4) {
-      return categoryPricing.fourPerson;
+    // Get base price per person based on total travelers (adults + children)
+    const totalTravelers = travelersNumber + (childrenAges?.length || 0);
+    let basePricePerPerson;
+    
+    if (totalTravelers === 1) {
+      basePricePerPerson = categoryPricing.onePerson;
+    } else if (totalTravelers === 2) {
+      basePricePerPerson = categoryPricing.twoPerson;
+    } else if (totalTravelers === 3) {
+      basePricePerPerson = categoryPricing.threePerson;
+    } else if (totalTravelers === 4) {
+      basePricePerPerson = categoryPricing.fourPerson;
     } else {
-      return categoryPricing.fiveOrMorePerson;
+      basePricePerPerson = categoryPricing.fiveOrMorePerson;
     }
+
+    // If no children, return base price
+    if (!childrenAges || childrenAges.length === 0) {
+      return basePricePerPerson;
+    }
+
+    // Calculate total price with children discounts
+    let totalAdultPrice = basePricePerPerson * travelersNumber;
+    let totalChildrenPrice = 0;
+
+    childrenAges.forEach((age) => {
+      if (age !== null && age !== undefined) {
+        let childDiscountRate = 0;
+        if (age >= 5 && age < 12) {
+          childDiscountRate = 0.15; // 15% discount for ages 5-11
+        } else if (age >= 12 && age <= 15) {
+          childDiscountRate = 0.10; // 10% discount for ages 12-15
+        }
+        // Children 16+ pay full price, under 5 pay full price
+        const childPrice = basePricePerPerson * (1 - childDiscountRate);
+        totalChildrenPrice += childPrice;
+      } else {
+        // If age not provided, charge full price
+        totalChildrenPrice += basePricePerPerson;
+      }
+    });
+
+    // Return average price per person (total divided by total travelers)
+    const totalPrice = totalAdultPrice + totalChildrenPrice;
+    return totalPrice / totalTravelers;
   }
 
   // Update order with new season pricing (if dates change)
