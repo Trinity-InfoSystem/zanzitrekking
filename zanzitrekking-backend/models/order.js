@@ -463,16 +463,17 @@ orderSchema.methods.updateItemStatus = function (itemIndex, newStatus) {
 
 orderSchema.methods.calculateOrderTotals = function () {
   let subtotal = 0;
-  let totalDiscount = 0;
 
+  // Use itemTotal (after trip discounts) instead of itemSubtotal
+  // itemTotal already includes trip-level discounts applied at item level
   this.cartItems.forEach((item) => {
-    subtotal += item.itemSubtotal;
-    totalDiscount += item.discount || 0;
+    subtotal += item.itemTotal || item.itemSubtotal || 0;
   });
 
   this.subtotal = subtotal;
   // totalAmount includes serviceFee
-  this.totalAmount = subtotal + (this.serviceFee || 0) - this.orderDiscount;
+  // orderDiscount is for order-level discounts (like coupon codes), not item-level discounts
+  this.totalAmount = subtotal + (this.serviceFee || 0) - (this.orderDiscount || 0);
 
   // Don't call save() here, just calculate and set the values
   return this;

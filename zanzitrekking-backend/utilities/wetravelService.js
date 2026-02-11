@@ -89,6 +89,26 @@ class WeTravelService {
         throw new Error(errorMessage);
       }
 
+      // Validate deposit amount if deposit option is selected
+      if (paymentOption === "deposit") {
+        if (!depositAmount || depositAmount <= 0) {
+          throw new Error("Deposit amount must be greater than 0 when deposit option is selected");
+        }
+        if (depositAmount >= totalAmount) {
+          throw new Error("Deposit amount must be less than total amount");
+        }
+      }
+
+      // Validate total amount
+      if (!totalAmount || totalAmount <= 0) {
+        throw new Error("Total amount must be greater than 0");
+      }
+
+      // Validate travelers number (should already include children from formatOrderForPaymentLink)
+      if (!travelersNumber || travelersNumber <= 0) {
+        throw new Error("Total number of participants (adults + children) must be greater than 0");
+      }
+
       // Build participants array if participantInfo is provided
       const participants = participantInfo
         ? [
@@ -147,7 +167,9 @@ class WeTravelService {
                     },
                   ],
             },
-            price: paymentOption === "deposit" ? depositAmount : totalAmount,
+            // Price should always be the total amount, even for deposits
+            // The installments array breaks down the payment schedule
+            price: totalAmount,
             days_before_departure: daysBeforeDeparture,
           },
           // Add return URL if provided
@@ -403,9 +425,9 @@ class WeTravelService {
         : `${itemCount} Safari Trips - ${order.orderNumber}`;
     const tripTitle = this.sanitizeTitle(rawTitle);
 
-    // Get total travelers number from all cart items
+    // Get total travelers number from all cart items (adults + children)
     const totalTravelers = order.cartItems.reduce(
-      (sum, item) => sum + (item.travelersNumber || 1),
+      (sum, item) => sum + (item.travelersNumber || 1) + (item.childrenCount || 0),
       0
     );
 
@@ -419,6 +441,12 @@ class WeTravelService {
 
     // selectedCategory is already declared above (line 376) for packageTypeLabel
 
+    // Calculate total children count from all cart items
+    const totalChildrenCount = order.cartItems.reduce(
+      (sum, item) => sum + (item.childrenCount || 0),
+      0
+    );
+
     return {
       tripTitle,
       tripId: order.orderNumber,
@@ -427,7 +455,8 @@ class WeTravelService {
       totalAmount: order.totalAmount,
       currency: "USD",
       daysBeforeDeparture: daysBeforeDeparture,
-      travelersNumber: totalTravelers,
+      travelersNumber: totalTravelers, // This already includes children from the reduce above
+      childrenCount: totalChildrenCount, // Explicitly pass children count for validation
       selectedCategory, // Package type: standard, midRange, luxury
       // Include participant/customer information (billing address is optional in WeTravel)
       participantInfo: order.personalInfo

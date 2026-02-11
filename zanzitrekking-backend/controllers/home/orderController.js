@@ -321,7 +321,11 @@ class OrderController {
       });
     } catch (error) {
       console.error("Create order error:", error);
-      return responseReturn(res, 500, { error: "Internal Server Error" });
+      console.error("Error stack:", error.stack);
+      return responseReturn(res, 500, { 
+        error: "Internal Server Error",
+        message: error.message || "An unexpected error occurred while creating the order. Please try again."
+      });
     }
   };
 
