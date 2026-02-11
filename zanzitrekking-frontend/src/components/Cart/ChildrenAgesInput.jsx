@@ -38,9 +38,13 @@ export const ChildrenAgesInput = ({
 
   const handleAgeChange = (index, age) => {
     const newAges = [...ages];
-    newAges[index] = age === "" ? null : parseInt(age);
+    const parsedAge = age === "" ? null : parseInt(age);
+    newAges[index] = parsedAge;
     setAges(newAges);
-    onChange(newAges);
+    // Only call onChange if not initializing to prevent loops
+    if (!isInitializingRef.current) {
+      onChange(newAges);
+    }
   };
 
   if (childrenCount === 0) {

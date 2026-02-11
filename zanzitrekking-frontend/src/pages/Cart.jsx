@@ -305,13 +305,16 @@ const Cart = () => {
             userId: userInfo.id,
             cartId: tripId,
             travelersNumber: trip.travelersNumber,
-            startingDate: dateStringToSend, // Format using UTC to prevent day shifts
+            startingDate: dateStringToSend,
             selectedCategory: category,
+            childrenCount: childrenCounts[tripId] || 0,
+            childrenAges: childrenAges[tripId] || [],
           }),
         );
         dispatch(get_cart_trips(userInfo.id));
       } catch (error) {
-        // Revert on error...
+        console.error("Error updating date:", error);
+        toast.error("Failed to update trip date");
       }
     }
   };
