@@ -132,6 +132,8 @@ class OrderController {
           startingDate: startingDate,
           days: trip.days?.length || 1,
           travelersNumber: travelersNumber,
+          childrenCount: item.childrenCount || 0,
+          childrenAges: item.childrenAges || [],
           discount: item.discount || 0,
           pricingType: trip.pricingType,
           regularPrices: trip.regularPrices,
@@ -228,10 +230,17 @@ class OrderController {
         const totalAmount = tempOrder.totalAmount;
 
         // Build return URL for payment callback (when user cancels or completes payment)
+        // WeTravel will append ?cancelled=true if user cancels
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-        const returnUrl = `${frontendUrl}/order-confirmation?orderId=${tempOrder._id || "temp"}&cancelled=false`;
+        const returnUrl = `${frontendUrl}/order-confirmation?orderId=TEMP_ORDER_ID`;
 
-        const orderData = weTravelService.formatOrderForPaymentLink(tempOrder);
+        // Create a temporary order to format payment link data
+        const tempOrderForPayment = new Order({
+          ...tempOrder.toObject(),
+          orderNumber: orderNumber, // Use the generated order number
+        });
+        
+        const orderData = weTravelService.formatOrderForPaymentLink(tempOrderForPayment);
         
         // Add payment option and return URL to order data
         orderData.paymentOption = paymentOption;
@@ -256,7 +265,7 @@ class OrderController {
       }
 
       // Only create order AFTER payment link is successfully created
-      const orderNumber = await generateOrderNumber();
+      // Order number already generated above, reuse it
 
       const order = await Order.createFromCartItems(
         customerId,

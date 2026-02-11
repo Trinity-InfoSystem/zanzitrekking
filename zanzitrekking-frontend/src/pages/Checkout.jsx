@@ -650,6 +650,8 @@ const Checkout = () => {
           mainImage: cartItem.mainImage || trip.mainImage || "",
           startingDate: cartItem.startingDate || new Date().toISOString(),
           travelersNumber,
+          childrenCount: cartItem.childrenCount || 0,
+          childrenAges: cartItem.childrenAges || [],
           pricingType: trip.pricingType,
           discount: trip.discount || cartItem.discount || 0,
           itemSubtotal: finalPrice,
