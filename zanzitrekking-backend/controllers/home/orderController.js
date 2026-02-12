@@ -251,8 +251,9 @@ class OrderController {
 
         // Build return URL for payment callback (when user cancels or completes payment)
         // WeTravel will append ?cancelled=true if user cancels
-        // Use production frontend URL, fallback to localhost only for local development
-        const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://zanzisafaris.com' : 'http://localhost:3000');
+        // Use production frontend URL: https://booking.zanzisafaris.com
+        // Priority: 1) FRONTEND_URL env variable, 2) Production URL, 3) Localhost for dev
+        const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://booking.zanzisafaris.com' : 'http://localhost:3000');
         const returnUrl = `${frontendUrl}/order-confirmation?orderId=${orderNumber}`;
         
         console.log("🔗 [OrderController] Return URL:", returnUrl);
