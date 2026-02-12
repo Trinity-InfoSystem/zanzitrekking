@@ -163,36 +163,34 @@ class WeTravelService {
             // Note: Setting a high capacity to prevent "sold out" issue
             capacity: Math.max(travelersNumber || 1, 100), // Allow at least 100 bookings
           },
-          trip_options: [
-            {
-              payment_plan: {
-                allow_auto_payment: false,
-                allow_partial_payment: paymentOption === "deposit",
-                deposit: paymentOption === "deposit" ? depositAmount : 0,
-                installments: paymentOption === "deposit" 
-                  ? [
-                      {
-                        price: depositAmount,
-                        days_before_departure: 0, // Deposit due immediately
-                      },
-                      {
-                        price: totalAmount - depositAmount,
-                        days_before_departure: daysBeforeDeparture, // Remaining due before trip
-                      },
-                    ]
-                  : [
-                      {
-                        price: totalAmount,
-                        days_before_departure: daysBeforeDeparture,
-                      },
-                    ],
-              },
-              // Price should always be the total amount, even for deposits
-              // The installments array breaks down the payment schedule
-              price: totalAmount,
-              days_before_departure: daysBeforeDeparture,
+          pricing: {
+            payment_plan: {
+              allow_auto_payment: false,
+              allow_partial_payment: paymentOption === "deposit",
+              deposit: paymentOption === "deposit" ? depositAmount : 0,
+              installments: paymentOption === "deposit" 
+                ? [
+                    {
+                      price: depositAmount,
+                      days_before_departure: 0, // Deposit due immediately
+                    },
+                    {
+                      price: totalAmount - depositAmount,
+                      days_before_departure: daysBeforeDeparture, // Remaining due before trip
+                    },
+                  ]
+                : [
+                    {
+                      price: totalAmount,
+                      days_before_departure: daysBeforeDeparture,
+                    },
+                  ],
             },
-          ],
+            // Price should always be the total amount, even for deposits
+            // The installments array breaks down the payment schedule
+            price: totalAmount,
+            days_before_departure: daysBeforeDeparture,
+          },
           // Add return URL if provided
           ...(returnUrl && { return_url: returnUrl }),
           // Include participants array to pre-fill customer information
@@ -285,34 +283,32 @@ class WeTravelService {
               currency: currency,
               capacity: Math.max(travelersNumber || 1, 100),
             },
-            trip_options: [
-              {
-                payment_plan: {
-                  allow_auto_payment: false,
-                  allow_partial_payment: paymentOption === "deposit",
-                  deposit: paymentOption === "deposit" ? depositAmount : 0,
-                  installments: paymentOption === "deposit" 
-                    ? [
-                        {
-                          price: depositAmount,
-                          days_before_departure: 0,
-                        },
-                        {
-                          price: totalAmount - depositAmount,
-                          days_before_departure: daysBeforeDeparture,
-                        },
-                      ]
-                    : [
-                        {
-                          price: totalAmount,
-                          days_before_departure: daysBeforeDeparture,
-                        },
-                      ],
-                },
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
+            pricing: {
+              payment_plan: {
+                allow_auto_payment: false,
+                allow_partial_payment: paymentOption === "deposit",
+                deposit: paymentOption === "deposit" ? depositAmount : 0,
+                installments: paymentOption === "deposit" 
+                  ? [
+                      {
+                        price: depositAmount,
+                        days_before_departure: 0,
+                      },
+                      {
+                        price: totalAmount - depositAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ]
+                  : [
+                      {
+                        price: totalAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ],
               },
-            ],
+              price: totalAmount,
+              days_before_departure: daysBeforeDeparture,
+            },
             ...(returnUrl && { return_url: returnUrl }),
             ...(participants.length > 0 && { participants }),
           },
