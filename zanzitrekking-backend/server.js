@@ -80,19 +80,11 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log("🌐 [CORS] Request with no origin - allowing");
-      return callback(null, true);
-    }
-
-    console.log(`🌐 [CORS] Checking origin: ${origin}`);
-    console.log(`🌐 [CORS] Allowed origins:`, allowedOrigins);
+    if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
-      console.log(`✅ [CORS] Origin ${origin} is allowed`);
-      callback(null, true); // Changed from callback(null, origin)
+      callback(null, true);
     } else {
-      console.log(`❌ [CORS] Origin ${origin} is NOT allowed`);
       callback(new Error("Not allowed by CORS"));
     }
   },
