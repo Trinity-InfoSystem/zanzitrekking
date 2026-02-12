@@ -305,7 +305,7 @@ class OrderController {
       if (paymentInfo?.paymentOption) {
         order.payment.paymentOption = paymentInfo.paymentOption;
         order.payment.depositAmount = paymentInfo.depositAmount || 0;
-        order.payment.remainingAmount = totalAmount - (paymentInfo.depositAmount || 0);
+        order.payment.remainingAmount = order.totalAmount - (paymentInfo.depositAmount || 0);
       }
 
       await order.save();
