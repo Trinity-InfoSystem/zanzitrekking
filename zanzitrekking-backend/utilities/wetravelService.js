@@ -180,10 +180,9 @@ class WeTravelService {
         ...(participants.length > 0 && { participants }),
       };
 
-      // For deposits, WeTravel requires trip_options with payment_plan directly under it
-      // For full payment, use pricing structure
+      // For deposits, use only pricing with allow_partial_payment: true
+      // WeTravel doesn't support trip_options with payment_plan for deposits
       if (paymentOption === "deposit") {
-        // For deposits, include payment_plan in both pricing and trip_options
         const remainingAmount = totalAmount - depositAmount;
         const depositPaymentPlan = {
           allow_auto_payment: false,
@@ -208,6 +207,8 @@ class WeTravelService {
         console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
         console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
+        // For deposits, use ONLY pricing structure (no trip_options)
+        // trip_options with payment_plan causes WeTravel API error
         paymentLinkData = {
           data: {
             ...baseData,
@@ -216,17 +217,11 @@ class WeTravelService {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
             },
-            trip_options: [
-              {
-                payment_plan: depositPaymentPlan,
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
-              },
-            ],
+            // DO NOT include trip_options for deposits - WeTravel rejects it
           },
         };
 
-        console.log("📦 [WeTravel] Deposit Payment Link Data Structure:");
+        console.log("📦 [WeTravel] Deposit Payment Link Data Structure (NO trip_options):");
         console.log(JSON.stringify(paymentLinkData, null, 2));
       } else {
         // Full payment - use pricing structure
@@ -362,7 +357,7 @@ class WeTravelService {
 
         // Use same conditional structure as initial request
         if (paymentOption === "deposit") {
-          // For deposits, include payment_plan in both pricing and trip_options
+          // For deposits, use ONLY pricing structure (no trip_options)
           const remainingAmount = totalAmount - depositAmount;
           console.log("🔄 [WeTravel] Retry - Creating DEPOSIT payment link:");
           console.log("  - Deposit Amount:", depositAmount);
@@ -387,6 +382,7 @@ class WeTravelService {
           
           console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
+          // DO NOT include trip_options for deposits - WeTravel rejects it
           paymentLinkData = {
             data: {
               ...baseData,
@@ -395,13 +391,7 @@ class WeTravelService {
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
               },
-              trip_options: [
-                {
-                  payment_plan: depositPaymentPlan,
-                  price: totalAmount,
-                  days_before_departure: daysBeforeDeparture,
-                },
-              ],
+              // NO trip_options for deposits
             },
           };
         } else {
