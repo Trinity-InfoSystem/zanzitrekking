@@ -224,17 +224,25 @@ class WeTravelService {
         console.log("  - Installments sum:", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0));
         console.log("  - Matches total?", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0) === totalAmount);
 
-        // For deposits, WeTravel requires payment_plan in pricing object with allow_partial_payment: true
-        // Do NOT include trip_options - it causes validation errors even without payment_plan inside it
+        // For deposits, try BOTH approaches:
+        // Approach 1: payment_plan in pricing (current)
+        // Approach 2: payment_plan in trip_options[0] (what error message suggests)
+        // Let's try trip_options approach since error mentions trip_options[0][payment_plan]
+        console.log("🔍 [WeTravel] Trying trip_options approach for deposits...");
         paymentLinkData = {
           data: {
             ...baseData,
             pricing: {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
-              payment_plan: depositPaymentPlan, // Payment plan goes in pricing only
             },
-            // NOTE: trip_options should NOT be included for deposits - causes validation errors
+            trip_options: [
+              {
+                price: totalAmount,
+                days_before_departure: daysBeforeDeparture,
+                payment_plan: depositPaymentPlan, // Payment plan in trip_options[0]
+              },
+            ],
           },
         };
 
