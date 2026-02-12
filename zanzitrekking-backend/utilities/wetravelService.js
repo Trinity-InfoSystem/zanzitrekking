@@ -207,24 +207,17 @@ class WeTravelService {
         console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
         console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-        // For deposits, WeTravel requires:
-        // 1. payment_plan in pricing object with allow_partial_payment: true
-        // 2. trip_options array with price info (but NO payment_plan inside trip_options)
+        // For deposits, WeTravel requires payment_plan in pricing object with allow_partial_payment: true
+        // Do NOT include trip_options - it causes validation errors even without payment_plan inside it
         paymentLinkData = {
           data: {
             ...baseData,
             pricing: {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
-              payment_plan: depositPaymentPlan, // Payment plan goes in pricing
+              payment_plan: depositPaymentPlan, // Payment plan goes in pricing only
             },
-            trip_options: [
-              {
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
-                // NOTE: payment_plan should NOT be here - only in pricing
-              },
-            ],
+            // NOTE: trip_options should NOT be included for deposits - causes validation errors
           },
         };
 
@@ -403,24 +396,17 @@ class WeTravelService {
           
           console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-          // For deposits, WeTravel requires:
-          // 1. payment_plan in pricing object with allow_partial_payment: true
-          // 2. trip_options array with price info (but NO payment_plan inside trip_options)
+          // For deposits, WeTravel requires payment_plan in pricing object with allow_partial_payment: true
+          // Do NOT include trip_options - it causes validation errors even without payment_plan inside it
           paymentLinkData = {
             data: {
               ...baseData,
               pricing: {
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
-                payment_plan: depositPaymentPlan, // Payment plan goes in pricing
+                payment_plan: depositPaymentPlan, // Payment plan goes in pricing only
               },
-              trip_options: [
-                {
-                  price: totalAmount,
-                  days_before_departure: daysBeforeDeparture,
-                  // NOTE: payment_plan should NOT be here - only in pricing
-                },
-              ],
+              // NOTE: trip_options should NOT be included for deposits - causes validation errors
             },
           };
         } else {
