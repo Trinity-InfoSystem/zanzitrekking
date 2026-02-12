@@ -170,9 +170,9 @@ class AdminUrgentBookingRequestController {
         if (customerEmail) {
           if (status === "approved") {
             // Generate checkout URL (frontend URL)
-            // Priority: 1) FRONTEND_URL env variable, 2) Production URL, 3) Localhost for dev
+            // Priority: 1) FRONTEND_URL env variable, 2) Production URL, 3) Localhost for dev (Vite default port 5173)
             const frontendUrl =
-              process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://booking.zanzisafaris.com' : 'http://localhost:3000');
+              process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://booking.zanzisafaris.com' : 'http://localhost:5173');
             const checkoutUrl = `${frontendUrl}/checkout?trip=${
               request.tripId
             }&date=${request.requestedDate.toISOString()}&category=${
@@ -341,9 +341,9 @@ class AdminUrgentBookingRequestController {
             const customerEmail = request.personalInfo?.email;
             if (customerEmail) {
               if (status === "approved") {
-                // Priority: 1) FRONTEND_URL env variable, 2) Production URL, 3) Localhost for dev
+                // Priority: 1) FRONTEND_URL env variable, 2) Production URL, 3) Localhost for dev (Vite default port 5173)
                 const frontendUrl =
-                  process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://booking.zanzisafaris.com' : 'http://localhost:3000');
+                  process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://booking.zanzisafaris.com' : 'http://localhost:5173');
                 const checkoutUrl = `${frontendUrl}/checkout?trip=${
                   request.tripId
                 }&date=${request.requestedDate.toISOString()}&category=${
