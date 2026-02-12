@@ -150,54 +150,82 @@ class WeTravelService {
           ]
         : [];
 
-      paymentLinkData = {
-        data: {
-          trip: {
-            participant_fees: "all",
-            title: tripTitle,
-            trip_id: tripId,
-            start_date: startDate,
-            end_date: endDate,
-            currency: currency,
-            // Set capacity to allow multiple bookings (or don't set it for unlimited)
-            // Note: Setting a high capacity to prevent "sold out" issue
-            capacity: Math.max(travelersNumber || 1, 100), // Allow at least 100 bookings
-          },
-          pricing: {
-            payment_plan: {
-              allow_auto_payment: false,
-              allow_partial_payment: paymentOption === "deposit",
-              deposit: paymentOption === "deposit" ? depositAmount : 0,
-              installments: paymentOption === "deposit" 
-                ? [
-                    {
-                      price: depositAmount,
-                      days_before_departure: 0, // Deposit due immediately
-                    },
-                    {
-                      price: totalAmount - depositAmount,
-                      days_before_departure: daysBeforeDeparture, // Remaining due before trip
-                    },
-                  ]
-                : [
-                    {
-                      price: totalAmount,
-                      days_before_departure: daysBeforeDeparture,
-                    },
-                  ],
-            },
-            // Price should always be the total amount, even for deposits
-            // The installments array breaks down the payment schedule
-            price: totalAmount,
-            days_before_departure: daysBeforeDeparture,
-          },
-          // Add return URL if provided
-          ...(returnUrl && { return_url: returnUrl }),
-          // Include participants array to pre-fill customer information
-          // This helps WeTravel identify the customer and prevents "please select your package" errors
-          ...(participants.length > 0 && { participants }),
+      // WeTravel API requires different structures for deposits vs full payment
+      // For deposits: use trip_options array
+      // For full payment: use pricing object
+      const baseData = {
+        trip: {
+          participant_fees: "all",
+          title: tripTitle,
+          trip_id: tripId,
+          start_date: startDate,
+          end_date: endDate,
+          currency: currency,
+          // Set capacity to allow multiple bookings (or don't set it for unlimited)
+          // Note: Setting a high capacity to prevent "sold out" issue
+          capacity: Math.max(travelersNumber || 1, 100), // Allow at least 100 bookings
         },
+        // Add return URL if provided
+        ...(returnUrl && { return_url: returnUrl }),
+        // Include participants array to pre-fill customer information
+        // This helps WeTravel identify the customer and prevents "please select your package" errors
+        ...(participants.length > 0 && { participants }),
       };
+
+      if (paymentOption === "deposit") {
+        // For deposits, use trip_options array structure
+        paymentLinkData = {
+          data: {
+            ...baseData,
+            trip_options: [
+              {
+                pricing: {
+                  payment_plan: {
+                    allow_auto_payment: false,
+                    allow_partial_payment: true,
+                    deposit: depositAmount,
+                    installments: [
+                      {
+                        price: depositAmount,
+                        days_before_departure: 0, // Deposit due immediately
+                      },
+                      {
+                        price: totalAmount - depositAmount,
+                        days_before_departure: daysBeforeDeparture, // Remaining due before trip
+                      },
+                    ],
+                  },
+                  price: totalAmount,
+                  days_before_departure: daysBeforeDeparture,
+                },
+              },
+            ],
+          },
+        };
+      } else {
+        // For full payment, use pricing object structure
+        paymentLinkData = {
+          data: {
+            ...baseData,
+            pricing: {
+              payment_plan: {
+                allow_auto_payment: false,
+                allow_partial_payment: false,
+                deposit: 0,
+                installments: [
+                  {
+                    price: totalAmount,
+                    days_before_departure: daysBeforeDeparture,
+                  },
+                ],
+              },
+              // Price should always be the total amount
+              price: totalAmount,
+              days_before_departure: daysBeforeDeparture,
+            },
+          },
+        };
+      }
 
 
       const response = await axios.post(
@@ -272,47 +300,74 @@ class WeTravelService {
             ]
           : [];
 
-        paymentLinkData = {
-          data: {
-            trip: {
-              participant_fees: "all",
-              title: tripTitle,
-              trip_id: tripId,
-              start_date: startDate,
-              end_date: endDate,
-              currency: currency,
-              capacity: Math.max(travelersNumber || 1, 100),
-            },
-            pricing: {
-              payment_plan: {
-                allow_auto_payment: false,
-                allow_partial_payment: paymentOption === "deposit",
-                deposit: paymentOption === "deposit" ? depositAmount : 0,
-                installments: paymentOption === "deposit" 
-                  ? [
-                      {
-                        price: depositAmount,
-                        days_before_departure: 0,
-                      },
-                      {
-                        price: totalAmount - depositAmount,
-                        days_before_departure: daysBeforeDeparture,
-                      },
-                    ]
-                  : [
-                      {
-                        price: totalAmount,
-                        days_before_departure: daysBeforeDeparture,
-                      },
-                    ],
-              },
-              price: totalAmount,
-              days_before_departure: daysBeforeDeparture,
-            },
-            ...(returnUrl && { return_url: returnUrl }),
-            ...(participants.length > 0 && { participants }),
+        // Use same conditional structure as initial request
+        const baseData = {
+          trip: {
+            participant_fees: "all",
+            title: tripTitle,
+            trip_id: tripId,
+            start_date: startDate,
+            end_date: endDate,
+            currency: currency,
+            capacity: Math.max(travelersNumber || 1, 100),
           },
+          ...(returnUrl && { return_url: returnUrl }),
+          ...(participants.length > 0 && { participants }),
         };
+
+        if (paymentOption === "deposit") {
+          // For deposits, use trip_options array structure
+          paymentLinkData = {
+            data: {
+              ...baseData,
+              trip_options: [
+                {
+                  pricing: {
+                    payment_plan: {
+                      allow_auto_payment: false,
+                      allow_partial_payment: true,
+                      deposit: depositAmount,
+                      installments: [
+                        {
+                          price: depositAmount,
+                          days_before_departure: 0,
+                        },
+                        {
+                          price: totalAmount - depositAmount,
+                          days_before_departure: daysBeforeDeparture,
+                        },
+                      ],
+                    },
+                    price: totalAmount,
+                    days_before_departure: daysBeforeDeparture,
+                  },
+                },
+              ],
+            },
+          };
+        } else {
+          // For full payment, use pricing object structure
+          paymentLinkData = {
+            data: {
+              ...baseData,
+              pricing: {
+                payment_plan: {
+                  allow_auto_payment: false,
+                  allow_partial_payment: false,
+                  deposit: 0,
+                  installments: [
+                    {
+                      price: totalAmount,
+                      days_before_departure: daysBeforeDeparture,
+                    },
+                  ],
+                },
+                price: totalAmount,
+                days_before_departure: daysBeforeDeparture,
+              },
+            },
+          };
+        }
 
         // Retry the request once
         try {
