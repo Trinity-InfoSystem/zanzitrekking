@@ -179,15 +179,30 @@ class WeTravelService {
         // This helps WeTravel identify the customer and prevents "please select your package" errors
         ...(participants.length > 0 && { participants }),
       };
+      
+      console.log("🔍 [WeTravel] Base Data Structure:");
+      console.log("  - Base data keys:", Object.keys(baseData));
+      console.log("  - Has trip_options in baseData?", !!baseData.trip_options);
+      console.log("  - Has pricing in baseData?", !!baseData.pricing);
 
       // For deposits, use pricing.payment_plan with allow_partial_payment: true
       // This enables the deposit payment option in WeTravel's payment UI
       if (paymentOption === "deposit") {
         const remainingAmount = totalAmount - depositAmount;
+        
+        console.log("🔍 [WeTravel] DEPOSIT PAYMENT DEBUG - Input Parameters:");
+        console.log("  - paymentOption:", paymentOption);
+        console.log("  - totalAmount:", totalAmount);
+        console.log("  - depositAmount:", depositAmount);
+        console.log("  - remainingAmount:", remainingAmount);
+        console.log("  - daysBeforeDeparture:", daysBeforeDeparture);
+        
+        // Try payment plan WITHOUT deposit field - only installments
+        // Some APIs don't like having both deposit and installments fields
         const depositPaymentPlan = {
           allow_auto_payment: false,
           allow_partial_payment: true,
-          deposit: depositAmount,
+          // Removed deposit field - using only installments
           installments: [
             {
               price: depositAmount,
@@ -205,7 +220,9 @@ class WeTravelService {
         console.log("  - Remaining Amount:", remainingAmount);
         console.log("  - Total Amount:", totalAmount);
         console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
-        console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
+        console.log("  - Payment Plan (full):", JSON.stringify(depositPaymentPlan, null, 2));
+        console.log("  - Installments sum:", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0));
+        console.log("  - Matches total?", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0) === totalAmount);
 
         // For deposits, WeTravel requires payment_plan in pricing object with allow_partial_payment: true
         // Do NOT include trip_options - it causes validation errors even without payment_plan inside it
@@ -222,7 +239,11 @@ class WeTravelService {
         };
 
         console.log("📦 [WeTravel] Deposit Payment Link Data Structure:");
-        console.log(JSON.stringify(paymentLinkData, null, 2));
+        console.log("  - Has trip_options?", !!paymentLinkData.data.trip_options);
+        console.log("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
+        console.log("  - Full payload:", JSON.stringify(paymentLinkData, null, 2));
+        console.log("  - Payload keys:", Object.keys(paymentLinkData.data));
+        console.log("  - Pricing keys:", Object.keys(paymentLinkData.data.pricing || {}));
         
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasTripOptions:!!paymentLinkData.data.trip_options,hasPaymentPlanInTripOptions:!!paymentLinkData.data.trip_options?.[0]?.payment_plan,hasPaymentPlanInPricing:!!paymentLinkData.data.pricing?.payment_plan,paymentOption,depositAmount,totalAmount,tripOptionsStructure:paymentLinkData.data.trip_options?.[0]},timestamp:Date.now()})}).catch(()=>{});
@@ -263,6 +284,13 @@ class WeTravelService {
       fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:258',message:'About to send request to WeTravel',data:{paymentOption,hasTripOptions:!!paymentLinkData?.data?.trip_options,requestKeys:Object.keys(paymentLinkData?.data || {})},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
 
+      console.log("🚀 [WeTravel] About to send API request:");
+      console.log("  - Endpoint:", `${this.apiUrl}/payment_links`);
+      console.log("  - Method: POST");
+      console.log("  - Payment Option:", paymentOption);
+      console.log("  - Has Access Token:", !!this.accessToken);
+      console.log("  - Request payload size:", JSON.stringify(paymentLinkData).length, "bytes");
+      
       const response = await axios.post(
         `${this.apiUrl}/payment_links`,
         paymentLinkData,
@@ -277,10 +305,10 @@ class WeTravelService {
         }
       );
 
-      console.log(
-        "✅ WeTravel payment link created successfully:",
-        response.data.data.trip.url
-      );
+      console.log("✅ [WeTravel] Payment link created successfully!");
+      console.log("  - Response status:", response.status);
+      console.log("  - Payment link URL:", response.data.data.trip.url);
+      console.log("  - Trip UUID:", response.data.data.trip.uuid);
       
       // Log the full response to debug deposit options
       console.log("📥 [WeTravel] Response Data:");
@@ -296,15 +324,25 @@ class WeTravelService {
       
       return response.data.data;
     } catch (error) {
-      console.error(
-        "❌ Error creating WeTravel payment link:",
-        error.response?.data || error.message
-      );
-      console.error("Status Code:", error.response?.status);
+      console.error("❌ [WeTravel] ERROR creating payment link:");
+      console.error("  - Error Message:", error.message);
+      console.error("  - Status Code:", error.response?.status);
+      console.error("  - Error Response:", JSON.stringify(error.response?.data, null, 2));
+      console.error("  - Payment Option:", paymentOption || orderData?.paymentOption || 'unknown');
+      
       if (paymentLinkData) {
-        console.error("Request Data:", JSON.stringify(paymentLinkData, null, 2));
+        console.error("  - Request Payload Sent:");
+        console.error(JSON.stringify(paymentLinkData, null, 2));
+        console.error("  - Request Payload Keys:", Object.keys(paymentLinkData.data || {}));
+        console.error("  - Has trip_options?", !!paymentLinkData.data.trip_options);
+        console.error("  - Has pricing?", !!paymentLinkData.data.pricing);
+        console.error("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
+        if (paymentLinkData.data.pricing?.payment_plan) {
+          console.error("  - Payment Plan Structure:", JSON.stringify(paymentLinkData.data.pricing.payment_plan, null, 2));
+        }
       }
-      console.error("Full Error:", error);
+      
+      console.error("  - Full Error Stack:", error.stack);
       
       // #region agent log
       // Extract paymentOption from orderData if available (for error logging)
