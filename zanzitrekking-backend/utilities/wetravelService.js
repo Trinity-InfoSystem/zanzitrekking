@@ -76,7 +76,6 @@ class WeTravelService {
         daysBeforeDeparture = 2,
         participantInfo, // Customer/participant information
         travelersNumber = 1, // Number of travelers
-        selectedCategory, // Package type: standard, midRange, luxury
         paymentOption = "full", // "deposit" or "full"
         depositAmount = 0, // Deposit amount if paymentOption is "deposit"
         returnUrl, // Return URL for payment callback
