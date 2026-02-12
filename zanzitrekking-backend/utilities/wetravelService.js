@@ -172,56 +172,41 @@ class WeTravelService {
         ...(participants.length > 0 && { participants }),
       };
 
-      if (paymentOption === "deposit") {
-        // For deposits, WeTravel requires BOTH pricing at top level AND trip_options
-        paymentLinkData = {
-          data: {
-            ...baseData,
-            pricing: {
-              payment_plan: {
-                allow_auto_payment: false,
-                allow_partial_payment: true,
-                deposit: depositAmount,
-                installments: [
-                  {
-                    price: depositAmount,
-                    days_before_departure: 0, // Deposit due immediately
-                  },
-                  {
-                    price: totalAmount - depositAmount,
-                    days_before_departure: daysBeforeDeparture, // Remaining due before trip
-                  },
-                ],
-              },
-              price: totalAmount,
-              days_before_departure: daysBeforeDeparture,
+      // Use same structure for both full payment and deposits
+      // The difference is allow_partial_payment and deposit amount
+      paymentLinkData = {
+        data: {
+          ...baseData,
+          pricing: {
+            payment_plan: {
+              allow_auto_payment: false,
+              allow_partial_payment: paymentOption === "deposit",
+              deposit: paymentOption === "deposit" ? depositAmount : 0,
+              installments: paymentOption === "deposit" 
+                ? [
+                    {
+                      price: depositAmount,
+                      days_before_departure: 0, // Deposit due immediately
+                    },
+                    {
+                      price: totalAmount - depositAmount,
+                      days_before_departure: daysBeforeDeparture, // Remaining due before trip
+                    },
+                  ]
+                : [
+                    {
+                      price: totalAmount,
+                      days_before_departure: daysBeforeDeparture,
+                    },
+                  ],
             },
-            trip_options: [
-              {
-                pricing: {
-                  payment_plan: {
-                    allow_auto_payment: false,
-                    allow_partial_payment: true,
-                    deposit: depositAmount,
-                    installments: [
-                      {
-                        price: depositAmount,
-                        days_before_departure: 0, // Deposit due immediately
-                      },
-                      {
-                        price: totalAmount - depositAmount,
-                        days_before_departure: daysBeforeDeparture, // Remaining due before trip
-                      },
-                    ],
-                  },
-                  price: totalAmount,
-                  days_before_departure: daysBeforeDeparture,
-                },
-              },
-            ],
+            // Price should always be the total amount, even for deposits
+            // The installments array breaks down the payment schedule
+            price: totalAmount,
+            days_before_departure: daysBeforeDeparture,
           },
-        };
-      } else {
+        },
+      };
         // For full payment, use pricing object structure
         paymentLinkData = {
           data: {
@@ -334,78 +319,38 @@ class WeTravelService {
           ...(participants.length > 0 && { participants }),
         };
 
-        if (paymentOption === "deposit") {
-          // For deposits, WeTravel requires BOTH pricing at top level AND trip_options
-          paymentLinkData = {
-            data: {
-              ...baseData,
-              pricing: {
-                payment_plan: {
-                  allow_auto_payment: false,
-                  allow_partial_payment: true,
-                  deposit: depositAmount,
-                  installments: [
-                    {
-                      price: depositAmount,
-                      days_before_departure: 0,
-                    },
-                    {
-                      price: totalAmount - depositAmount,
-                      days_before_departure: daysBeforeDeparture,
-                    },
-                  ],
-                },
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
+        // Use same structure for both full payment and deposits (same as initial request)
+        paymentLinkData = {
+          data: {
+            ...baseData,
+            pricing: {
+              payment_plan: {
+                allow_auto_payment: false,
+                allow_partial_payment: paymentOption === "deposit",
+                deposit: paymentOption === "deposit" ? depositAmount : 0,
+                installments: paymentOption === "deposit" 
+                  ? [
+                      {
+                        price: depositAmount,
+                        days_before_departure: 0,
+                      },
+                      {
+                        price: totalAmount - depositAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ]
+                  : [
+                      {
+                        price: totalAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ],
               },
-              trip_options: [
-                {
-                  pricing: {
-                    payment_plan: {
-                      allow_auto_payment: false,
-                      allow_partial_payment: true,
-                      deposit: depositAmount,
-                      installments: [
-                        {
-                          price: depositAmount,
-                          days_before_departure: 0,
-                        },
-                        {
-                          price: totalAmount - depositAmount,
-                          days_before_departure: daysBeforeDeparture,
-                        },
-                      ],
-                    },
-                    price: totalAmount,
-                    days_before_departure: daysBeforeDeparture,
-                  },
-                },
-              ],
+              price: totalAmount,
+              days_before_departure: daysBeforeDeparture,
             },
-          };
-        } else {
-          // For full payment, use pricing object structure
-          paymentLinkData = {
-            data: {
-              ...baseData,
-              pricing: {
-                payment_plan: {
-                  allow_auto_payment: false,
-                  allow_partial_payment: false,
-                  deposit: 0,
-                  installments: [
-                    {
-                      price: totalAmount,
-                      days_before_departure: daysBeforeDeparture,
-                    },
-                  ],
-                },
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
-              },
-            },
-          };
-        }
+          },
+        };
 
         // Retry the request once
         try {
