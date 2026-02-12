@@ -173,10 +173,29 @@ class WeTravelService {
       };
 
       if (paymentOption === "deposit") {
-        // For deposits, use trip_options array structure
+        // For deposits, WeTravel requires BOTH pricing at top level AND trip_options
         paymentLinkData = {
           data: {
             ...baseData,
+            pricing: {
+              payment_plan: {
+                allow_auto_payment: false,
+                allow_partial_payment: true,
+                deposit: depositAmount,
+                installments: [
+                  {
+                    price: depositAmount,
+                    days_before_departure: 0, // Deposit due immediately
+                  },
+                  {
+                    price: totalAmount - depositAmount,
+                    days_before_departure: daysBeforeDeparture, // Remaining due before trip
+                  },
+                ],
+              },
+              price: totalAmount,
+              days_before_departure: daysBeforeDeparture,
+            },
             trip_options: [
               {
                 pricing: {
@@ -316,10 +335,29 @@ class WeTravelService {
         };
 
         if (paymentOption === "deposit") {
-          // For deposits, use trip_options array structure
+          // For deposits, WeTravel requires BOTH pricing at top level AND trip_options
           paymentLinkData = {
             data: {
               ...baseData,
+              pricing: {
+                payment_plan: {
+                  allow_auto_payment: false,
+                  allow_partial_payment: true,
+                  deposit: depositAmount,
+                  installments: [
+                    {
+                      price: depositAmount,
+                      days_before_departure: 0,
+                    },
+                    {
+                      price: totalAmount - depositAmount,
+                      days_before_departure: daysBeforeDeparture,
+                    },
+                  ],
+                },
+                price: totalAmount,
+                days_before_departure: daysBeforeDeparture,
+              },
               trip_options: [
                 {
                   pricing: {
