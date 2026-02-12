@@ -134,12 +134,21 @@ class AuthControllers {
   };
 
   getCompanyInfo = async (req, res) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authControllers.js:136',message:'getCompanyInfo called',data:{origin:req.headers.origin,method:req.method},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     try {
       let user = await Admin.findOne().select(
         "companyAddress companyEmail companyPhoneNumber"
       );
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authControllers.js:142',message:'getCompanyInfo success',data:{userFound:!!user},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       return responseReturn(res, 200, { userInfo: user });
     } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'authControllers.js:145',message:'getCompanyInfo error',data:{error:error.message},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       return responseReturn(res, 500, { error: error.message });
     }
   };
