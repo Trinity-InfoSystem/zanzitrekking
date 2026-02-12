@@ -84,6 +84,14 @@ class WeTravelService {
         returnUrl, // Return URL for payment callback
       } = orderData;
 
+      // Log payment option details for debugging
+      console.log("🔍 [WeTravel] Payment Link Creation Debug:");
+      console.log("  - Payment Option:", paymentOption);
+      console.log("  - Total Amount:", totalAmount);
+      console.log("  - Deposit Amount:", depositAmount);
+      console.log("  - Deposit Percentage:", paymentOption === "deposit" ? ((depositAmount / totalAmount) * 100).toFixed(2) + "%" : "N/A");
+      console.log("  - Days Before Departure:", daysBeforeDeparture);
+
       // Validate that trip dates are not in the past
       if (this.isTripDateInPast(startDate, endDate)) {
         const errorMessage = `Cannot create payment link: Trip start date (${startDate}) is in the past`;
@@ -176,6 +184,7 @@ class WeTravelService {
       // For full payment, use pricing structure
       if (paymentOption === "deposit") {
         // For deposits, include payment_plan in both pricing and trip_options
+        const remainingAmount = totalAmount - depositAmount;
         const depositPaymentPlan = {
           allow_auto_payment: false,
           allow_partial_payment: true,
@@ -186,11 +195,18 @@ class WeTravelService {
               days_before_departure: 0, // Deposit due immediately
             },
             {
-              price: totalAmount - depositAmount,
+              price: remainingAmount,
               days_before_departure: daysBeforeDeparture, // Remaining due before trip
             },
           ],
         };
+
+        console.log("💰 [WeTravel] Creating DEPOSIT payment link:");
+        console.log("  - Deposit Amount:", depositAmount);
+        console.log("  - Remaining Amount:", remainingAmount);
+        console.log("  - Total Amount:", totalAmount);
+        console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
+        console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
         paymentLinkData = {
           data: {
@@ -209,8 +225,14 @@ class WeTravelService {
             ],
           },
         };
+
+        console.log("📦 [WeTravel] Deposit Payment Link Data Structure:");
+        console.log(JSON.stringify(paymentLinkData, null, 2));
       } else {
         // Full payment - use pricing structure
+        console.log("💰 [WeTravel] Creating FULL PAYMENT link:");
+        console.log("  - Total Amount:", totalAmount);
+        
         paymentLinkData = {
           data: {
             ...baseData,
@@ -233,6 +255,11 @@ class WeTravelService {
         };
       }
 
+      console.log("🚀 [WeTravel] Sending request to WeTravel API:");
+      console.log("  - URL:", `${this.apiUrl}/payment_links`);
+      console.log("  - Payment Option:", paymentOption);
+      console.log("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
+
       const response = await axios.post(
         `${this.apiUrl}/payment_links`,
         paymentLinkData,
@@ -251,6 +278,19 @@ class WeTravelService {
         "✅ WeTravel payment link created successfully:",
         response.data.data.trip.url
       );
+      
+      // Log the full response to debug deposit options
+      console.log("📥 [WeTravel] Response Data:");
+      console.log("  - Payment Link URL:", response.data.data.trip.url);
+      console.log("  - Trip UUID:", response.data.data.trip.uuid);
+      if (response.data.data.trip_options) {
+        console.log("  - Trip Options:", JSON.stringify(response.data.data.trip_options, null, 2));
+      }
+      if (response.data.data.pricing) {
+        console.log("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
+      }
+      console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
+      
       return response.data.data;
     } catch (error) {
       console.error(
@@ -323,6 +363,12 @@ class WeTravelService {
         // Use same conditional structure as initial request
         if (paymentOption === "deposit") {
           // For deposits, include payment_plan in both pricing and trip_options
+          const remainingAmount = totalAmount - depositAmount;
+          console.log("🔄 [WeTravel] Retry - Creating DEPOSIT payment link:");
+          console.log("  - Deposit Amount:", depositAmount);
+          console.log("  - Remaining Amount:", remainingAmount);
+          console.log("  - Total Amount:", totalAmount);
+          
           const depositPaymentPlan = {
             allow_auto_payment: false,
             allow_partial_payment: true,
@@ -333,11 +379,13 @@ class WeTravelService {
                 days_before_departure: 0,
               },
               {
-                price: totalAmount - depositAmount,
+                price: remainingAmount,
                 days_before_departure: daysBeforeDeparture,
               },
             ],
           };
+          
+          console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
           paymentLinkData = {
             data: {
@@ -382,6 +430,10 @@ class WeTravelService {
 
         // Retry the request once
         try {
+          console.log("🔄 [WeTravel] Retry Request:");
+          console.log("  - Payment Option:", paymentOption);
+          console.log("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
+          
           const response = await axios.post(
             `${this.apiUrl}/payment_links`,
             paymentLinkData,
@@ -395,6 +447,17 @@ class WeTravelService {
               },
             }
           );
+          
+          console.log("✅ [WeTravel] Retry Response:");
+          console.log("  - Payment Link URL:", response.data.data.trip.url);
+          if (response.data.data.trip_options) {
+            console.log("  - Trip Options:", JSON.stringify(response.data.data.trip_options, null, 2));
+          }
+          if (response.data.data.pricing) {
+            console.log("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
+          }
+          console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
+          
           return response.data.data;
         } catch (retryError) {
           console.error(

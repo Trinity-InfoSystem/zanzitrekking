@@ -239,6 +239,13 @@ class OrderController {
         const depositAmount = paymentInfo?.depositAmount || 0;
         const totalAmount = tempOrder.totalAmount;
 
+        // Log payment info for debugging
+        console.log("🔍 [OrderController] Payment Info Debug:");
+        console.log("  - Payment Option:", paymentOption);
+        console.log("  - Deposit Amount:", depositAmount);
+        console.log("  - Total Amount:", totalAmount);
+        console.log("  - Payment Info Object:", JSON.stringify(paymentInfo, null, 2));
+
         // Generate order number first so we can use it in return URL
         orderNumber = await generateOrderNumber();
 
