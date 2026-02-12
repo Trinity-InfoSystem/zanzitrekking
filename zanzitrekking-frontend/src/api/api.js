@@ -6,9 +6,11 @@ const local = "http://localhost:5000";
 
 /**
  * Base URL for API requests.
- * Currently uses production URL. Uncomment the conditional to switch based on environment.
+ * Uses localhost backend when running in development, production otherwise.
  */
-const baseURL = `${production}/api`;
+const baseURL = import.meta.env.DEV 
+  ? `${local}/api` 
+  : `${production}/api`;
 
 
 /**
