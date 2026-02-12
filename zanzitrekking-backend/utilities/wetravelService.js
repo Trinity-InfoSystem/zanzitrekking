@@ -207,32 +207,31 @@ class WeTravelService {
         console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
         console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-        // For deposits, WeTravel requires trip_options but WITHOUT payment_plan inside it
-        // payment_plan stays in pricing, trip_options just has basic trip info
+        // For deposits, WeTravel requires payment_plan INSIDE trip_options[0]
+        // Try putting payment_plan directly under trip_options[0]
         paymentLinkData = {
           data: {
             ...baseData,
             pricing: {
-              payment_plan: depositPaymentPlan,
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
             },
-            // Include trip_options for deposits but WITHOUT payment_plan inside
+            // For deposits, payment_plan must be inside trip_options[0]
             trip_options: [
               {
+                payment_plan: depositPaymentPlan,
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
-                // NO payment_plan here - it's in pricing above
               },
             ],
           },
         };
 
-        console.log("📦 [WeTravel] Deposit Payment Link Data Structure (NO trip_options):");
+        console.log("📦 [WeTravel] Deposit Payment Link Data Structure:");
         console.log(JSON.stringify(paymentLinkData, null, 2));
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasTripOptions:!!paymentLinkData.data.trip_options,paymentOption,depositAmount,totalAmount,installments:depositPaymentPlan.installments},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasTripOptions:!!paymentLinkData.data.trip_options,hasPaymentPlanInTripOptions:!!paymentLinkData.data.trip_options?.[0]?.payment_plan,hasPaymentPlanInPricing:!!paymentLinkData.data.pricing?.payment_plan,paymentOption,depositAmount,totalAmount,tripOptionsStructure:paymentLinkData.data.trip_options?.[0]},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
       } else {
         // Full payment - use pricing structure
@@ -401,22 +400,21 @@ class WeTravelService {
           
           console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-          // For deposits, WeTravel requires trip_options but WITHOUT payment_plan inside it
-          // payment_plan stays in pricing, trip_options just has basic trip info
+          // For deposits, WeTravel requires payment_plan INSIDE trip_options[0]
+          // Try putting payment_plan directly under trip_options[0]
           paymentLinkData = {
             data: {
               ...baseData,
               pricing: {
-                payment_plan: depositPaymentPlan,
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
               },
-              // Include trip_options for deposits but WITHOUT payment_plan inside
+              // For deposits, payment_plan must be inside trip_options[0]
               trip_options: [
                 {
+                  payment_plan: depositPaymentPlan,
                   price: totalAmount,
                   days_before_departure: daysBeforeDeparture,
-                  // NO payment_plan here - it's in pricing above
                 },
               ],
             },
