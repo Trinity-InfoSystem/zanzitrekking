@@ -207,30 +207,6 @@ class WeTravelService {
           },
         },
       };
-        // For full payment, use pricing object structure
-        paymentLinkData = {
-          data: {
-            ...baseData,
-            pricing: {
-              payment_plan: {
-                allow_auto_payment: false,
-                allow_partial_payment: false,
-                deposit: 0,
-                installments: [
-                  {
-                    price: totalAmount,
-                    days_before_departure: daysBeforeDeparture,
-                  },
-                ],
-              },
-              // Price should always be the total amount
-              price: totalAmount,
-              days_before_departure: daysBeforeDeparture,
-            },
-          },
-        };
-      }
-
 
       const response = await axios.post(
         `${this.apiUrl}/payment_links`,
