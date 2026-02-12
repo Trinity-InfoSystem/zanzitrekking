@@ -207,8 +207,8 @@ class WeTravelService {
         console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
         console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-        // For deposits, use ONLY pricing structure (no trip_options)
-        // trip_options with payment_plan causes WeTravel API error
+        // For deposits, WeTravel requires trip_options but WITHOUT payment_plan inside it
+        // payment_plan stays in pricing, trip_options just has basic trip info
         paymentLinkData = {
           data: {
             ...baseData,
@@ -217,12 +217,23 @@ class WeTravelService {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
             },
-            // DO NOT include trip_options for deposits - WeTravel rejects it
+            // Include trip_options for deposits but WITHOUT payment_plan inside
+            trip_options: [
+              {
+                price: totalAmount,
+                days_before_departure: daysBeforeDeparture,
+                // NO payment_plan here - it's in pricing above
+              },
+            ],
           },
         };
 
         console.log("📦 [WeTravel] Deposit Payment Link Data Structure (NO trip_options):");
         console.log(JSON.stringify(paymentLinkData, null, 2));
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasTripOptions:!!paymentLinkData.data.trip_options,paymentOption,depositAmount,totalAmount,installments:depositPaymentPlan.installments},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
       } else {
         // Full payment - use pricing structure
         console.log("💰 [WeTravel] Creating FULL PAYMENT link:");
@@ -254,6 +265,10 @@ class WeTravelService {
       console.log("  - URL:", `${this.apiUrl}/payment_links`);
       console.log("  - Payment Option:", paymentOption);
       console.log("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:258',message:'About to send request to WeTravel',data:{paymentOption,hasTripOptions:!!paymentLinkData?.data?.trip_options,requestKeys:Object.keys(paymentLinkData?.data || {})},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       const response = await axios.post(
         `${this.apiUrl}/payment_links`,
@@ -297,6 +312,10 @@ class WeTravelService {
         console.error("Request Data:", JSON.stringify(paymentLinkData, null, 2));
       }
       console.error("Full Error:", error);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:298',message:'WeTravel API error',data:{status:error.response?.status,errorMessage:error.response?.data?.error || error.message,hasTripOptions:!!paymentLinkData?.data?.trip_options,paymentOption:paymentOption || 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       // If token expired, try to refresh and retry once
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -382,7 +401,8 @@ class WeTravelService {
           
           console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-          // DO NOT include trip_options for deposits - WeTravel rejects it
+          // For deposits, WeTravel requires trip_options but WITHOUT payment_plan inside it
+          // payment_plan stays in pricing, trip_options just has basic trip info
           paymentLinkData = {
             data: {
               ...baseData,
@@ -391,7 +411,14 @@ class WeTravelService {
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
               },
-              // NO trip_options for deposits
+              // Include trip_options for deposits but WITHOUT payment_plan inside
+              trip_options: [
+                {
+                  price: totalAmount,
+                  days_before_departure: daysBeforeDeparture,
+                  // NO payment_plan here - it's in pricing above
+                },
+              ],
             },
           };
         } else {
