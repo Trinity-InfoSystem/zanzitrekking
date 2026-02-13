@@ -1293,6 +1293,22 @@ class WeTravelService {
       // WeTravel may need time to update trip_options with the package payment plan
       console.log("  - Waiting 5 seconds for WeTravel to sync payment plan to trip_options...");
       await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Verify payment plan was set correctly
+      try {
+        const verifyPlanResponse = await axios.get(
+          `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log("  - Verified payment plan:", JSON.stringify(verifyPlanResponse.data, null, 2));
+      } catch (verifyError) {
+        console.warn("  - Could not verify payment plan:", verifyError.message);
+      }
 
       // Step 4: Try to delete or clear trip_options before publishing
       // WeTravel validates trip_options[0][payment_plan] when publishing, but auto-created trip_options have invalid payment_plan
