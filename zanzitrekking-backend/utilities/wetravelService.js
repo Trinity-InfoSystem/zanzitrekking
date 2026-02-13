@@ -1184,6 +1184,13 @@ class WeTravelService {
         tripData.data.trip_id = tripId;
       }
 
+      // Log the exact request we're sending for debugging
+      console.log("  📤 [WeTravel] Exact request payload being sent:");
+      console.log("  - Full tripData:", JSON.stringify(tripData, null, 2));
+      console.log("  - All field names:", Object.keys(tripData.data));
+      console.log("  - Has visibility field?", 'visibility' in tripData.data);
+      console.log("  - Has participants_visibility field?", 'participants_visibility' in tripData.data);
+
       const tripResponse = await axios.post(
         `${this.apiUrl}/draft_trips`,
         tripData,
