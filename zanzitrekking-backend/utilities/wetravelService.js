@@ -374,6 +374,26 @@ class WeTravelService {
           console.log("  - Package ID:", packageId);
           
           try {
+            // Add a small delay to ensure WeTravel has finished processing the payment link
+            // This helps avoid conflicts with trip_options that may be created automatically
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // First, try to get the current payment plan to see what's there
+            try {
+              const currentPlanResponse = await axios.get(
+                `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              console.log("  - Current Payment Plan:", JSON.stringify(currentPlanResponse.data, null, 2));
+            } catch (getError) {
+              console.log("  - No existing payment plan found (this is OK)");
+            }
+            
             const remainingAmount = totalAmount - depositAmount;
             const paymentPlanData = {
               data: {
@@ -395,16 +415,38 @@ class WeTravelService {
             
             console.log("  - Payment Plan Data:", JSON.stringify(paymentPlanData, null, 2));
             
-            const planResponse = await axios.post(
-              `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-              paymentPlanData,
-              {
-                headers: {
-                  Authorization: `Bearer ${this.accessToken}`,
-                  "Content-Type": "application/json",
-                },
+            // Use PUT instead of POST - payment plan endpoint might support both
+            // Try POST first, if it fails with this error, try PUT
+            let planResponse;
+            try {
+              planResponse = await axios.post(
+                `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                paymentPlanData,
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+            } catch (postError) {
+              // If POST fails with trip_options error, try PUT
+              if (postError.response?.data?.error?.includes('trip_options')) {
+                console.log("  - POST failed, trying PUT instead...");
+                planResponse = await axios.put(
+                  `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                  paymentPlanData,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${this.accessToken}`,
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+              } else {
+                throw postError;
               }
-            );
+            }
             
             console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
             console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
@@ -623,6 +665,9 @@ class WeTravelService {
               console.log("  - Package ID:", packageId);
               
               try {
+                // Add a small delay to ensure WeTravel has finished processing
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
                 const remainingAmount = totalAmount - depositAmount;
                 const paymentPlanData = {
                   data: {
@@ -642,16 +687,36 @@ class WeTravelService {
                   },
                 };
                 
-                await axios.post(
-                  `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-                  paymentPlanData,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${this.accessToken}`,
-                      "Content-Type": "application/json",
-                    },
+                // Try POST first, then PUT if POST fails with trip_options error
+                let planResponse;
+                try {
+                  planResponse = await axios.post(
+                    `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                    paymentPlanData,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                      },
+                    }
+                  );
+                } catch (postError) {
+                  if (postError.response?.data?.error?.includes('trip_options')) {
+                    console.log("  - POST failed, trying PUT instead...");
+                    planResponse = await axios.put(
+                      `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                      paymentPlanData,
+                      {
+                        headers: {
+                          Authorization: `Bearer ${this.accessToken}`,
+                          "Content-Type": "application/json",
+                        },
+                      }
+                    );
+                  } else {
+                    throw postError;
                   }
-                );
+                }
                 
                 console.log("✅ [WeTravel] Retry - Payment plan updated successfully");
               } catch (planError) {
