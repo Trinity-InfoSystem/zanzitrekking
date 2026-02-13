@@ -1289,10 +1289,10 @@ class WeTravelService {
 
       console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
 
-      // Step 4: Try to remove or clear trip_options before publishing
-      // WeTravel validates trip_options[0][payment_plan] when publishing, but setting it causes errors
-      // Instead, try removing trip_options or setting them to empty array
-      console.log("  Step 4: Handling trip_options before publishing...");
+      // Step 4: Try to delete or clear trip_options before publishing
+      // WeTravel validates trip_options[0][payment_plan] when publishing, but auto-created trip_options have invalid payment_plan
+      // Try setting trip_options to empty array or deleting them entirely
+      console.log("  Step 4: Clearing trip_options before publishing...");
       try {
         // Get current trip to see trip_options structure
         const tripDetailsResponse = await axios.get(
@@ -1309,33 +1309,54 @@ class WeTravelService {
         const tripOptions = tripDetails.trip_options || [];
         
         console.log("  - Current trip_options count:", tripOptions.length);
-        console.log("  - trip_options structure:", JSON.stringify(tripOptions, null, 2));
+        if (tripOptions.length > 0) {
+          console.log("  - trip_options[0] has payment_plan?", !!tripOptions[0]?.payment_plan);
+          console.log("  - trip_options structure:", JSON.stringify(tripOptions, null, 2));
+        }
         
         if (tripOptions.length > 0) {
-          // Try to remove payment_plan from trip_options instead of adding it
-          // WeTravel might auto-sync payment plan from package, so trip_options shouldn't have it
-          const cleanedTripOptions = tripOptions.map((option) => {
-            const { payment_plan, ...optionWithoutPaymentPlan } = option;
-            return optionWithoutPaymentPlan;
-          });
-
-          // Update trip to remove payment_plan from trip_options
-          await axios.patch(
-            `${this.apiUrl}/draft_trips/${tripUuid}`,
-            {
-              data: {
-                trip_options: cleanedTripOptions,
+          // Try to set trip_options to empty array - WeTravel might not need them if payment plan is on package
+          try {
+            await axios.patch(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              {
+                data: {
+                  trip_options: [], // Set to empty array
+                },
               },
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${this.accessToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            console.log("  ✅ Cleared trip_options (set to empty array)");
+          } catch (clearError) {
+            console.warn("  ⚠️ Could not clear trip_options:", clearError.response?.data || clearError.message);
+            // If clearing fails, try to remove payment_plan from trip_options
+            console.log("  - Trying to remove payment_plan from trip_options instead...");
+            const cleanedTripOptions = tripOptions.map((option) => {
+              const { payment_plan, ...optionWithoutPaymentPlan } = option;
+              return optionWithoutPaymentPlan;
+            });
 
-          console.log("  ✅ Removed payment_plan from trip_options");
+            await axios.patch(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              {
+                data: {
+                  trip_options: cleanedTripOptions,
+                },
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            console.log("  ✅ Removed payment_plan from trip_options");
+          }
         } else {
           console.log("  ℹ️ No trip_options found, will try publishing");
         }
