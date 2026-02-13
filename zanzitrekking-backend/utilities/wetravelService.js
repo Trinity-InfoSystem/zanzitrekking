@@ -765,9 +765,6 @@ class WeTravelService {
               // If package ID not found but payment plan was set via trip_options, it's OK
               console.warn("⚠️ [WeTravel] Retry - Package ID not found, but payment plan was set via trip_options");
               console.warn("  - Payment plan should be correct from initial payment link creation");
-            } else {
-              console.error("❌ [WeTravel] Retry - Cannot update payment plan: Package ID not found");
-              throw new Error("Failed to set deposit payment plan: Package ID not found in payment link response");
             }
           }
           
