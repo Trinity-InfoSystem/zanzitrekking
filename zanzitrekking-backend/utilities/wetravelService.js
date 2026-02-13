@@ -1148,22 +1148,32 @@ class WeTravelService {
       // Step 1: Create draft trip
       console.log("  Step 1: Creating draft trip...");
       // WeTravel API expects fields directly under data, not nested under data.trip
+      // Convert dates to ISO format with time (YYYY-MM-DDTHH:mm:ss.sssZ) as per WeTravel API example
+      const startDateISO = new Date(`${startDate}T00:00:00.000Z`).toISOString();
+      const endDateISO = new Date(`${endDate}T00:00:00.000Z`).toISOString();
+      
       const tripData = {
         data: {
           title: this.sanitizeTitle(tripTitle),
           trip_id: tripId,
-          start_date: startDate,
-          end_date: endDate,
+          start_date: startDateISO, // ISO format: '2021-05-07T00:00:00.000Z'
+          end_date: endDateISO, // ISO format: '2021-05-07T00:00:00.000Z'
           currency: currency,
-          participant_fees: "all",
+          participant_fees: "all", // Options: "all", "credit_card", "bank_transfer"
           destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
           can_contribute: false,
           group_min: groupMin,
           group_max: groupMax || Math.max(travelersNumber || 1, 100),
           listing_status: "published", // Options: "published", "private", "draft"
-          participant_list_show_type: "everyone", // Options: "everyone", "participants_only", "none" (per WeTravel API docs)
+          participant_list_show_type: "everyone", // Options: "everyone", "participants_only", "none"
           waiting_list_enabled: false,
-          capacity: Math.max(travelersNumber || 1, 100),
+          // Optional fields from WeTravel API example
+          welcome_message: `Welcome to ${this.sanitizeTitle(tripTitle)}!`,
+          carbon_offset: {
+            enabled: false,
+            percentage: 0,
+            paid_by_participant: false
+          }
         },
       };
 
