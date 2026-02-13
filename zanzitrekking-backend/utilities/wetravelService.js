@@ -228,15 +228,16 @@ class WeTravelService {
         console.log("  - Installments sum:", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0));
         console.log("  - Matches total?", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0) === totalAmount);
 
-        // For deposits, payment plan should be in pricing.payment_plan
-        // This is the correct structure according to WeTravel API
+        // For deposits, create payment link WITHOUT payment_plan first
+        // Then update payment plan via dedicated endpoint to avoid validation errors
+        // WeTravel's payment_links endpoint doesn't accept payment_plan in pricing for deposits
         paymentLinkData = {
           data: {
             ...baseData,
             pricing: {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
-              payment_plan: depositPaymentPlan, // Payment plan in pricing object
+              // Do NOT include payment_plan here - will be set via dedicated endpoint
             },
           },
         };
@@ -328,11 +329,20 @@ class WeTravelService {
       }
       console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
       
-      // If deposit payment and we have trip_uuid and package_id, try to update payment plan
-      // This ensures the payment plan is properly set according to WeTravel API
+      // For deposit payments, we MUST update the payment plan via dedicated endpoint
+      // because payment_links endpoint doesn't accept payment_plan in pricing for deposits
       if (currentPaymentOption === "deposit" && response.data.data.trip?.uuid) {
         const tripUuid = response.data.data.trip.uuid;
-        const packageId = response.data.data.packages?.[0]?.id || response.data.data.trip_options?.[0]?.id;
+        
+        // Try to get package_id from different possible locations in response
+        let packageId = response.data.data.packages?.[0]?.id || 
+                       response.data.data.trip_options?.[0]?.id ||
+                       response.data.data.packages?.[0]?.package_id;
+        
+        // If package_id is not available, try to get it from trip data
+        if (!packageId && response.data.data.trip?.packages?.length > 0) {
+          packageId = response.data.data.trip.packages[0].id;
+        }
         
         if (packageId) {
           console.log("🔧 [WeTravel] Updating payment plan for deposit via dedicated endpoint:");
@@ -359,7 +369,9 @@ class WeTravelService {
               },
             };
             
-            await axios.post(
+            console.log("  - Payment Plan Data:", JSON.stringify(paymentPlanData, null, 2));
+            
+            const planResponse = await axios.post(
               `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
               paymentPlanData,
               {
@@ -371,12 +383,20 @@ class WeTravelService {
             );
             
             console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
+            console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
           } catch (planError) {
-            console.warn("⚠️ [WeTravel] Could not update payment plan via dedicated endpoint (may not be necessary):");
-            console.warn("  - Error:", planError.response?.data || planError.message);
-            // Don't fail the whole request if payment plan update fails
-            // The payment plan might already be set correctly from the initial request
+            console.error("❌ [WeTravel] Failed to update payment plan via dedicated endpoint:");
+            console.error("  - Error:", planError.response?.data || planError.message);
+            console.error("  - Status:", planError.response?.status);
+            console.error("  - Trip UUID:", tripUuid);
+            console.error("  - Package ID:", packageId);
+            // This is critical for deposits - throw error if payment plan update fails
+            throw new Error(`Failed to set deposit payment plan: ${planError.response?.data?.error || planError.message}`);
           }
+        } else {
+          console.error("❌ [WeTravel] Cannot update payment plan: Package ID not found in response");
+          console.error("  - Response structure:", JSON.stringify(response.data.data, null, 2));
+          throw new Error("Failed to set deposit payment plan: Package ID not found in payment link response");
         }
       }
       
@@ -467,40 +487,21 @@ class WeTravelService {
 
         // Use same conditional structure as initial request
         if (paymentOption === "deposit") {
-          // For deposits, use pricing structure with payment_plan (same as initial request)
-          const remainingAmount = totalAmount - depositAmount;
+          // For deposits, create payment link WITHOUT payment_plan first
+          // Then update payment plan via dedicated endpoint to avoid validation errors
           console.log("🔄 [WeTravel] Retry - Creating DEPOSIT payment link:");
           console.log("  - Deposit Amount:", depositAmount);
-          console.log("  - Remaining Amount:", remainingAmount);
           console.log("  - Total Amount:", totalAmount);
-          
-          const depositPaymentPlan = {
-            allow_auto_payment: false,
-            allow_partial_payment: true,
-            deposit: depositAmount, // Required by WeTravel API
-            installments: [
-              {
-                price: depositAmount,
-                days_before_departure: 0,
-              },
-              {
-                price: remainingAmount,
-                days_before_departure: daysBeforeDeparture,
-              },
-            ],
-          };
-          
-          console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
-          // For deposits, WeTravel requires payment_plan in pricing object with allow_partial_payment: true
-          // Payment plan should be in pricing.payment_plan according to WeTravel API
+          // For deposits, WeTravel's payment_links endpoint doesn't accept payment_plan in pricing
+          // We'll update it via dedicated endpoint after creation
           paymentLinkData = {
             data: {
               ...baseData,
               pricing: {
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
-                payment_plan: depositPaymentPlan, // Payment plan goes in pricing only
+                // Do NOT include payment_plan here - will be set via dedicated endpoint
               },
             },
           };
@@ -557,6 +558,65 @@ class WeTravelService {
             console.log("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
           }
           console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
+          
+          // For deposit payments, update payment plan via dedicated endpoint
+          if (paymentOption === "deposit" && response.data.data.trip?.uuid) {
+            const tripUuid = response.data.data.trip.uuid;
+            let packageId = response.data.data.packages?.[0]?.id || 
+                           response.data.data.trip_options?.[0]?.id ||
+                           response.data.data.packages?.[0]?.package_id;
+            
+            if (!packageId && response.data.data.trip?.packages?.length > 0) {
+              packageId = response.data.data.trip.packages[0].id;
+            }
+            
+            if (packageId) {
+              console.log("🔧 [WeTravel] Retry - Updating payment plan for deposit:");
+              console.log("  - Trip UUID:", tripUuid);
+              console.log("  - Package ID:", packageId);
+              
+              try {
+                const remainingAmount = totalAmount - depositAmount;
+                const paymentPlanData = {
+                  data: {
+                    allow_auto_payment: false,
+                    allow_partial_payment: true,
+                    deposit: depositAmount,
+                    installments: [
+                      {
+                        price: depositAmount,
+                        days_before_departure: 0,
+                      },
+                      {
+                        price: remainingAmount,
+                        days_before_departure: daysBeforeDeparture,
+                      },
+                    ],
+                  },
+                };
+                
+                await axios.post(
+                  `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                  paymentPlanData,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${this.accessToken}`,
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+                
+                console.log("✅ [WeTravel] Retry - Payment plan updated successfully");
+              } catch (planError) {
+                console.error("❌ [WeTravel] Retry - Failed to update payment plan:");
+                console.error("  - Error:", planError.response?.data || planError.message);
+                throw new Error(`Failed to set deposit payment plan: ${planError.response?.data?.error || planError.message}`);
+              }
+            } else {
+              console.error("❌ [WeTravel] Retry - Cannot update payment plan: Package ID not found");
+              throw new Error("Failed to set deposit payment plan: Package ID not found in payment link response");
+            }
+          }
           
           return response.data.data;
         } catch (retryError) {
