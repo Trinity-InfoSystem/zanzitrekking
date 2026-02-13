@@ -203,8 +203,9 @@ class WeTravelService {
         // Payment plan structure according to WeTravel API documentation
         // For deposits, use installments array with allow_partial_payment: true
         // The API requires a deposit field (int32, 0 to 1000000000)
+        // Note: This is not used in payment_links endpoint, but kept for reference
         const depositPaymentPlan = {
-          allow_auto_payment: false,
+          enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
           allow_partial_payment: true,
           deposit: depositAmount, // Required by WeTravel API
           installments: [
@@ -261,7 +262,7 @@ class WeTravelService {
             ...baseData,
             pricing: {
               payment_plan: {
-                allow_auto_payment: false,
+                enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
                 allow_partial_payment: false,
                 deposit: 0,
                 installments: [
@@ -376,7 +377,7 @@ class WeTravelService {
             const remainingAmount = totalAmount - depositAmount;
             const paymentPlanData = {
               data: {
-                allow_auto_payment: false,
+                enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
                 allow_partial_payment: true,
                 deposit: depositAmount, // Required by WeTravel API
                 installments: [
@@ -535,7 +536,7 @@ class WeTravelService {
               ...baseData,
               pricing: {
                 payment_plan: {
-                  allow_auto_payment: false,
+                  enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
                   allow_partial_payment: false,
                   deposit: 0,
                   installments: [
@@ -625,7 +626,7 @@ class WeTravelService {
                 const remainingAmount = totalAmount - depositAmount;
                 const paymentPlanData = {
                   data: {
-                    allow_auto_payment: false,
+                    enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
                     allow_partial_payment: true,
                     deposit: depositAmount,
                     installments: [
