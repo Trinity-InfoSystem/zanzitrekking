@@ -84,6 +84,9 @@ class WeTravelService {
         returnUrl, // Return URL for payment callback
       } = orderData;
 
+      // Store paymentOption in a variable accessible in catch block
+      const currentPaymentOption = paymentOption;
+
       // Log payment option details for debugging
       console.log("🔍 [WeTravel] Payment Link Creation Debug:");
       console.log("  - Payment Option:", paymentOption);
@@ -199,9 +202,11 @@ class WeTravelService {
         
         // Payment plan structure according to WeTravel API documentation
         // For deposits, use installments array with allow_partial_payment: true
+        // The API requires a deposit field (int32, 0 to 1000000000)
         const depositPaymentPlan = {
           allow_auto_payment: false,
           allow_partial_payment: true,
+          deposit: depositAmount, // Required by WeTravel API
           installments: [
             {
               price: depositAmount,
@@ -325,7 +330,7 @@ class WeTravelService {
       
       // If deposit payment and we have trip_uuid and package_id, try to update payment plan
       // This ensures the payment plan is properly set according to WeTravel API
-      if (paymentOption === "deposit" && response.data.data.trip?.uuid) {
+      if (currentPaymentOption === "deposit" && response.data.data.trip?.uuid) {
         const tripUuid = response.data.data.trip.uuid;
         const packageId = response.data.data.packages?.[0]?.id || response.data.data.trip_options?.[0]?.id;
         
@@ -340,6 +345,7 @@ class WeTravelService {
               data: {
                 allow_auto_payment: false,
                 allow_partial_payment: true,
+                deposit: depositAmount, // Required by WeTravel API
                 installments: [
                   {
                     price: depositAmount,
@@ -380,7 +386,7 @@ class WeTravelService {
       console.error("  - Error Message:", error.message);
       console.error("  - Status Code:", error.response?.status);
       console.error("  - Error Response:", JSON.stringify(error.response?.data, null, 2));
-      console.error("  - Payment Option:", paymentOption || orderData?.paymentOption || 'unknown');
+      console.error("  - Payment Option:", orderData?.paymentOption || 'unknown');
       
       if (paymentLinkData) {
         console.error("  - Request Payload Sent:");
@@ -471,6 +477,7 @@ class WeTravelService {
           const depositPaymentPlan = {
             allow_auto_payment: false,
             allow_partial_payment: true,
+            deposit: depositAmount, // Required by WeTravel API
             installments: [
               {
                 price: depositAmount,
