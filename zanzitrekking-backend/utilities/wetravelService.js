@@ -1274,11 +1274,10 @@ class WeTravelService {
 
       console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
 
-      // Step 4: Publish the trip to create payment link
-      console.log("  Step 4: Publishing trip...");
-      const publishResponse = await axios.post(
-        `${this.apiUrl}/draft_trips/${tripUuid}/publish`,
-        {},
+      // Step 4: Get the draft trip to check if we can get payment link without publishing
+      console.log("  Step 4: Getting draft trip details...");
+      const draftTripResponse = await axios.get(
+        `${this.apiUrl}/draft_trips/${tripUuid}`,
         {
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
@@ -1287,11 +1286,55 @@ class WeTravelService {
         }
       );
 
-      console.log("  ✅ Trip published");
+      const draftTrip = draftTripResponse.data.data.trip;
+      console.log("  - Draft trip URL:", draftTrip.url);
+      
+      // Check if draft trip already has a URL (some APIs provide payment links for drafts)
+      let paymentLinkUrl = draftTrip.url;
+      
+      // If no URL in draft, try publishing
+      if (!paymentLinkUrl) {
+        console.log("  Step 4b: Publishing trip (no URL in draft)...");
+        try {
+          const publishResponse = await axios.post(
+            `${this.apiUrl}/draft_trips/${tripUuid}/publish`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
-      // Step 5: Get the payment link from the published trip
-      const publishedTrip = publishResponse.data.data.trip;
-      const paymentLinkUrl = publishedTrip.url;
+          console.log("  ✅ Trip published");
+          const publishedTrip = publishResponse.data.data.trip;
+          paymentLinkUrl = publishedTrip.url;
+        } catch (publishError) {
+          // If publish fails with trip_options error, try to get payment link from draft anyway
+          if (publishError.response?.data?.error?.includes('trip_options')) {
+            console.warn("  ⚠️ Publishing failed with trip_options error, but draft trip may have URL");
+            // Try to get the trip again to see if it has a URL
+            const retryDraftResponse = await axios.get(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            paymentLinkUrl = retryDraftResponse.data.data.trip?.url;
+            if (!paymentLinkUrl) {
+              throw publishError; // Re-throw if we still don't have a URL
+            }
+          } else {
+            throw publishError;
+          }
+        }
+      } else {
+        console.log("  ✅ Payment link available from draft trip (no publish needed)");
+      }
 
       console.log("✅ [WeTravel] Deposit payment link created via Trips Builder API");
       console.log("  - Payment Link URL:", paymentLinkUrl);
