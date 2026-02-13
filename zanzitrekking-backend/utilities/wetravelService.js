@@ -1243,18 +1243,28 @@ class WeTravelService {
 
       // Step 3: Set payment plan on the package
       console.log("  Step 3: Setting payment plan on package...");
+      // WeTravel API requires amounts in minor currency units (cents)
+      // For USD: $1.00 = 100 cents, so multiply by 100
+      const depositAmountCents = Math.round(depositAmount * 100);
+      const remainingAmountCents = Math.round(remainingAmount * 100);
+      
+      console.log("  - Deposit (dollars):", depositAmount);
+      console.log("  - Deposit (cents):", depositAmountCents);
+      console.log("  - Remaining (dollars):", remainingAmount);
+      console.log("  - Remaining (cents):", remainingAmountCents);
+      
       const paymentPlanData = {
         data: {
           enable_auto_payment: false,
           allow_partial_payment: true,
-          deposit: depositAmount,
+          deposit: depositAmountCents, // Must be in minor units (cents)
           installments: [
             {
-              price: depositAmount,
+              price: depositAmountCents, // Must be in minor units (cents)
               days_before_departure: 0,
             },
             {
-              price: remainingAmount,
+              price: remainingAmountCents, // Must be in minor units (cents)
               days_before_departure: daysBeforeDeparture,
             },
           ],
@@ -1294,6 +1304,10 @@ class WeTravelService {
         
         if (tripOptions.length > 0) {
           // Update trip_options[0] to include payment plan
+          // WeTravel API requires amounts in minor currency units (cents)
+          const depositAmountCents = Math.round(depositAmount * 100);
+          const remainingAmountCents = Math.round(remainingAmount * 100);
+          
           const updatedTripOptions = tripOptions.map((option, index) => {
             if (index === 0) {
               return {
@@ -1301,14 +1315,14 @@ class WeTravelService {
                 payment_plan: {
                   enable_auto_payment: false,
                   allow_partial_payment: true,
-                  deposit: depositAmount,
+                  deposit: depositAmountCents, // Must be in minor units (cents)
                   installments: [
                     {
-                      price: depositAmount,
+                      price: depositAmountCents, // Must be in minor units (cents)
                       days_before_departure: 0,
                     },
                     {
-                      price: remainingAmount,
+                      price: remainingAmountCents, // Must be in minor units (cents)
                       days_before_departure: daysBeforeDeparture,
                     },
                   ],
