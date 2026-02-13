@@ -1154,28 +1154,35 @@ class WeTravelService {
       
       const tripData = {
         data: {
+          // Required fields from WeTravel API example
           title: this.sanitizeTitle(tripTitle),
-          trip_id: tripId,
+          destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
           start_date: startDateISO, // ISO format: '2021-05-07T00:00:00.000Z'
           end_date: endDateISO, // ISO format: '2021-05-07T00:00:00.000Z'
-          currency: currency,
-          participant_fees: "all", // Options: "all", "credit_card", "bank_transfer"
-          destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
-          can_contribute: false,
           group_min: groupMin,
           group_max: groupMax || Math.max(travelersNumber || 1, 100),
-          listing_status: "published", // Options: "published", "private", "draft"
+          currency: currency,
           participant_list_show_type: "everyone", // Options: "everyone", "participants_only", "none"
+          participant_fees: "all", // Options: "all", "credit_card", "bank_transfer"
+          listing_status: "published", // Options: "published", "private", "draft"
           waiting_list_enabled: false,
+          can_contribute: false,
           // Optional fields from WeTravel API example
           welcome_message: `Welcome to ${this.sanitizeTitle(tripTitle)}!`,
           carbon_offset: {
             enabled: false,
             percentage: 0,
             paid_by_participant: false
-          }
+          },
+          // trip_id is optional - only include if WeTravel accepts it
+          // Removed capacity field as it's not in the API example
         },
       };
+      
+      // Only add trip_id if it's provided and valid (some APIs accept it, some don't)
+      if (tripId) {
+        tripData.data.trip_id = tripId;
+      }
 
       const tripResponse = await axios.post(
         `${this.apiUrl}/draft_trips`,
