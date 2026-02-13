@@ -1315,13 +1315,15 @@ class WeTravelService {
         }
         
         if (tripOptions.length > 0) {
-          // Try to set trip_options to empty array - WeTravel might not need them if payment plan is on package
+          console.log("  - Found trip_options, attempting to fix structure...");
+          
+          // Strategy 1: Try to delete trip_options entirely (if WeTravel allows null/undefined)
           try {
             await axios.patch(
               `${this.apiUrl}/draft_trips/${tripUuid}`,
               {
                 data: {
-                  trip_options: [], // Set to empty array
+                  trip_options: null, // Try setting to null
                 },
               },
               {
@@ -1331,31 +1333,49 @@ class WeTravelService {
                 },
               }
             );
-            console.log("  ✅ Cleared trip_options (set to empty array)");
-          } catch (clearError) {
-            console.warn("  ⚠️ Could not clear trip_options:", clearError.response?.data || clearError.message);
-            // If clearing fails, try to remove payment_plan from trip_options
-            console.log("  - Trying to remove payment_plan from trip_options instead...");
-            const cleanedTripOptions = tripOptions.map((option) => {
-              const { payment_plan, ...optionWithoutPaymentPlan } = option;
-              return optionWithoutPaymentPlan;
-            });
+            console.log("  ✅ Set trip_options to null");
+          } catch (nullError) {
+            // Strategy 2: Try empty array
+            try {
+              await axios.patch(
+                `${this.apiUrl}/draft_trips/${tripUuid}`,
+                {
+                  data: {
+                    trip_options: [], // Set to empty array
+                  },
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              console.log("  ✅ Cleared trip_options (set to empty array)");
+            } catch (emptyError) {
+              // Strategy 3: Remove payment_plan from trip_options but keep the structure
+              console.log("  - Trying to remove payment_plan from trip_options...");
+              const cleanedTripOptions = tripOptions.map((option) => {
+                const { payment_plan, ...optionWithoutPaymentPlan } = option;
+                return optionWithoutPaymentPlan;
+              });
 
-            await axios.patch(
-              `${this.apiUrl}/draft_trips/${tripUuid}`,
-              {
-                data: {
-                  trip_options: cleanedTripOptions,
+              await axios.patch(
+                `${this.apiUrl}/draft_trips/${tripUuid}`,
+                {
+                  data: {
+                    trip_options: cleanedTripOptions,
+                  },
                 },
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${this.accessToken}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            console.log("  ✅ Removed payment_plan from trip_options");
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              console.log("  ✅ Removed payment_plan from trip_options");
+            }
           }
         } else {
           console.log("  ℹ️ No trip_options found, will try publishing");
