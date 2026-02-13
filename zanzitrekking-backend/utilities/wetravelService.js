@@ -433,9 +433,10 @@ class WeTravelService {
             console.log("  - Payment Plan Data:", JSON.stringify(paymentPlanData, null, 2));
             
             // Try to update payment plan - this is REQUIRED for deposits to work
-            // If this fails with trip_options error, it might be because WeTravel created trip_options automatically
-            // In that case, we might need to delete trip_options first or use a different approach
+            // According to WeTravel API docs, the structure should match the example
             let planResponse;
+            let paymentPlanSet = false;
+            
             try {
               planResponse = await axios.post(
                 `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
@@ -450,13 +451,54 @@ class WeTravelService {
               
               console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
               console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+              paymentPlanSet = true;
             } catch (updateError) {
-              // If we get trip_options error, WeTravel auto-created trip_options without payment_plan
-              // We need to update trip_options to include the payment plan, or use a different approach
+              // If we get trip_options error, check if payment plan was actually set despite the error
+              // Sometimes WeTravel returns an error but still sets the payment plan
               if (updateError.response?.data?.error?.includes('trip_options')) {
-                console.warn("⚠️ [WeTravel] Payment plan update failed due to trip_options conflict");
-                console.warn("  - WeTravel auto-created trip_options without payment_plan");
-                console.warn("  - Attempting to update trip_options to include payment plan...");
+                console.warn("⚠️ [WeTravel] Payment plan update returned trip_options error");
+                console.warn("  - Checking if payment plan was actually set despite the error...");
+                
+                // Wait a moment for WeTravel to process
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                try {
+                  // Verify if payment plan was actually set
+                  const verifyResponse = await axios.get(
+                    `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                      },
+                    }
+                  );
+                  
+                  const verifiedPlan = verifyResponse.data?.data;
+                  console.log("  - Verified Payment Plan:", JSON.stringify(verifiedPlan, null, 2));
+                  
+                  // Check if payment plan has the required fields for deposits
+                  if (verifiedPlan?.allow_partial_payment && verifiedPlan?.deposit) {
+                    console.log("✅ [WeTravel] Payment plan WAS set correctly despite trip_options error!");
+                    console.log("  - allow_partial_payment:", verifiedPlan.allow_partial_payment);
+                    console.log("  - deposit:", verifiedPlan.deposit);
+                    console.log("  - installments:", JSON.stringify(verifiedPlan.installments, null, 2));
+                    paymentPlanSet = true;
+                    // Payment plan is set correctly, we can continue
+                    return response.data.data;
+                  } else {
+                    console.warn("  - Payment plan not set correctly, deposit or allow_partial_payment missing");
+                    console.warn("  - allow_partial_payment:", verifiedPlan?.allow_partial_payment);
+                    console.warn("  - deposit:", verifiedPlan?.deposit);
+                    // Continue to retry logic below
+                  }
+                } catch (verifyError) {
+                  console.warn("  - Could not verify payment plan:", verifyError.message);
+                  // Continue to retry logic below
+                }
+                
+                // If verification failed, try to fix trip_options
+                console.warn("  - Attempting to fix trip_options issue...");
                 
                 try {
                   // Get the trip to see trip_options structure
@@ -471,71 +513,14 @@ class WeTravelService {
                   );
                   
                   const tripData = tripResponse.data?.data;
-                  console.log("  - Trip structure:", JSON.stringify(tripData, null, 2));
-                  
-                  // Check if trip has packages and trip_options
-                  const packages = tripData?.packages || [];
                   const tripOptions = tripData?.trip_options || [];
                   
                   if (tripOptions.length > 0) {
-                    console.log("  - Found trip_options, attempting to update trip with payment plan in trip_options...");
-                    
-                    // Try to update the trip to include payment plan in trip_options
-                    // This might work if WeTravel allows updating trip_options
-                    const updatedTripOptions = tripOptions.map((option, index) => {
-                      if (index === 0 && option.id === packageId) {
-                        return {
-                          ...option,
-                          payment_plan: paymentPlanData.data, // Include payment plan in trip_options
-                        };
-                      }
-                      return option;
-                    });
-                    
-                    // Try PATCH to update the trip with payment plan in trip_options
-                    try {
-                      const patchResponse = await axios.patch(
-                        `${this.apiUrl}/draft_trips/${tripUuid}`,
-                        {
-                          data: {
-                            trip_options: updatedTripOptions,
-                          },
-                        },
-                        {
-                          headers: {
-                            Authorization: `Bearer ${this.accessToken}`,
-                            "Content-Type": "application/json",
-                          },
-                        }
-                      );
-                      
-                      console.log("✅ [WeTravel] Updated trip_options with payment plan");
-                      console.log("  - Patch Response:", JSON.stringify(patchResponse.data, null, 2));
-                      
-                      // Now try to update package payment plan again
-                      await new Promise(resolve => setTimeout(resolve, 2000));
-                      planResponse = await axios.post(
-                        `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-                        paymentPlanData,
-                        {
-                          headers: {
-                            Authorization: `Bearer ${this.accessToken}`,
-                            "Content-Type": "application/json",
-                          },
-                        }
-                      );
-                      
-                      console.log("✅ [WeTravel] Payment plan updated successfully after fixing trip_options");
-                      console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
-                    } catch (patchError) {
-                      console.warn("  - PATCH trip failed, trying alternative approach...");
-                      throw updateError; // Fall back to original error
-                    }
-                  } else {
-                    // No trip_options found, try waiting longer and retry
-                    console.log("  - No trip_options found, waiting 5 seconds and retrying...");
+                    console.log("  - Found trip_options, structure:", JSON.stringify(tripOptions, null, 2));
+                    console.log("  - Waiting 5 seconds and retrying payment plan update...");
                     await new Promise(resolve => setTimeout(resolve, 5000));
                     
+                    // Retry payment plan update
                     planResponse = await axios.post(
                       `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
                       paymentPlanData,
@@ -547,11 +532,14 @@ class WeTravelService {
                       }
                     );
                     
-                    console.log("✅ [WeTravel] Payment plan updated successfully after delay");
+                    console.log("✅ [WeTravel] Payment plan updated successfully after retry");
                     console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+                    paymentPlanSet = true;
+                  } else {
+                    throw updateError; // No trip_options, throw original error
                   }
                 } catch (retryError) {
-                  console.error("  - All retry attempts failed");
+                  console.error("  - Retry failed:", retryError.response?.data || retryError.message);
                   throw updateError; // Throw original error
                 }
               } else {
@@ -559,22 +547,29 @@ class WeTravelService {
               }
             }
             
-            // Verify the payment plan was set correctly
-            const verifyResponse = await axios.get(
-              `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-              {
-                headers: {
-                  Authorization: `Bearer ${this.accessToken}`,
-                  "Content-Type": "application/json",
-                },
+            // Verify the payment plan was set correctly (if we got a successful response)
+            if (paymentPlanSet) {
+              const verifyResponse = await axios.get(
+                `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              
+              const verifiedPlan = verifyResponse.data?.data;
+              console.log("✅ [WeTravel] Final verification of payment plan:", JSON.stringify(verifiedPlan, null, 2));
+              
+              if (!verifiedPlan?.allow_partial_payment || !verifiedPlan?.deposit) {
+                throw new Error("Payment plan verification failed: deposit or allow_partial_payment not set correctly");
               }
-            );
-            
-            const verifiedPlan = verifyResponse.data?.data;
-            console.log("✅ [WeTravel] Verified payment plan:", JSON.stringify(verifiedPlan, null, 2));
-            
-            if (!verifiedPlan?.allow_partial_payment || !verifiedPlan?.deposit) {
-              throw new Error("Payment plan verification failed: deposit or allow_partial_payment not set correctly");
+              
+              console.log("✅ [WeTravel] Payment plan verified successfully!");
+              console.log("  - allow_partial_payment:", verifiedPlan.allow_partial_payment);
+              console.log("  - deposit:", verifiedPlan.deposit);
+              console.log("  - installments count:", verifiedPlan.installments?.length || 0);
             }
             
           } catch (planError) {
