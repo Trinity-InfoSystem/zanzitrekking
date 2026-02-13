@@ -1067,7 +1067,7 @@ class WeTravelService {
     );
 
     // Extract trip metadata from cart items for WeTravel Trips Builder API
-    const firstCartItem = order.cartItems && order.cartItems.length > 0 ? order.cartItems[0] : null;
+    // firstCartItem is already declared above (line 970)
     const mainDestination = firstCartItem?.mainDestination || firstCartItem?.trip?.mainDestination;
     const destinationName = Array.isArray(mainDestination) && mainDestination.length > 0
       ? mainDestination[0].name
