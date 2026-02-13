@@ -1147,24 +1147,23 @@ class WeTravelService {
       
       // Step 1: Create draft trip
       console.log("  Step 1: Creating draft trip...");
+      // WeTravel API expects fields directly under data, not nested under data.trip
       const tripData = {
         data: {
-          trip: {
-            title: this.sanitizeTitle(tripTitle),
-            trip_id: tripId,
-            start_date: startDate,
-            end_date: endDate,
-            currency: currency,
-            participant_fees: "all",
-            destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
-            can_contribute: false,
-            group_min: groupMin,
-            group_max: groupMax || Math.max(travelersNumber || 1, 100),
-            listing_status: "published",
-            participant_list_show_type: "all",
-            waiting_list_enabled: false,
-            capacity: Math.max(travelersNumber || 1, 100),
-          },
+          title: this.sanitizeTitle(tripTitle),
+          trip_id: tripId,
+          start_date: startDate,
+          end_date: endDate,
+          currency: currency,
+          participant_fees: "all",
+          destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
+          can_contribute: false,
+          group_min: groupMin,
+          group_max: groupMax || Math.max(travelersNumber || 1, 100),
+          listing_status: "published",
+          participant_list_show_type: "all",
+          waiting_list_enabled: false,
+          capacity: Math.max(travelersNumber || 1, 100),
         },
       };
 
