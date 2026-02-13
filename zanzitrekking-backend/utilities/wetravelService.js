@@ -1212,14 +1212,13 @@ class WeTravelService {
 
       // Step 2: Create package for the trip
       console.log("  Step 2: Creating package...");
+      // WeTravel API expects name and price directly under data, not nested under data.package
       const packageData = {
         data: {
-          package: {
-            name: "Standard Package",
-            price: totalAmount,
-            days_before_departure: daysBeforeDeparture,
-            currency: currency,
-          },
+          name: "Standard Package",
+          price: totalAmount,
+          days_before_departure: daysBeforeDeparture,
+          currency: currency,
         },
       };
 
