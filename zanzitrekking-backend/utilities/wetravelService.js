@@ -1213,10 +1213,15 @@ class WeTravelService {
       // Step 2: Create package for the trip
       console.log("  Step 2: Creating package...");
       // WeTravel API expects name and price directly under data, not nested under data.package
+      // Package price should also be in minor currency units (cents)
+      const packagePriceCents = Math.round(totalAmount * 100);
+      console.log("  - Package price (dollars):", totalAmount);
+      console.log("  - Package price (cents):", packagePriceCents);
+      
       const packageData = {
         data: {
           name: "Standard Package",
-          price: totalAmount,
+          price: packagePriceCents, // Must be in minor units (cents)
           days_before_departure: daysBeforeDeparture,
           currency: currency,
         },
