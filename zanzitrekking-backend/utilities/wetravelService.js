@@ -1066,6 +1066,17 @@ class WeTravelService {
       0
     );
 
+    // Extract trip metadata from cart items for WeTravel Trips Builder API
+    const firstCartItem = order.cartItems && order.cartItems.length > 0 ? order.cartItems[0] : null;
+    const mainDestination = firstCartItem?.mainDestination || firstCartItem?.trip?.mainDestination;
+    const destinationName = Array.isArray(mainDestination) && mainDestination.length > 0
+      ? mainDestination[0].name
+      : (mainDestination?.name || tripTitle.split("(")[0].trim() || "Tanzania");
+    
+    // Extract group size constraints if available
+    const groupMin = firstCartItem?.groupMin || firstCartItem?.trip?.groupMin || 1;
+    const groupMax = firstCartItem?.groupMax || firstCartItem?.trip?.groupMax || Math.max(totalTravelers || 1, 100);
+
     return {
       tripTitle,
       tripId: order.orderNumber,
@@ -1077,6 +1088,10 @@ class WeTravelService {
       travelersNumber: totalTravelers, // This already includes children from the reduce above
       childrenCount: totalChildrenCount, // Explicitly pass children count for validation
       selectedCategory, // Package type: standard, midRange, luxury
+      // Trip metadata for Trips Builder API
+      destination: destinationName,
+      groupMin: groupMin,
+      groupMax: groupMax,
       // Include participant/customer information (billing address is optional in WeTravel)
       participantInfo: order.personalInfo
         ? {
@@ -1119,10 +1134,16 @@ class WeTravelService {
       depositAmount,
       remainingAmount,
       returnUrl,
+      destination, // From formatOrderForPaymentLink
+      groupMin = 1, // From formatOrderForPaymentLink
+      groupMax, // From formatOrderForPaymentLink
     } = orderData;
 
     try {
       console.log("🏗️ [WeTravel] Creating deposit payment link via Trips Builder API...");
+      console.log("  - Destination:", destination);
+      console.log("  - Group Min:", groupMin);
+      console.log("  - Group Max:", groupMax);
       
       // Step 1: Create draft trip
       console.log("  Step 1: Creating draft trip...");
@@ -1135,11 +1156,11 @@ class WeTravelService {
             end_date: endDate,
             currency: currency,
             participant_fees: "all",
-            destination: tripTitle.split("(")[0].trim() || "Tanzania", // Extract destination from title or default
+            destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
             can_contribute: false,
-            group_min: 1,
-            group_max: Math.max(travelersNumber || 1, 100),
-            listing_status: "published", // or "draft" if you want to keep it as draft
+            group_min: groupMin,
+            group_max: groupMax || Math.max(travelersNumber || 1, 100),
+            listing_status: "published",
             participant_list_show_type: "all",
             waiting_list_enabled: false,
             capacity: Math.max(travelersNumber || 1, 100),
