@@ -344,6 +344,29 @@ class WeTravelService {
           packageId = response.data.data.trip.packages[0].id;
         }
         
+        // If still not found, try to fetch packages from the trip
+        if (!packageId) {
+          console.log("🔍 [WeTravel] Package ID not in response, fetching packages from trip...");
+          try {
+            const packagesResponse = await axios.get(
+              `${this.apiUrl}/draft_trips/${tripUuid}/packages`,
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            
+            if (packagesResponse.data?.data && packagesResponse.data.data.length > 0) {
+              packageId = packagesResponse.data.data[0].id;
+              console.log("✅ [WeTravel] Found package ID:", packageId);
+            }
+          } catch (packagesError) {
+            console.warn("⚠️ [WeTravel] Could not fetch packages:", packagesError.response?.data || packagesError.message);
+          }
+        }
+        
         if (packageId) {
           console.log("🔧 [WeTravel] Updating payment plan for deposit via dedicated endpoint:");
           console.log("  - Trip UUID:", tripUuid);
@@ -568,6 +591,29 @@ class WeTravelService {
             
             if (!packageId && response.data.data.trip?.packages?.length > 0) {
               packageId = response.data.data.trip.packages[0].id;
+            }
+            
+            // If still not found, try to fetch packages from the trip
+            if (!packageId) {
+              console.log("🔍 [WeTravel] Retry - Package ID not in response, fetching packages from trip...");
+              try {
+                const packagesResponse = await axios.get(
+                  `${this.apiUrl}/draft_trips/${tripUuid}/packages`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${this.accessToken}`,
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+                
+                if (packagesResponse.data?.data && packagesResponse.data.data.length > 0) {
+                  packageId = packagesResponse.data.data[0].id;
+                  console.log("✅ [WeTravel] Retry - Found package ID:", packageId);
+                }
+              } catch (packagesError) {
+                console.warn("⚠️ [WeTravel] Retry - Could not fetch packages:", packagesError.response?.data || packagesError.message);
+              }
             }
             
             if (packageId) {
