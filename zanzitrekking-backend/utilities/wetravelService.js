@@ -1178,7 +1178,12 @@ class WeTravelService {
         }
       );
 
-      const tripUuid = tripResponse.data.data.trip.uuid;
+      // Response structure may vary - check both data.trip.uuid and data.uuid
+      const tripUuid = tripResponse.data.data.trip?.uuid || tripResponse.data.data.uuid;
+      if (!tripUuid) {
+        console.error("  ❌ Trip UUID not found in response:", JSON.stringify(tripResponse.data, null, 2));
+        throw new Error("Failed to get trip UUID from WeTravel API response");
+      }
       console.log("  ✅ Draft trip created, UUID:", tripUuid);
 
       // Step 2: Create package for the trip
