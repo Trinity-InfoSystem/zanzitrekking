@@ -188,71 +188,24 @@ class WeTravelService {
       console.log("  - Has trip_options in baseData?", !!baseData.trip_options);
       console.log("  - Has pricing in baseData?", !!baseData.pricing);
 
-      // For deposits, use pricing.payment_plan with allow_partial_payment: true
-      // This enables the deposit payment option in WeTravel's payment UI
+      // For deposits, use Trips Builder API instead of payment_links endpoint
+      // payment_links endpoint auto-creates trip_options without payment_plan, causing validation errors
+      // Trips Builder API allows us to properly set payment plan before creating payment link
       if (paymentOption === "deposit") {
         const remainingAmount = totalAmount - depositAmount;
         
-        console.log("🔍 [WeTravel] DEPOSIT PAYMENT DEBUG - Input Parameters:");
+        console.log("🔍 [WeTravel] DEPOSIT PAYMENT - Using Trips Builder API:");
         console.log("  - paymentOption:", paymentOption);
         console.log("  - totalAmount:", totalAmount);
         console.log("  - depositAmount:", depositAmount);
         console.log("  - remainingAmount:", remainingAmount);
         console.log("  - daysBeforeDeparture:", daysBeforeDeparture);
         
-        // Payment plan structure according to WeTravel API documentation
-        // For deposits, use installments array with allow_partial_payment: true
-        // The API requires a deposit field (int32, 0 to 1000000000)
-        // Note: This is not used in payment_links endpoint, but kept for reference
-        const depositPaymentPlan = {
-          enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
-          allow_partial_payment: true,
-          deposit: depositAmount, // Required by WeTravel API
-          installments: [
-            {
-              price: depositAmount,
-              days_before_departure: 0, // Deposit due immediately
-            },
-            {
-              price: remainingAmount,
-              days_before_departure: daysBeforeDeparture, // Remaining due before trip
-            },
-          ],
-        };
-
-        console.log("💰 [WeTravel] Creating DEPOSIT payment link:");
-        console.log("  - Deposit Amount:", depositAmount);
-        console.log("  - Remaining Amount:", remainingAmount);
-        console.log("  - Total Amount:", totalAmount);
-        console.log("  - Installments:", JSON.stringify(depositPaymentPlan.installments, null, 2));
-        console.log("  - Payment Plan (full):", JSON.stringify(depositPaymentPlan, null, 2));
-        console.log("  - Installments sum:", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0));
-        console.log("  - Matches total?", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0) === totalAmount);
-
-        // For deposits, create payment link WITHOUT payment_plan in trip_options
-        // WeTravel's payment_links endpoint rejects payment_plan in trip_options
-        // We'll set it via dedicated endpoint after creation
-        paymentLinkData = {
-          data: {
-            ...baseData,
-            pricing: {
-              price: totalAmount,
-              days_before_departure: daysBeforeDeparture,
-            },
-            // Do NOT include trip_options with payment_plan - it causes validation errors
-            // Payment plan will be set via dedicated endpoint after payment link creation
-          },
-        };
-
-        console.log("📦 [WeTravel] Deposit Payment Link Data Structure:");
-        console.log("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
-        console.log("  - Full payload:", JSON.stringify(paymentLinkData, null, 2));
-        console.log("  - Payload keys:", Object.keys(paymentLinkData.data));
-        console.log("  - Pricing keys:", Object.keys(paymentLinkData.data.pricing || {}));
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasPaymentPlanInPricing:!!paymentLinkData.data.pricing?.payment_plan,paymentOption,depositAmount,totalAmount,paymentPlanStructure:paymentLinkData.data.pricing?.payment_plan},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+        // Use Trips Builder API for deposits to properly set payment plan
+        return await this.createDepositPaymentLinkViaTripsBuilder({
+          ...orderData,
+          remainingAmount,
+        });
       } else {
         // Full payment - use pricing structure
         console.log("💰 [WeTravel] Creating FULL PAYMENT link:");
@@ -1144,6 +1097,165 @@ class WeTravelService {
           }
         : null,
     };
+  }
+
+  /**
+   * Create deposit payment link using Trips Builder API
+   * This avoids trip_options validation errors from payment_links endpoint
+   * @param {Object} orderData - Order data including trip details and pricing
+   * @returns {Promise<Object>} - Payment link data
+   */
+  async createDepositPaymentLinkViaTripsBuilder(orderData) {
+    const {
+      tripTitle,
+      tripId,
+      startDate,
+      endDate,
+      totalAmount,
+      currency = "USD",
+      daysBeforeDeparture = 2,
+      participantInfo,
+      travelersNumber = 1,
+      depositAmount,
+      remainingAmount,
+      returnUrl,
+    } = orderData;
+
+    try {
+      console.log("🏗️ [WeTravel] Creating deposit payment link via Trips Builder API...");
+      
+      // Step 1: Create draft trip
+      console.log("  Step 1: Creating draft trip...");
+      const tripData = {
+        data: {
+          trip: {
+            participant_fees: "all",
+            title: this.sanitizeTitle(tripTitle),
+            trip_id: tripId,
+            start_date: startDate,
+            end_date: endDate,
+            currency: currency,
+            capacity: Math.max(travelersNumber || 1, 100),
+          },
+        },
+      };
+
+      const tripResponse = await axios.post(
+        `${this.apiUrl}/draft_trips`,
+        tripData,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const tripUuid = tripResponse.data.data.trip.uuid;
+      console.log("  ✅ Draft trip created, UUID:", tripUuid);
+
+      // Step 2: Create package for the trip
+      console.log("  Step 2: Creating package...");
+      const packageData = {
+        data: {
+          package: {
+            name: "Standard Package",
+            price: totalAmount,
+            days_before_departure: daysBeforeDeparture,
+            currency: currency,
+          },
+        },
+      };
+
+      const packageResponse = await axios.post(
+        `${this.apiUrl}/draft_trips/${tripUuid}/packages`,
+        packageData,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const packageId = packageResponse.data.data.package.id;
+      console.log("  ✅ Package created, ID:", packageId);
+
+      // Step 3: Set payment plan on the package
+      console.log("  Step 3: Setting payment plan on package...");
+      const paymentPlanData = {
+        data: {
+          enable_auto_payment: false,
+          allow_partial_payment: true,
+          deposit: depositAmount,
+          installments: [
+            {
+              price: depositAmount,
+              days_before_departure: 0,
+            },
+            {
+              price: remainingAmount,
+              days_before_departure: daysBeforeDeparture,
+            },
+          ],
+        },
+      };
+
+      const planResponse = await axios.post(
+        `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+        paymentPlanData,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
+
+      // Step 4: Publish the trip to create payment link
+      console.log("  Step 4: Publishing trip...");
+      const publishResponse = await axios.post(
+        `${this.apiUrl}/draft_trips/${tripUuid}/publish`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("  ✅ Trip published");
+
+      // Step 5: Get the payment link from the published trip
+      const publishedTrip = publishResponse.data.data.trip;
+      const paymentLinkUrl = publishedTrip.url;
+
+      console.log("✅ [WeTravel] Deposit payment link created via Trips Builder API");
+      console.log("  - Payment Link URL:", paymentLinkUrl);
+      console.log("  - Trip UUID:", tripUuid);
+
+      // Return in the same format as payment_links endpoint
+      return {
+        trip: {
+          uuid: tripUuid,
+          url: paymentLinkUrl,
+          trip_id: tripId,
+        },
+        packages: [
+          {
+            id: packageId,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("❌ [WeTravel] Error creating deposit payment link via Trips Builder API:");
+      console.error("  - Error:", error.response?.data || error.message);
+      console.error("  - Status:", error.response?.status);
+      throw new Error(`Failed to create deposit payment link via Trips Builder: ${error.response?.data?.error || error.message}`);
+    }
   }
 }
 
