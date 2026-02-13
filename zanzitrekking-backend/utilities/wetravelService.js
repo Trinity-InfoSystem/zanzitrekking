@@ -229,8 +229,9 @@ class WeTravelService {
         console.log("  - Installments sum:", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0));
         console.log("  - Matches total?", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0) === totalAmount);
 
-        // For deposits, try including payment plan in trip_options
-        // WeTravel's payment_links endpoint may require payment plan in trip_options for deposits
+        // For deposits, create payment link WITHOUT payment_plan in trip_options
+        // WeTravel's payment_links endpoint rejects payment_plan in trip_options
+        // We'll set it via dedicated endpoint after creation
         paymentLinkData = {
           data: {
             ...baseData,
@@ -238,13 +239,8 @@ class WeTravelService {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
             },
-            trip_options: [
-              {
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
-                payment_plan: depositPaymentPlan, // Payment plan in trip_options
-              },
-            ],
+            // Do NOT include trip_options with payment_plan - it causes validation errors
+            // Payment plan will be set via dedicated endpoint after payment link creation
           },
         };
 
@@ -573,30 +569,14 @@ class WeTravelService {
 
         // Use same conditional structure as initial request
         if (paymentOption === "deposit") {
-          // For deposits, include payment plan in trip_options
-          const remainingAmount = totalAmount - depositAmount;
+          // For deposits, create payment link WITHOUT payment_plan in trip_options
+          // WeTravel's payment_links endpoint rejects payment_plan in trip_options
           console.log("🔄 [WeTravel] Retry - Creating DEPOSIT payment link:");
           console.log("  - Deposit Amount:", depositAmount);
-          console.log("  - Remaining Amount:", remainingAmount);
           console.log("  - Total Amount:", totalAmount);
 
-          const depositPaymentPlan = {
-            enable_auto_payment: false,
-            allow_partial_payment: true,
-            deposit: depositAmount,
-            installments: [
-              {
-                price: depositAmount,
-                days_before_departure: 0,
-              },
-              {
-                price: remainingAmount,
-                days_before_departure: daysBeforeDeparture,
-              },
-            ],
-          };
-
-          // For deposits, include payment plan in trip_options
+          // For deposits, do NOT include trip_options with payment_plan
+          // Payment plan will be set via dedicated endpoint after payment link creation
           paymentLinkData = {
             data: {
               ...baseData,
@@ -604,13 +584,7 @@ class WeTravelService {
                 price: totalAmount,
                 days_before_departure: daysBeforeDeparture,
               },
-              trip_options: [
-                {
-                  price: totalAmount,
-                  days_before_departure: daysBeforeDeparture,
-                  payment_plan: depositPaymentPlan, // Payment plan in trip_options
-                },
-              ],
+              // Do NOT include trip_options with payment_plan - it causes validation errors
             },
           };
         } else {
