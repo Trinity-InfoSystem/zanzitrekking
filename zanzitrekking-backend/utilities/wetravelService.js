@@ -1164,6 +1164,9 @@ class WeTravelService {
           participant_list_show_type: "all",
           waiting_list_enabled: false,
           capacity: Math.max(travelersNumber || 1, 100),
+          // Visibility fields - required by WeTravel API
+          visibility: "public", // Options: "public", "private", "unlisted" (typically)
+          participants_visibility: "all", // Options: "all", "none", "participants_only" (typically)
         },
       };
 
