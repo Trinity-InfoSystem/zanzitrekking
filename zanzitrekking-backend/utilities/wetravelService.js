@@ -263,7 +263,7 @@ class WeTravelService {
             ...baseData,
             pricing: {
               payment_plan: {
-                enable_auto_payment: false, // Required by WeTravel API (not allow_auto_payment)
+                allow_auto_payment: false, // payment_links endpoint uses allow_auto_payment (not enable_auto_payment)
                 allow_partial_payment: false,
                 deposit: 0,
                 installments: [
@@ -346,18 +346,24 @@ class WeTravelService {
         }
         
         // Try to get package_id from different possible locations in response
+        // WeTravel payment_links creates packages automatically, so we need to find the package ID
         let packageId = response.data.data.packages?.[0]?.id || 
                        response.data.data.trip_options?.[0]?.id ||
-                       response.data.data.packages?.[0]?.package_id;
+                       response.data.data.packages?.[0]?.package_id ||
+                       response.data.data.trip_options?.[0]?.package_id;
         
         // If package_id is not available, try to get it from trip data
         if (!packageId && response.data.data.trip?.packages?.length > 0) {
           packageId = response.data.data.trip.packages[0].id;
         }
         
-        // If still not found, try to fetch packages from the trip
+        // If still not found, wait a bit and try to fetch packages from the trip
+        // Packages might not be immediately available after payment link creation
         if (!packageId) {
-          console.log("🔍 [WeTravel] Package ID not in response, fetching packages from trip...");
+          console.log("🔍 [WeTravel] Package ID not in response, waiting and fetching packages from trip...");
+          // Wait for packages to be created
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
           try {
             const packagesResponse = await axios.get(
               `${this.apiUrl}/draft_trips/${tripUuid}/packages`,
@@ -369,12 +375,25 @@ class WeTravelService {
               }
             );
             
+            console.log("  - Packages response:", JSON.stringify(packagesResponse.data, null, 2));
+            
             if (packagesResponse.data?.data && packagesResponse.data.data.length > 0) {
               packageId = packagesResponse.data.data[0].id;
               console.log("✅ [WeTravel] Found package ID:", packageId);
+            } else {
+              // Try to get package from trip_options if packages array is empty
+              if (response.data.data.trip_options && response.data.data.trip_options.length > 0) {
+                packageId = response.data.data.trip_options[0].id;
+                console.log("✅ [WeTravel] Using package ID from trip_options:", packageId);
+              }
             }
           } catch (packagesError) {
             console.warn("⚠️ [WeTravel] Could not fetch packages:", packagesError.response?.data || packagesError.message);
+            // Last resort: try to use trip_options ID
+            if (response.data.data.trip_options && response.data.data.trip_options.length > 0) {
+              packageId = response.data.data.trip_options[0].id;
+              console.log("⚠️ [WeTravel] Using trip_options[0].id as package ID (fallback):", packageId);
+            }
           }
         }
         
@@ -384,10 +403,11 @@ class WeTravelService {
           console.log("  - Package ID:", packageId);
           
           try {
-            // Add a small delay to ensure WeTravel has finished processing the payment link
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Increased to 2 seconds
+            // Add a delay to ensure WeTravel has finished processing the payment link and created packages
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds for packages to be ready
             
             // First, try to get the current payment plan to see what's there
+            // If we get 404, the package might not be ready yet, so we'll try to create the payment plan anyway
             let currentPlan = null;
             try {
               const currentPlanResponse = await axios.get(
@@ -408,7 +428,13 @@ class WeTravelService {
                 return response.data.data;
               }
             } catch (getError) {
-              console.log("  - No existing payment plan found, will create new one");
+              if (getError.response?.status === 404) {
+                console.log("  - Payment plan endpoint returned 404 - package might not be ready yet");
+                console.log("  - Will try to create payment plan anyway");
+              } else {
+                console.log("  - Error getting current payment plan:", getError.message);
+                console.log("  - Will try to create payment plan anyway");
+              }
             }
             
             const remainingAmount = totalAmount - depositAmount;
@@ -493,7 +519,12 @@ class WeTravelService {
                     // Continue to retry logic below
                   }
                 } catch (verifyError) {
-                  console.warn("  - Could not verify payment plan:", verifyError.message);
+                  if (verifyError.response?.status === 404) {
+                    console.warn("  - Payment plan verification returned 404 - package might not exist yet");
+                    console.warn("  - This is OK, we'll try to create the payment plan");
+                  } else {
+                    console.warn("  - Could not verify payment plan:", verifyError.message);
+                  }
                   // Continue to retry logic below
                 }
                 
@@ -517,26 +548,68 @@ class WeTravelService {
                   
                   if (tripOptions.length > 0) {
                     console.log("  - Found trip_options, structure:", JSON.stringify(tripOptions, null, 2));
-                    console.log("  - Waiting 5 seconds and retrying payment plan update...");
+                    console.log("  - trip_options[0] has payment_plan?", !!tripOptions[0]?.payment_plan);
+                    
+                    // Try multiple retries with increasing delays
+                    let retrySuccess = false;
+                    for (let retryAttempt = 1; retryAttempt <= 3; retryAttempt++) {
+                      const delay = retryAttempt * 3; // 3, 6, 9 seconds
+                      console.log(`  - Retry attempt ${retryAttempt}/3: Waiting ${delay} seconds...`);
+                      await new Promise(resolve => setTimeout(resolve, delay * 1000));
+                      
+                      try {
+                        // Retry payment plan update
+                        planResponse = await axios.post(
+                          `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                          paymentPlanData,
+                          {
+                            headers: {
+                              Authorization: `Bearer ${this.accessToken}`,
+                              "Content-Type": "application/json",
+                            },
+                          }
+                        );
+                        
+                        console.log(`✅ [WeTravel] Payment plan updated successfully on retry attempt ${retryAttempt}`);
+                        console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+                        paymentPlanSet = true;
+                        retrySuccess = true;
+                        break; // Success, exit retry loop
+                      } catch (retryError) {
+                        console.warn(`  - Retry attempt ${retryAttempt} failed:`, retryError.response?.data?.error || retryError.message);
+                        if (retryAttempt === 3) {
+                          // Last attempt failed
+                          throw updateError;
+                        }
+                      }
+                    }
+                    
+                    if (!retrySuccess) {
+                      throw updateError;
+                    }
+                  } else {
+                    // No trip_options found - this might be OK, try to create payment plan anyway
+                    console.log("  - No trip_options found, trying to create payment plan directly...");
                     await new Promise(resolve => setTimeout(resolve, 5000));
                     
-                    // Retry payment plan update
-                    planResponse = await axios.post(
-                      `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-                      paymentPlanData,
-                      {
-                        headers: {
-                          Authorization: `Bearer ${this.accessToken}`,
-                          "Content-Type": "application/json",
-                        },
-                      }
-                    );
-                    
-                    console.log("✅ [WeTravel] Payment plan updated successfully after retry");
-                    console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
-                    paymentPlanSet = true;
-                  } else {
-                    throw updateError; // No trip_options, throw original error
+                    try {
+                      planResponse = await axios.post(
+                        `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                        paymentPlanData,
+                        {
+                          headers: {
+                            Authorization: `Bearer ${this.accessToken}`,
+                            "Content-Type": "application/json",
+                          },
+                        }
+                      );
+                      
+                      console.log("✅ [WeTravel] Payment plan created successfully");
+                      console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+                      paymentPlanSet = true;
+                    } catch (noTripOptionsError) {
+                      throw updateError; // Throw original error
+                    }
                   }
                 } catch (retryError) {
                   console.error("  - Retry failed:", retryError.response?.data || retryError.message);
