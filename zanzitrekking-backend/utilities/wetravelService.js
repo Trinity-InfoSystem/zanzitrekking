@@ -1152,34 +1152,34 @@ class WeTravelService {
       const startDateISO = new Date(`${startDate}T00:00:00.000Z`).toISOString();
       const endDateISO = new Date(`${endDate}T00:00:00.000Z`).toISOString();
       
+      // Build trip data exactly as per WeTravel API documentation
+      // All required fields must be present with correct enum values
       const tripData = {
         data: {
-          // Required fields from WeTravel API example
+          // Required fields (per WeTravel API docs)
           title: this.sanitizeTitle(tripTitle),
           destination: destination || tripTitle.split("(")[0].trim() || "Tanzania",
           start_date: startDateISO, // ISO format: '2021-05-07T00:00:00.000Z'
           end_date: endDateISO, // ISO format: '2021-05-07T00:00:00.000Z'
           group_min: groupMin,
           group_max: groupMax || Math.max(travelersNumber || 1, 100),
-          currency: currency,
-          participant_list_show_type: "everyone", // Options: "everyone", "participants_only", "none"
-          participant_fees: "all", // Options: "all", "credit_card", "bank_transfer"
-          listing_status: "published", // Options: "published", "private", "draft"
-          waiting_list_enabled: false,
-          can_contribute: false,
-          // Optional fields from WeTravel API example
+          currency: currency, // enum: USD, EUR, CAD, ZAR, GBP
+          participant_list_show_type: "everyone", // enum: "everyone", "participants", "only_organizer"
+          participant_fees: "all", // enum: "credit_card", "service", "all", "none"
+          listing_status: "public", // enum: "private", "public" (changed from "published")
+          waiting_list_enabled: false, // boolean, required
+          can_contribute: false, // boolean, required
+          // Optional fields
           welcome_message: `Welcome to ${this.sanitizeTitle(tripTitle)}!`,
           carbon_offset: {
             enabled: false,
-            percentage: 0,
+            percentage: 1, // Default to 1 as per docs
             paid_by_participant: false
-          },
-          // trip_id is optional - only include if WeTravel accepts it
-          // Removed capacity field as it's not in the API example
+          }
         },
       };
       
-      // Only add trip_id if it's provided and valid (some APIs accept it, some don't)
+      // Optional: trip_id (not visible to clients, only in dashboard)
       if (tripId) {
         tripData.data.trip_id = tripId;
       }
