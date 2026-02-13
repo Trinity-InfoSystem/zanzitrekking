@@ -433,19 +433,68 @@ class WeTravelService {
             console.log("  - Payment Plan Data:", JSON.stringify(paymentPlanData, null, 2));
             
             // Try to update payment plan - this is REQUIRED for deposits to work
-            const planResponse = await axios.post(
-              `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-              paymentPlanData,
-              {
-                headers: {
-                  Authorization: `Bearer ${this.accessToken}`,
-                  "Content-Type": "application/json",
-                },
+            // If this fails with trip_options error, it might be because WeTravel created trip_options automatically
+            // In that case, we might need to delete trip_options first or use a different approach
+            let planResponse;
+            try {
+              planResponse = await axios.post(
+                `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                paymentPlanData,
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              
+              console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
+              console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+            } catch (updateError) {
+              // If we get trip_options error, it might be because WeTravel auto-created trip_options
+              // Try to get the trip and see if we can work around this
+              if (updateError.response?.data?.error?.includes('trip_options')) {
+                console.warn("⚠️ [WeTravel] Payment plan update failed due to trip_options conflict");
+                console.warn("  - WeTravel may have auto-created trip_options during payment link creation");
+                console.warn("  - Attempting to get trip details to understand the structure...");
+                
+                try {
+                  const tripResponse = await axios.get(
+                    `${this.apiUrl}/draft_trips/${tripUuid}`,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                      },
+                    }
+                  );
+                  
+                  console.log("  - Trip structure:", JSON.stringify(tripResponse.data?.data, null, 2));
+                  
+                  // Try updating payment plan again after a longer delay
+                  console.log("  - Waiting 3 seconds and retrying payment plan update...");
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                  
+                  planResponse = await axios.post(
+                    `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+                    paymentPlanData,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${this.accessToken}`,
+                        "Content-Type": "application/json",
+                      },
+                    }
+                  );
+                  
+                  console.log("✅ [WeTravel] Payment plan updated successfully after retry");
+                  console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+                } catch (retryError) {
+                  throw updateError; // Throw original error
+                }
+              } else {
+                throw updateError;
               }
-            );
-            
-            console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
-            console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+            }
             
             // Verify the payment plan was set correctly
             const verifyResponse = await axios.get(
