@@ -1233,7 +1233,12 @@ class WeTravelService {
         }
       );
 
-      const packageId = packageResponse.data.data.package.id;
+      // Response structure may vary - check both data.package.id and data.id
+      const packageId = packageResponse.data.data.package?.id || packageResponse.data.data.id;
+      if (!packageId) {
+        console.error("  ❌ Package ID not found in response:", JSON.stringify(packageResponse.data, null, 2));
+        throw new Error("Failed to get package ID from WeTravel API response");
+      }
       console.log("  ✅ Package created, ID:", packageId);
 
       // Step 3: Set payment plan on the package
