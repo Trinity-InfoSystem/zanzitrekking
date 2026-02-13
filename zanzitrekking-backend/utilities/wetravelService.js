@@ -1160,13 +1160,10 @@ class WeTravelService {
           can_contribute: false,
           group_min: groupMin,
           group_max: groupMax || Math.max(travelersNumber || 1, 100),
-          listing_status: "published",
-          participant_list_show_type: "all",
+          listing_status: "published", // Options: "published", "private", "draft"
+          participant_list_show_type: "everyone", // Options: "everyone", "participants_only", "none" (per WeTravel API docs)
           waiting_list_enabled: false,
           capacity: Math.max(travelersNumber || 1, 100),
-          // Visibility fields - required by WeTravel API
-          visibility: "public", // Options: "public", "private", "unlisted" (typically)
-          participants_visibility: "all", // Options: "all", "none", "participants_only" (typically)
         },
       };
 
