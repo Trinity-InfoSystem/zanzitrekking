@@ -1289,6 +1289,11 @@ class WeTravelService {
 
       console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
 
+      // Wait for WeTravel to sync payment plan from package to trip_options
+      // WeTravel may need time to update trip_options with the package payment plan
+      console.log("  - Waiting 5 seconds for WeTravel to sync payment plan to trip_options...");
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
       // Step 4: Try to delete or clear trip_options before publishing
       // WeTravel validates trip_options[0][payment_plan] when publishing, but auto-created trip_options have invalid payment_plan
       // Try setting trip_options to empty array or deleting them entirely
