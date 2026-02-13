@@ -1310,8 +1310,13 @@ class WeTravelService {
         
         console.log("  - Current trip_options count:", tripOptions.length);
         if (tripOptions.length > 0) {
+          console.log("  - trip_options[0] full structure:", JSON.stringify(tripOptions[0], null, 2));
           console.log("  - trip_options[0] has payment_plan?", !!tripOptions[0]?.payment_plan);
-          console.log("  - trip_options structure:", JSON.stringify(tripOptions, null, 2));
+          if (tripOptions[0]?.payment_plan) {
+            console.log("  - trip_options[0].payment_plan structure:", JSON.stringify(tripOptions[0].payment_plan, null, 2));
+          }
+          console.log("  - trip_options[0] keys:", Object.keys(tripOptions[0]));
+          console.log("  - All trip_options:", JSON.stringify(tripOptions, null, 2));
         }
         
         if (tripOptions.length > 0) {
