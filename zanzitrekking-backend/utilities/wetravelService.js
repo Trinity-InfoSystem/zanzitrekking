@@ -1129,12 +1129,19 @@ class WeTravelService {
       const tripData = {
         data: {
           trip: {
-            participant_fees: "all",
             title: this.sanitizeTitle(tripTitle),
             trip_id: tripId,
             start_date: startDate,
             end_date: endDate,
             currency: currency,
+            participant_fees: "all",
+            destination: tripTitle.split("(")[0].trim() || "Tanzania", // Extract destination from title or default
+            can_contribute: false,
+            group_min: 1,
+            group_max: Math.max(travelersNumber || 1, 100),
+            listing_status: "published", // or "draft" if you want to keep it as draft
+            participant_list_show_type: "all",
+            waiting_list_enabled: false,
             capacity: Math.max(travelersNumber || 1, 100),
           },
         },
