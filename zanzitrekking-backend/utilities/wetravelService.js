@@ -197,12 +197,11 @@ class WeTravelService {
         console.log("  - remainingAmount:", remainingAmount);
         console.log("  - daysBeforeDeparture:", daysBeforeDeparture);
         
-        // Try payment plan WITHOUT deposit field - only installments
-        // Some APIs don't like having both deposit and installments fields
+        // Payment plan structure according to WeTravel API documentation
+        // For deposits, use installments array with allow_partial_payment: true
         const depositPaymentPlan = {
           allow_auto_payment: false,
           allow_partial_payment: true,
-          // Removed deposit field - using only installments
           installments: [
             {
               price: depositAmount,
@@ -224,37 +223,27 @@ class WeTravelService {
         console.log("  - Installments sum:", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0));
         console.log("  - Matches total?", depositPaymentPlan.installments.reduce((sum, inst) => sum + inst.price, 0) === totalAmount);
 
-        // For deposits, try BOTH approaches:
-        // Approach 1: payment_plan in pricing (current)
-        // Approach 2: payment_plan in trip_options[0] (what error message suggests)
-        // Let's try trip_options approach since error mentions trip_options[0][payment_plan]
-        console.log("🔍 [WeTravel] Trying trip_options approach for deposits...");
+        // For deposits, payment plan should be in pricing.payment_plan
+        // This is the correct structure according to WeTravel API
         paymentLinkData = {
           data: {
             ...baseData,
             pricing: {
               price: totalAmount,
               days_before_departure: daysBeforeDeparture,
+              payment_plan: depositPaymentPlan, // Payment plan in pricing object
             },
-            trip_options: [
-              {
-                price: totalAmount,
-                days_before_departure: daysBeforeDeparture,
-                payment_plan: depositPaymentPlan, // Payment plan in trip_options[0]
-              },
-            ],
           },
         };
 
         console.log("📦 [WeTravel] Deposit Payment Link Data Structure:");
-        console.log("  - Has trip_options?", !!paymentLinkData.data.trip_options);
         console.log("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
         console.log("  - Full payload:", JSON.stringify(paymentLinkData, null, 2));
         console.log("  - Payload keys:", Object.keys(paymentLinkData.data));
         console.log("  - Pricing keys:", Object.keys(paymentLinkData.data.pricing || {}));
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasTripOptions:!!paymentLinkData.data.trip_options,hasPaymentPlanInTripOptions:!!paymentLinkData.data.trip_options?.[0]?.payment_plan,hasPaymentPlanInPricing:!!paymentLinkData.data.pricing?.payment_plan,paymentOption,depositAmount,totalAmount,tripOptionsStructure:paymentLinkData.data.trip_options?.[0]},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:225',message:'Deposit payment link data prepared',data:{hasPaymentPlanInPricing:!!paymentLinkData.data.pricing?.payment_plan,paymentOption,depositAmount,totalAmount,paymentPlanStructure:paymentLinkData.data.pricing?.payment_plan},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
       } else {
         // Full payment - use pricing structure
@@ -328,7 +317,62 @@ class WeTravelService {
       if (response.data.data.pricing) {
         console.log("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
       }
+      if (response.data.data.packages && response.data.data.packages.length > 0) {
+        console.log("  - Packages:", JSON.stringify(response.data.data.packages, null, 2));
+        console.log("  - First Package ID:", response.data.data.packages[0].id);
+      }
       console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
+      
+      // If deposit payment and we have trip_uuid and package_id, try to update payment plan
+      // This ensures the payment plan is properly set according to WeTravel API
+      if (paymentOption === "deposit" && response.data.data.trip?.uuid) {
+        const tripUuid = response.data.data.trip.uuid;
+        const packageId = response.data.data.packages?.[0]?.id || response.data.data.trip_options?.[0]?.id;
+        
+        if (packageId) {
+          console.log("🔧 [WeTravel] Updating payment plan for deposit via dedicated endpoint:");
+          console.log("  - Trip UUID:", tripUuid);
+          console.log("  - Package ID:", packageId);
+          
+          try {
+            const remainingAmount = totalAmount - depositAmount;
+            const paymentPlanData = {
+              data: {
+                allow_auto_payment: false,
+                allow_partial_payment: true,
+                installments: [
+                  {
+                    price: depositAmount,
+                    days_before_departure: 0,
+                  },
+                  {
+                    price: remainingAmount,
+                    days_before_departure: daysBeforeDeparture,
+                  },
+                ],
+              },
+            };
+            
+            await axios.post(
+              `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+              paymentPlanData,
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            
+            console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
+          } catch (planError) {
+            console.warn("⚠️ [WeTravel] Could not update payment plan via dedicated endpoint (may not be necessary):");
+            console.warn("  - Error:", planError.response?.data || planError.message);
+            // Don't fail the whole request if payment plan update fails
+            // The payment plan might already be set correctly from the initial request
+          }
+        }
+      }
       
       return response.data.data;
     } catch (error) {
@@ -427,7 +471,6 @@ class WeTravelService {
           const depositPaymentPlan = {
             allow_auto_payment: false,
             allow_partial_payment: true,
-            deposit: depositAmount,
             installments: [
               {
                 price: depositAmount,
@@ -443,7 +486,7 @@ class WeTravelService {
           console.log("  - Payment Plan:", JSON.stringify(depositPaymentPlan, null, 2));
 
           // For deposits, WeTravel requires payment_plan in pricing object with allow_partial_payment: true
-          // Do NOT include trip_options - it causes validation errors even without payment_plan inside it
+          // Payment plan should be in pricing.payment_plan according to WeTravel API
           paymentLinkData = {
             data: {
               ...baseData,
@@ -452,7 +495,6 @@ class WeTravelService {
                 days_before_departure: daysBeforeDeparture,
                 payment_plan: depositPaymentPlan, // Payment plan goes in pricing only
               },
-              // NOTE: trip_options should NOT be included for deposits - causes validation errors
             },
           };
         } else {
