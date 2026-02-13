@@ -1289,9 +1289,10 @@ class WeTravelService {
 
       console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
 
-      // Step 4: Update trip_options to include payment plan before publishing
-      // WeTravel validates trip_options[0][payment_plan] when publishing, so we need to set it
-      console.log("  Step 4: Updating trip_options with payment plan...");
+      // Step 4: Try to remove or clear trip_options before publishing
+      // WeTravel validates trip_options[0][payment_plan] when publishing, but setting it causes errors
+      // Instead, try removing trip_options or setting them to empty array
+      console.log("  Step 4: Handling trip_options before publishing...");
       try {
         // Get current trip to see trip_options structure
         const tripDetailsResponse = await axios.get(
@@ -1307,42 +1308,23 @@ class WeTravelService {
         const tripDetails = tripDetailsResponse.data.data.trip;
         const tripOptions = tripDetails.trip_options || [];
         
+        console.log("  - Current trip_options count:", tripOptions.length);
+        console.log("  - trip_options structure:", JSON.stringify(tripOptions, null, 2));
+        
         if (tripOptions.length > 0) {
-          // Update trip_options[0] to include payment plan
-          // WeTravel API requires amounts in minor currency units (cents)
-          const depositAmountCents = Math.round(depositAmount * 100);
-          const remainingAmountCents = Math.round(remainingAmount * 100);
-          
-          const updatedTripOptions = tripOptions.map((option, index) => {
-            if (index === 0) {
-              return {
-                ...option,
-                payment_plan: {
-                  enable_auto_payment: false,
-                  allow_partial_payment: true,
-                  deposit: depositAmountCents, // Must be in minor units (cents)
-                  installments: [
-                    {
-                      price: depositAmountCents, // Must be in minor units (cents)
-                      days_before_departure: 0,
-                    },
-                    {
-                      price: remainingAmountCents, // Must be in minor units (cents)
-                      days_before_departure: daysBeforeDeparture,
-                    },
-                  ],
-                },
-              };
-            }
-            return option;
+          // Try to remove payment_plan from trip_options instead of adding it
+          // WeTravel might auto-sync payment plan from package, so trip_options shouldn't have it
+          const cleanedTripOptions = tripOptions.map((option) => {
+            const { payment_plan, ...optionWithoutPaymentPlan } = option;
+            return optionWithoutPaymentPlan;
           });
 
-          // Update trip with trip_options that include payment plan
+          // Update trip to remove payment_plan from trip_options
           await axios.patch(
             `${this.apiUrl}/draft_trips/${tripUuid}`,
             {
               data: {
-                trip_options: updatedTripOptions,
+                trip_options: cleanedTripOptions,
               },
             },
             {
@@ -1353,9 +1335,9 @@ class WeTravelService {
             }
           );
 
-          console.log("  ✅ Trip_options updated with payment plan");
+          console.log("  ✅ Removed payment_plan from trip_options");
         } else {
-          console.log("  ⚠️ No trip_options found, will try publishing anyway");
+          console.log("  ℹ️ No trip_options found, will try publishing");
         }
       } catch (updateError) {
         console.warn("  ⚠️ Could not update trip_options:", updateError.response?.data || updateError.message);
