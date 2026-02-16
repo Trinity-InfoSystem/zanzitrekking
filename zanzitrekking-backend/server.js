@@ -25,7 +25,9 @@ const server = http.createServer(app);
 
 // Trust proxy - This is essential for correct protocol detection when behind a reverse proxy (nginx, load balancer, etc.)
 // This allows Express to read X-Forwarded-Proto header and correctly set req.protocol to 'https'
-app.set('trust proxy', true);
+// Trust only the first proxy hop to prevent IP-based rate limiting bypass
+// Set to 1 to trust only the first proxy (nginx/reverse proxy)
+app.set('trust proxy', 1);
 
 // Security headers with Helmet.js
 app.use(helmet({
@@ -83,22 +85,36 @@ const allowedOrigins = [
   "https://www.zanzisafaris.com", // Add www version
   "https://admin.zanzisafaris.com",
   "https://www.admin.zanzisafaris.com",
-  
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // In production, reject requests with no origin
-    if (!origin && process.env.NODE_ENV === 'production') {
-      return callback(new Error("Not allowed by CORS"));
+    // Allow requests with no origin (like mobile apps or curl requests) in development
+    if (!origin) {
+      if (process.env.NODE_ENV === 'production') {
+        // In production, log but allow (some legitimate requests may not have origin)
+        console.log('CORS: Request with no origin in production');
+        return callback(null, true);
+      }
+      return callback(null, true);
     }
-    // Only allow requests with no origin in development
-    if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    // Normalize origin by removing trailing slash
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    // Check if origin matches any allowed origin
+    const isAllowed = allowedOrigins.some(allowed => {
+      const normalizedAllowed = allowed.replace(/\/$/, '');
+      return normalizedOrigin === normalizedAllowed;
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      // Log the rejected origin for debugging
+      console.log(`CORS: Rejected origin: ${origin}`);
+      console.log(`CORS: Allowed origins:`, allowedOrigins);
+      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -229,9 +245,23 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 
 // Rate limiting - protect against DDoS and brute force attacks
+// Configure rate limiter to work with trust proxy setting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  // Use a custom key generator that respects trust proxy
+  keyGenerator: (req) => {
+    // When trust proxy is enabled, use X-Forwarded-For header if available
+    // Otherwise fall back to req.ip or req.connection.remoteAddress
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  },
+  // Skip rate limiting for successful requests (optional)
+  skipSuccessfulRequests: false,
+  // Skip rate limiting for failed requests (optional)
+  skipFailedRequests: false,
+  // Standard headers for rate limit info
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api', limiter);
 
