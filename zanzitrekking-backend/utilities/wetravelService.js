@@ -1346,6 +1346,8 @@ class WeTravelService {
                   deposit_amount_in_cents: depositAmountCents,
                   currency: currency,
                   payment_schedule: paymentSchedule,
+                  // Add allow_partial_payment - might be required for trip_options
+                  allow_partial_payment: true,
                 },
               };
             }
