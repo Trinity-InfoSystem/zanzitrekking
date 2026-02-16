@@ -1315,10 +1315,24 @@ class WeTravelService {
           console.log("  - Current trip_options[0] structure:", JSON.stringify(tripOptions[0], null, 2));
           
           // Build payment_schedule array from installments
-          // Structure per WeTravel API team recommendation
-          // Note: Exact payment_schedule structure not fully specified in their response
-          // Using reasonable structure based on installments format
-          const paymentSchedule = [
+          // Try matching the package payment plan structure exactly first
+          // Package uses: installments: [{ price, days_before_departure }]
+          // trip_options might need: payment_schedule: [{ price, days_before_departure }] or [{ amount_in_cents, days_before_departure }]
+          
+          // Try option 1: Using 'price' field (matching package installments structure)
+          const paymentScheduleWithPrice = [
+            {
+              price: depositAmountCents,
+              days_before_departure: 0,
+            },
+            {
+              price: remainingAmountCents,
+              days_before_departure: daysBeforeDeparture,
+            },
+          ];
+          
+          // Try option 2: Using 'amount_in_cents' field
+          const paymentScheduleWithAmount = [
             {
               amount_in_cents: depositAmountCents,
               days_before_departure: 0,
@@ -1329,7 +1343,11 @@ class WeTravelService {
             },
           ];
           
-          console.log("  - Payment schedule structure:", JSON.stringify(paymentSchedule, null, 2));
+          // Use 'price' first (matches package installments structure)
+          const paymentSchedule = paymentScheduleWithPrice;
+          
+          console.log("  - Payment schedule structure (using 'price'):", JSON.stringify(paymentSchedule, null, 2));
+          console.log("  - Alternative structure (using 'amount_in_cents'):", JSON.stringify(paymentScheduleWithAmount, null, 2));
           
           // Update trip_options with payment plan using WeTravel's recommended structure
           // Structure per WeTravel API team:
