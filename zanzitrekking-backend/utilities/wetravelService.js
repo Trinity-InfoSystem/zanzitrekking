@@ -1353,7 +1353,11 @@ class WeTravelService {
           });
 
           // Update trip with trip_options that include payment plan
-          await axios.patch(
+          console.log("  - Updating trip_options with this structure:");
+          console.log("  - Full updatedTripOptions:", JSON.stringify(updatedTripOptions, null, 2));
+          console.log("  - Payment plan being sent:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
+          
+          const updateResponse = await axios.patch(
             `${this.apiUrl}/draft_trips/${tripUuid}`,
             {
               data: {
@@ -1369,7 +1373,26 @@ class WeTravelService {
           );
 
           console.log("  ✅ Updated trip_options[0] with payment plan schema");
-          console.log("  - Payment plan structure:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
+          console.log("  - Update response:", JSON.stringify(updateResponse.data, null, 2));
+          
+          // Verify the update by getting the trip again
+          console.log("  - Verifying trip_options update...");
+          const verifyTripResponse = await axios.get(
+            `${this.apiUrl}/draft_trips/${tripUuid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          
+          const verifiedTripOptions = verifyTripResponse.data.data.trip.trip_options || [];
+          if (verifiedTripOptions.length > 0 && verifiedTripOptions[0].payment_plan) {
+            console.log("  - Verified trip_options[0].payment_plan:", JSON.stringify(verifiedTripOptions[0].payment_plan, null, 2));
+          } else {
+            console.warn("  ⚠️ Payment plan not found in verified trip_options");
+          }
         } else {
           console.warn("  ⚠️ No trip_options found - WeTravel should have auto-created them");
           console.warn("  - Will try publishing anyway");
