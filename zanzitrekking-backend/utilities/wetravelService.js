@@ -1359,29 +1359,50 @@ class WeTravelService {
           console.log("  - Alternative structure (using 'amount_in_cents'):", JSON.stringify(paymentScheduleWithAmount, null, 2));
           
           // Step 4: Update trip_options with payment plan using WeTravel's recommended structure
-          // Structure per WeTravel API team:
-          // - enabled: true (not enable_auto_payment)
-          // - deposit_amount_in_cents (not deposit)
-          // - currency field
-          // - payment_schedule array (not installments)
+          // Try matching the package payment plan structure EXACTLY first
+          // Maybe trip_options payment_plan should match package payment_plan structure?
+          const packagePaymentPlanStructure = {
+            enable_auto_payment: false,
+            allow_partial_payment: true,
+            deposit: depositAmountCents,
+            installments: [
+              {
+                price: depositAmountCents,
+                days_before_departure: 0,
+              },
+              {
+                price: remainingAmountCents,
+                days_before_departure: daysBeforeDeparture,
+              },
+            ],
+          };
+          
+          // Also try WeTravel's recommended structure
+          const wetravelRecommendedStructure = {
+            enabled: true,
+            deposit_amount_in_cents: depositAmountCents,
+            currency: currency,
+            payment_schedule: paymentSchedule,
+            allow_partial_payment: true,
+          };
+          
+          console.log("  - Trying package payment plan structure:", JSON.stringify(packagePaymentPlanStructure, null, 2));
+          console.log("  - Trying WeTravel recommended structure:", JSON.stringify(wetravelRecommendedStructure, null, 2));
+          
           // IMPORTANT: Preserve ALL original fields from trip_option, only add/update payment_plan
+          // Try package structure first (might be what WeTravel expects)
           const updatedTripOptions = tripOptions.map((option, index) => {
             if (index === 0 && option.uuid === tripOptionUuid) {
-              // Preserve all original fields, only update/add payment_plan
+              // Try matching package payment plan structure exactly
               const updatedOption = {
                 ...option, // Preserve all original fields (uuid, package_id, etc.)
-                payment_plan: {
-                  enabled: true,
-                  deposit_amount_in_cents: depositAmountCents,
-                  currency: currency,
-                  payment_schedule: paymentSchedule,
-                  allow_partial_payment: true,
-                },
+                payment_plan: packagePaymentPlanStructure, // Try package structure first
               };
               
-              console.log("  - Updated trip_option structure:");
+              console.log("  - Updated trip_option structure (using package payment plan format):");
               console.log("    - Preserved fields:", Object.keys(option));
               console.log("    - Added payment_plan with fields:", Object.keys(updatedOption.payment_plan));
+              console.log("    - Full updated option:", JSON.stringify(updatedOption, null, 2));
               
               return updatedOption;
             }
