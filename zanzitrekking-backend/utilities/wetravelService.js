@@ -1310,9 +1310,18 @@ class WeTravelService {
         console.log("  - Current trip_options count:", tripOptions.length);
         
         if (tripOptions.length > 0) {
+          // Step 3: Capture the auto-generated trip_option_uuid (per Nik's instructions)
           const tripOptionUuid = tripOptions[0].uuid;
-          console.log("  - Found trip_option_uuid:", tripOptionUuid);
-          console.log("  - Current trip_options[0] structure:", JSON.stringify(tripOptions[0], null, 2));
+          console.log("  ✅ Step 3: Captured trip_option_uuid:", tripOptionUuid);
+          console.log("  - Current trip_options[0] FULL structure:", JSON.stringify(tripOptions[0], null, 2));
+          console.log("  - trip_options[0] keys:", Object.keys(tripOptions[0]));
+          
+          // Log what fields exist in the original trip_option
+          const originalOption = tripOptions[0];
+          console.log("  - Original trip_option fields:");
+          Object.keys(originalOption).forEach(key => {
+            console.log(`    - ${key}:`, typeof originalOption[key], Array.isArray(originalOption[key]) ? `[array]` : typeof originalOption[key] === 'object' ? `{object}` : originalOption[key]);
+          });
           
           // Build payment_schedule array from installments
           // Try matching the package payment plan structure exactly first
@@ -1349,25 +1358,32 @@ class WeTravelService {
           console.log("  - Payment schedule structure (using 'price'):", JSON.stringify(paymentSchedule, null, 2));
           console.log("  - Alternative structure (using 'amount_in_cents'):", JSON.stringify(paymentScheduleWithAmount, null, 2));
           
-          // Update trip_options with payment plan using WeTravel's recommended structure
+          // Step 4: Update trip_options with payment plan using WeTravel's recommended structure
           // Structure per WeTravel API team:
           // - enabled: true (not enable_auto_payment)
           // - deposit_amount_in_cents (not deposit)
           // - currency field
           // - payment_schedule array (not installments)
+          // IMPORTANT: Preserve ALL original fields from trip_option, only add/update payment_plan
           const updatedTripOptions = tripOptions.map((option, index) => {
             if (index === 0 && option.uuid === tripOptionUuid) {
-              return {
-                ...option,
+              // Preserve all original fields, only update/add payment_plan
+              const updatedOption = {
+                ...option, // Preserve all original fields (uuid, package_id, etc.)
                 payment_plan: {
                   enabled: true,
                   deposit_amount_in_cents: depositAmountCents,
                   currency: currency,
                   payment_schedule: paymentSchedule,
-                  // Add allow_partial_payment - might be required for trip_options
                   allow_partial_payment: true,
                 },
               };
+              
+              console.log("  - Updated trip_option structure:");
+              console.log("    - Preserved fields:", Object.keys(option));
+              console.log("    - Added payment_plan with fields:", Object.keys(updatedOption.payment_plan));
+              
+              return updatedOption;
             }
             return option;
           });
