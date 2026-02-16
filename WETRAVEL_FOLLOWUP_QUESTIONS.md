@@ -8,9 +8,43 @@ We have implemented the recommended fix:
 3. ✅ GET draft trip to capture `trip_option_uuid`
 4. ✅ Update `trip_options[0]` with payment plan schema
 
+## URGENT: Still Getting Validation Error
+
+We've implemented your recommended fix but are still getting the error:
+```
+trip_options is invalid, trip_options[0][payment_plan] is invalid
+```
+
+**Current Implementation:**
+```json
+{
+  "trip_options": [
+    {
+      "uuid": "trip_option_uuid",
+      "payment_plan": {
+        "enabled": true,
+        "deposit_amount_in_cents": 3000,
+        "currency": "USD",
+        "allow_partial_payment": true,
+        "payment_schedule": [
+          {
+            "amount_in_cents": 3000,
+            "days_before_departure": 0
+          },
+          {
+            "amount_in_cents": 12000,
+            "days_before_departure": 7
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
 ## Questions for Clarification
 
-### 1. Payment Schedule Structure
+### 1. Payment Schedule Structure (URGENT)
 
 You mentioned `payment_schedule: [...]` but didn't specify the exact structure. We've implemented it as:
 
@@ -33,6 +67,7 @@ You mentioned `payment_schedule: [...]` but didn't specify the exact structure. 
 - Is this the correct structure for `payment_schedule`?
 - Should it be `amount_in_cents` or `price` or another field name?
 - Are there any other required fields in the payment_schedule items?
+- **Can you provide a complete working example of `trip_options[0][payment_plan]`?**
 
 ### 2. Complete trip_options Payment Plan Structure
 
