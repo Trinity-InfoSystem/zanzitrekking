@@ -1289,33 +1289,11 @@ class WeTravelService {
 
       console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
 
-      // Wait for WeTravel to sync payment plan from package to trip_options
-      // WeTravel may need time to update trip_options with the package payment plan
-      console.log("  - Waiting 5 seconds for WeTravel to sync payment plan to trip_options...");
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      // Verify payment plan was set correctly
+      // Step 4: Update trip_options with payment plan (per WeTravel API team recommendation)
+      // WeTravel requires explicit update of trip_options[0][payment_plan] with correct schema
+      console.log("  Step 4: Updating trip_options with payment plan schema...");
       try {
-        const verifyPlanResponse = await axios.get(
-          `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-          {
-            headers: {
-              Authorization: `Bearer ${this.accessToken}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        console.log("  - Verified payment plan:", JSON.stringify(verifyPlanResponse.data, null, 2));
-      } catch (verifyError) {
-        console.warn("  - Could not verify payment plan:", verifyError.message);
-      }
-
-      // Step 4: Try to delete or clear trip_options before publishing
-      // WeTravel validates trip_options[0][payment_plan] when publishing, but auto-created trip_options have invalid payment_plan
-      // Try setting trip_options to empty array or deleting them entirely
-      console.log("  Step 4: Clearing trip_options before publishing...");
-      try {
-        // Get current trip to see trip_options structure
+        // GET the draft trip to capture the auto-generated trip_option_uuid
         const tripDetailsResponse = await axios.get(
           `${this.apiUrl}/draft_trips/${tripUuid}`,
           {
@@ -1330,85 +1308,72 @@ class WeTravelService {
         const tripOptions = tripDetails.trip_options || [];
         
         console.log("  - Current trip_options count:", tripOptions.length);
-        if (tripOptions.length > 0) {
-          console.log("  - trip_options[0] full structure:", JSON.stringify(tripOptions[0], null, 2));
-          console.log("  - trip_options[0] has payment_plan?", !!tripOptions[0]?.payment_plan);
-          if (tripOptions[0]?.payment_plan) {
-            console.log("  - trip_options[0].payment_plan structure:", JSON.stringify(tripOptions[0].payment_plan, null, 2));
-          }
-          console.log("  - trip_options[0] keys:", Object.keys(tripOptions[0]));
-          console.log("  - All trip_options:", JSON.stringify(tripOptions, null, 2));
-        }
         
         if (tripOptions.length > 0) {
-          console.log("  - Found trip_options, attempting to fix structure...");
+          const tripOptionUuid = tripOptions[0].uuid;
+          console.log("  - Found trip_option_uuid:", tripOptionUuid);
+          console.log("  - Current trip_options[0] structure:", JSON.stringify(tripOptions[0], null, 2));
           
-          // Strategy 1: Try to delete trip_options entirely (if WeTravel allows null/undefined)
-          try {
-            await axios.patch(
-              `${this.apiUrl}/draft_trips/${tripUuid}`,
-              {
-                data: {
-                  trip_options: null, // Try setting to null
+          // Build payment_schedule array from installments
+          // Convert installments structure to payment_schedule structure
+          const paymentSchedule = [
+            {
+              amount_in_cents: depositAmountCents,
+              days_before_departure: 0,
+            },
+            {
+              amount_in_cents: remainingAmountCents,
+              days_before_departure: daysBeforeDeparture,
+            },
+          ];
+          
+          // Update trip_options with payment plan using WeTravel's recommended structure
+          // Structure per WeTravel API team:
+          // - enabled: true (not enable_auto_payment)
+          // - deposit_amount_in_cents (not deposit)
+          // - currency field
+          // - payment_schedule array (not installments)
+          const updatedTripOptions = tripOptions.map((option, index) => {
+            if (index === 0 && option.uuid === tripOptionUuid) {
+              return {
+                ...option,
+                payment_plan: {
+                  enabled: true,
+                  deposit_amount_in_cents: depositAmountCents,
+                  currency: currency,
+                  payment_schedule: paymentSchedule,
                 },
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${this.accessToken}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            console.log("  ✅ Set trip_options to null");
-          } catch (nullError) {
-            // Strategy 2: Try empty array
-            try {
-              await axios.patch(
-                `${this.apiUrl}/draft_trips/${tripUuid}`,
-                {
-                  data: {
-                    trip_options: [], // Set to empty array
-                  },
-                },
-                {
-                  headers: {
-                    Authorization: `Bearer ${this.accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              console.log("  ✅ Cleared trip_options (set to empty array)");
-            } catch (emptyError) {
-              // Strategy 3: Remove payment_plan from trip_options but keep the structure
-              console.log("  - Trying to remove payment_plan from trip_options...");
-              const cleanedTripOptions = tripOptions.map((option) => {
-                const { payment_plan, ...optionWithoutPaymentPlan } = option;
-                return optionWithoutPaymentPlan;
-              });
-
-              await axios.patch(
-                `${this.apiUrl}/draft_trips/${tripUuid}`,
-                {
-                  data: {
-                    trip_options: cleanedTripOptions,
-                  },
-                },
-                {
-                  headers: {
-                    Authorization: `Bearer ${this.accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              console.log("  ✅ Removed payment_plan from trip_options");
+              };
             }
-          }
+            return option;
+          });
+
+          // Update trip with trip_options that include payment plan
+          await axios.patch(
+            `${this.apiUrl}/draft_trips/${tripUuid}`,
+            {
+              data: {
+                trip_options: updatedTripOptions,
+              },
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log("  ✅ Updated trip_options[0] with payment plan schema");
+          console.log("  - Payment plan structure:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
         } else {
-          console.log("  ℹ️ No trip_options found, will try publishing");
+          console.warn("  ⚠️ No trip_options found - WeTravel should have auto-created them");
+          console.warn("  - Will try publishing anyway");
         }
       } catch (updateError) {
-        console.warn("  ⚠️ Could not update trip_options:", updateError.response?.data || updateError.message);
-        console.warn("  - Will try publishing anyway");
+        console.error("  ❌ Could not update trip_options:", updateError.response?.data || updateError.message);
+        console.error("  - Error status:", updateError.response?.status);
+        throw new Error(`Failed to update trip_options with payment plan: ${updateError.response?.data?.error || updateError.message}`);
       }
 
       // Step 5: Check if draft trip has URL before publishing
