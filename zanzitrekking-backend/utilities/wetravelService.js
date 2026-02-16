@@ -1315,7 +1315,9 @@ class WeTravelService {
           console.log("  - Current trip_options[0] structure:", JSON.stringify(tripOptions[0], null, 2));
           
           // Build payment_schedule array from installments
-          // Convert installments structure to payment_schedule structure
+          // Structure per WeTravel API team recommendation
+          // Note: Exact payment_schedule structure not fully specified in their response
+          // Using reasonable structure based on installments format
           const paymentSchedule = [
             {
               amount_in_cents: depositAmountCents,
@@ -1326,6 +1328,8 @@ class WeTravelService {
               days_before_departure: daysBeforeDeparture,
             },
           ];
+          
+          console.log("  - Payment schedule structure:", JSON.stringify(paymentSchedule, null, 2));
           
           // Update trip_options with payment plan using WeTravel's recommended structure
           // Structure per WeTravel API team:
