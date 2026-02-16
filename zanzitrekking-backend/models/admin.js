@@ -48,6 +48,9 @@ const adminSchema = new Schema(
   }
 );
 
+// Add unique index on email field
+adminSchema.index({ email: 1 }, { unique: true });
+
 adminSchema.virtual("chatRoom").get(function () {
   return this._id?.toString();
 });

@@ -7,6 +7,7 @@ import store from "./store/index.js";
 import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { HelmetProvider } from "react-helmet-async";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
 // ✅ Add a proper loading component
 const PageLoader = () => (
@@ -20,24 +21,26 @@ const PageLoader = () => (
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <HelmetProvider>
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-        <Toaster
-          toastOptions={{
-            position: "top-right",
-            style: {
-              backgroundColor: "#283046",
-              color: "white",
-            },
-            duration: 1200,
-          }}
-        />
-        <Provider store={store}>
-          <Suspense fallback={<PageLoader />}>
-            <App />
-          </Suspense>
-        </Provider>
-      </GoogleOAuthProvider>
-    </HelmetProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+          <Toaster
+            toastOptions={{
+              position: "top-right",
+              style: {
+                backgroundColor: "#283046",
+                color: "white",
+              },
+              duration: 1200,
+            }}
+          />
+          <Provider store={store}>
+            <Suspense fallback={<PageLoader />}>
+              <App />
+            </Suspense>
+          </Provider>
+        </GoogleOAuthProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

@@ -183,10 +183,12 @@ class WeTravelService {
         ...(participants.length > 0 && { participants }),
       };
       
-      console.log("🔍 [WeTravel] Base Data Structure:");
-      console.log("  - Base data keys:", Object.keys(baseData));
-      console.log("  - Has trip_options in baseData?", !!baseData.trip_options);
-      console.log("  - Has pricing in baseData?", !!baseData.pricing);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("🔍 [WeTravel] Base Data Structure:");
+        console.log("  - Base data keys:", Object.keys(baseData));
+        console.log("  - Has trip_options in baseData?", !!baseData.trip_options);
+        console.log("  - Has pricing in baseData?", !!baseData.pricing);
+      }
 
       // For deposits, use Trips Builder API instead of payment_links endpoint
       // payment_links endpoint auto-creates trip_options without payment_plan, causing validation errors
@@ -239,15 +241,19 @@ class WeTravelService {
       console.log("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:258',message:'About to send request to WeTravel',data:{paymentOption,hasTripOptions:!!paymentLinkData?.data?.trip_options,requestKeys:Object.keys(paymentLinkData?.data || {})},timestamp:Date.now()})}).catch(()=>{});
+      if (process.env.NODE_ENV === 'development') {
+        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:258',message:'About to send request to WeTravel',data:{paymentOption,hasTripOptions:!!paymentLinkData?.data?.trip_options,requestKeys:Object.keys(paymentLinkData?.data || {})},timestamp:Date.now()})}).catch(()=>{});
+      }
       // #endregion
 
-      console.log("🚀 [WeTravel] About to send API request:");
-      console.log("  - Endpoint:", `${this.apiUrl}/payment_links`);
-      console.log("  - Method: POST");
-      console.log("  - Payment Option:", paymentOption);
-      console.log("  - Has Access Token:", !!this.accessToken);
-      console.log("  - Request payload size:", JSON.stringify(paymentLinkData).length, "bytes");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("🚀 [WeTravel] About to send API request:");
+        console.log("  - Endpoint:", `${this.apiUrl}/payment_links`);
+        console.log("  - Method: POST");
+        console.log("  - Payment Option:", paymentOption);
+        console.log("  - Has Access Token:", !!this.accessToken);
+        console.log("  - Request payload size:", JSON.stringify(paymentLinkData).length, "bytes");
+      }
       
       const response = await axios.post(
         `${this.apiUrl}/payment_links`,
@@ -620,32 +626,40 @@ class WeTravelService {
       console.error("❌ [WeTravel] ERROR creating payment link:");
       console.error("  - Error Message:", error.message);
       console.error("  - Status Code:", error.response?.status);
-      console.error("  - Error Response:", JSON.stringify(error.response?.data, null, 2));
-      console.error("  - Payment Option:", orderData?.paymentOption || 'unknown');
-      
-      if (paymentLinkData) {
-        console.error("  - Request Payload Sent:");
-        console.error(JSON.stringify(paymentLinkData, null, 2));
-        console.error("  - Request Payload Keys:", Object.keys(paymentLinkData.data || {}));
-        console.error("  - Has trip_options?", !!paymentLinkData.data.trip_options);
-        console.error("  - Has pricing?", !!paymentLinkData.data.pricing);
-        console.error("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
-        if (paymentLinkData.data.pricing?.payment_plan) {
-          console.error("  - Payment Plan Structure:", JSON.stringify(paymentLinkData.data.pricing.payment_plan, null, 2));
+      if (process.env.NODE_ENV === 'development') {
+        console.error("  - Error Response:", JSON.stringify(error.response?.data, null, 2));
+        console.error("  - Payment Option:", orderData?.paymentOption || 'unknown');
+        
+        if (paymentLinkData) {
+          console.error("  - Request Payload Sent:");
+          console.error(JSON.stringify(paymentLinkData, null, 2));
+          console.error("  - Request Payload Keys:", Object.keys(paymentLinkData.data || {}));
+          console.error("  - Has trip_options?", !!paymentLinkData.data.trip_options);
+          console.error("  - Has pricing?", !!paymentLinkData.data.pricing);
+          console.error("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
+          if (paymentLinkData.data.pricing?.payment_plan) {
+            console.error("  - Payment Plan Structure:", JSON.stringify(paymentLinkData.data.pricing.payment_plan, null, 2));
+          }
         }
       }
       
-      console.error("  - Full Error Stack:", error.stack);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("  - Full Error Stack:", error.stack);
+      }
       
       // #region agent log
       // Extract paymentOption from orderData if available (for error logging)
-      const errorPaymentOption = orderData?.paymentOption || 'unknown';
-      fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:298',message:'WeTravel API error',data:{status:error.response?.status,errorMessage:error.response?.data?.error || error.message,hasTripOptions:!!paymentLinkData?.data?.trip_options,paymentOption:errorPaymentOption},timestamp:Date.now()})}).catch(()=>{});
+      if (process.env.NODE_ENV === 'development') {
+        const errorPaymentOption = orderData?.paymentOption || 'unknown';
+        fetch('http://127.0.0.1:7242/ingest/eb7c76be-df0a-4765-be03-9046170046cb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'wetravelService.js:298',message:'WeTravel API error',data:{status:error.response?.status,errorMessage:error.response?.data?.error || error.message,hasTripOptions:!!paymentLinkData?.data?.trip_options,paymentOption:errorPaymentOption},timestamp:Date.now()})}).catch(()=>{});
+      }
       // #endregion
 
       // If token expired, try to refresh and retry once
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log("Access token may be expired, refreshing...");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Access token may be expired, refreshing...");
+        }
         await this.getAccessToken();
 
         // Prepare the data again for retry - preserve deposit settings
@@ -1185,9 +1199,11 @@ class WeTravelService {
       }
 
       // Log the exact request we're sending for debugging
-      console.log("  📤 [WeTravel] Exact request payload being sent:");
-      console.log("  - Full tripData:", JSON.stringify(tripData, null, 2));
-      console.log("  - All field names:", Object.keys(tripData.data));
+      if (process.env.NODE_ENV === 'development') {
+        console.log("  📤 [WeTravel] Exact request payload being sent:");
+        console.log("  - Full tripData:", JSON.stringify(tripData, null, 2));
+        console.log("  - All field names:", Object.keys(tripData.data));
+      }
       console.log("  - Has visibility field?", 'visibility' in tripData.data);
       console.log("  - Has participants_visibility field?", 'participants_visibility' in tripData.data);
 
@@ -1307,21 +1323,25 @@ class WeTravelService {
         const tripDetails = tripDetailsResponse.data.data.trip;
         const tripOptions = tripDetails.trip_options || [];
         
-        console.log("  - Current trip_options count:", tripOptions.length);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("  - Current trip_options count:", tripOptions.length);
+        }
         
         if (tripOptions.length > 0) {
           // Step 3: Capture the auto-generated trip_option_uuid (per Nik's instructions)
           const tripOptionUuid = tripOptions[0].uuid;
-          console.log("  ✅ Step 3: Captured trip_option_uuid:", tripOptionUuid);
-          console.log("  - Current trip_options[0] FULL structure:", JSON.stringify(tripOptions[0], null, 2));
-          console.log("  - trip_options[0] keys:", Object.keys(tripOptions[0]));
-          
-          // Log what fields exist in the original trip_option
-          const originalOption = tripOptions[0];
-          console.log("  - Original trip_option fields:");
-          Object.keys(originalOption).forEach(key => {
-            console.log(`    - ${key}:`, typeof originalOption[key], Array.isArray(originalOption[key]) ? `[array]` : typeof originalOption[key] === 'object' ? `{object}` : originalOption[key]);
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.log("  ✅ Step 3: Captured trip_option_uuid:", tripOptionUuid);
+            console.log("  - Current trip_options[0] FULL structure:", JSON.stringify(tripOptions[0], null, 2));
+            console.log("  - trip_options[0] keys:", Object.keys(tripOptions[0]));
+            
+            // Log what fields exist in the original trip_option
+            const originalOption = tripOptions[0];
+            console.log("  - Original trip_option fields:");
+            Object.keys(originalOption).forEach(key => {
+              console.log(`    - ${key}:`, typeof originalOption[key], Array.isArray(originalOption[key]) ? `[array]` : typeof originalOption[key] === 'object' ? `{object}` : originalOption[key]);
+            });
+          }
           
           // Build payment_schedule array from installments
           // Try matching the package payment plan structure exactly first
@@ -1386,8 +1406,10 @@ class WeTravelService {
             allow_partial_payment: true,
           };
           
-          console.log("  - Trying package payment plan structure:", JSON.stringify(packagePaymentPlanStructure, null, 2));
-          console.log("  - Trying WeTravel recommended structure:", JSON.stringify(wetravelRecommendedStructure, null, 2));
+          if (process.env.NODE_ENV === 'development') {
+            console.log("  - Trying package payment plan structure:", JSON.stringify(packagePaymentPlanStructure, null, 2));
+            console.log("  - Trying WeTravel recommended structure:", JSON.stringify(wetravelRecommendedStructure, null, 2));
+          }
           
           // IMPORTANT: Preserve ALL original fields from trip_option, only add/update payment_plan
           // Try package structure first (might be what WeTravel expects)
@@ -1399,10 +1421,12 @@ class WeTravelService {
                 payment_plan: packagePaymentPlanStructure, // Try package structure first
               };
               
-              console.log("  - Updated trip_option structure (using package payment plan format):");
-              console.log("    - Preserved fields:", Object.keys(option));
-              console.log("    - Added payment_plan with fields:", Object.keys(updatedOption.payment_plan));
-              console.log("    - Full updated option:", JSON.stringify(updatedOption, null, 2));
+              if (process.env.NODE_ENV === 'development') {
+                console.log("  - Updated trip_option structure (using package payment plan format):");
+                console.log("    - Preserved fields:", Object.keys(option));
+                console.log("    - Added payment_plan with fields:", Object.keys(updatedOption.payment_plan));
+                console.log("    - Full updated option:", JSON.stringify(updatedOption, null, 2));
+              }
               
               return updatedOption;
             }

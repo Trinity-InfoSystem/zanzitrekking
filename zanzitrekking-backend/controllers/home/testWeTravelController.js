@@ -8,8 +8,16 @@ const { responseReturn } = require("../../utilities/response");
 class TestWeTravelController {
   /**
    * Test WeTravel API connection and token generation
+   * Only available in development mode
    */
   testConnection = async (req, res) => {
+    // Gate this endpoint to development only
+    if (process.env.NODE_ENV === 'production') {
+      return responseReturn(res, 403, {
+        error: "Test endpoints are not available in production",
+      });
+    }
+
     try {
       console.log("[Test] Testing WeTravel API connection...");
       console.log("[Test] API Key configured:", !!process.env.WETRAVEL_API_KEY);

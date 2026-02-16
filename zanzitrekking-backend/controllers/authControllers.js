@@ -1,6 +1,7 @@
 const Admin = require("../models/admin");
 const { responseReturn } = require("../utilities/response");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const {
   createAccessToken,
   createRefreshToken,
@@ -295,14 +296,13 @@ class AuthControllers {
         return responseReturn(res, 404, { error: "Email not found" });
       }
 
-      function generateOtpInsecure() {
-        // returns 000000 - 999999
-        const num = Math.floor(Math.random() * 1_000_000);
-        return String(num).padStart(6, "0");
+      // Generate secure OTP (6-digit code) using cryptographically secure random number generator
+      function generateOtp() {
+        return crypto.randomInt(100000, 999999).toString();
       }
 
       // Generate OTP (6-digit code)
-      const otp = generateOtpInsecure();
+      const otp = generateOtp();
       const otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
 
       // Save OTP and expiry to admin document

@@ -1,6 +1,14 @@
 const jwt = require("jsonwebtoken");
 const secret = process.env.SECRET;
-const refreshSecret = process.env.REFRESH_SECRET || "your_refresh_secret"; // Add this to your .env
+const refreshSecret = process.env.REFRESH_SECRET;
+
+// Require environment variables - fail fast if not configured
+if (!secret) {
+  throw new Error('SECRET environment variable is required');
+}
+if (!refreshSecret) {
+  throw new Error('REFRESH_SECRET environment variable is required');
+}
 
 const createAccessToken = (payload) => {
   return jwt.sign(payload, secret, { expiresIn: "15m" });

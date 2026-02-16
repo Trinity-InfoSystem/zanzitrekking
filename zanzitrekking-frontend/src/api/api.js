@@ -1,46 +1,28 @@
 import axios from "axios";
 import { safeRedirect } from "../utils/urlValidation";
 
-const production = "https://api.zanzisafaris.com";
-const local = "http://localhost:5000";
-
 /**
  * Base URL for API requests.
- * Uses localhost backend when running in development, production otherwise.
+ * Uses VITE_API_URL environment variable if set, otherwise:
+ * - Production: https://api.zanzisafaris.com/api
+ * - Development: http://localhost:5000/api
  */
-const baseURL =`${production}/api`;
+const baseURL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD 
+    ? "https://api.zanzisafaris.com/api" 
+    : "http://localhost:5000/api");
 
 
 /**
  * Axios instance configured with base URL and credentials.
  * This instance is used for all API requests throughout the application.
+ * Authentication is handled via httpOnly cookies (automatically sent with withCredentials: true).
+ * No localStorage fallback - relying solely on secure httpOnly cookies prevents XSS attacks.
  */
 const api = axios.create({
   baseURL,
   withCredentials: true,
 });
-
-/**
- * Request interceptor to add Authorization header from localStorage as fallback.
- * This ensures authentication tokens are sent with every request, even if cookies aren't working.
- */
-api.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage
-    const accessToken = localStorage.getItem("accessToken");
-
-    // If token exists, add it to Authorization header
-    // This serves as a fallback if cookies aren't being sent
-    if (accessToken && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
 
 /**
  * Response interceptor removed - token refresh is now handled in store/index.js

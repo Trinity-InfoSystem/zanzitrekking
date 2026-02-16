@@ -55,6 +55,12 @@ const customerSchema = new Schema(
     toObject: { virtuals: true },
   }
 );
+
+// Add indexes for frequently queried fields
+customerSchema.index({ email: 1 }, { unique: true });
+customerSchema.index({ assignedAdmin: 1 });
+customerSchema.index({ createdAt: -1 });
+
 customerSchema.plugin(mongoosePaginate);
 
 customerSchema.virtual("conversationId").get(function () {

@@ -1,1 +1,0 @@
-import{v as e}from"./react-vendor-BQpxWAAY.js";import"./socket-vendor-DbcsoQrt.js";function s(){return e.jsx("section",{className:"relative bg-white py-16 lg:py-20",children:e.jsx("div",{className:"relative z-10 px-4 md:px-12",children:e.jsx("div",{className:"mx-auto max-w-7xl",children:e.jsx("div",{"data-trustmary-widget":"sn8QdtGur"})})})})}export{s as default};

@@ -6,6 +6,9 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
 const fetch = require("node-fetch");
 const path = require("path");
 const fs = require("fs");
@@ -23,6 +26,12 @@ const server = http.createServer(app);
 // Trust proxy - This is essential for correct protocol detection when behind a reverse proxy (nginx, load balancer, etc.)
 // This allows Express to read X-Forwarded-Proto header and correctly set req.protocol to 'https'
 app.set('trust proxy', true);
+
+// Security headers with Helmet.js
+app.use(helmet({
+  contentSecurityPolicy: false, // Adjust based on your needs
+  crossOriginEmbedderPolicy: false
+}));
 
 // Home routes
 const homeRouter = require("./routes/home/homeRoutes");
@@ -79,7 +88,11 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // In production, reject requests with no origin
+    if (!origin && process.env.NODE_ENV === 'production') {
+      return callback(new Error("Not allowed by CORS"));
+    }
+    // Only allow requests with no origin in development
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
@@ -211,6 +224,17 @@ app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+
+// Input sanitization - prevent NoSQL injection attacks
+app.use(mongoSanitize());
+
+// Rate limiting - protect against DDoS and brute force attacks
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api', limiter);
+
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 // Also add this for better static file serving:
@@ -379,7 +403,7 @@ app.get("/api/download-file/:filename", (req, res) => {
 
       return res.status(404).json({
         error: "File not found",
-        debug: debugInfo,
+        ...(process.env.NODE_ENV === 'development' && { debug: debugInfo })
       });
     }
 
@@ -441,6 +465,17 @@ app.get("/api/download-file/:filename", (req, res) => {
     console.error("Download error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// Global error handling middleware - must be after all routes
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 // Initialize database connection and setup cron jobs
