@@ -426,56 +426,133 @@ const Checkout = () => {
     return null;
   };
 
-  const subtotal = checkoutTrips.reduce((sum, trip) => {
-    // For cart items: trip.tripId is the actual trip ID, trip._id is the cart item ID
-    // For direct trips: trip._id is the trip ID
+  // Calculate children discount based on age
+  const calculateChildrenDiscount = (age) => {
+    if (age >= 5 && age < 12) {
+      return 0.15; // 15% discount for ages 5-11
+    }
+    if (age >= 12 && age <= 15) {
+      return 0.10; // 10% discount for ages 12-15
+    }
+    return 0; // No discount for other ages
+  };
+
+  // Calculate price breakdown for each trip
+  const calculateTripPrice = (trip) => {
     const tripId = trip.tripId || trip._id;
     const travelersNumber = trip.travelersNumber || 1;
+    const childrenCount = trip.childrenCount || 0;
+    const childrenAges = trip.childrenAges || [];
 
     const rates = getApplicableRates(trip);
-
     if (!rates) {
-      return sum;
+      return { travelersPrice: 0, childrenPrice: 0, total: 0 };
     }
 
-    // Get category-specific rates (defaulting to standard)
     const selectedCategory =
       selectedCategories[tripId] || trip.selectedCategory || "standard";
     const categoryRates = getCategoryRates(rates, selectedCategory);
     if (!categoryRates) {
-      return sum;
+      return { travelersPrice: 0, childrenPrice: 0, total: 0 };
     }
 
-    // Get the appropriate rate based on number of travelers
-    let pricePerPerson;
-    switch (travelersNumber) {
+    // Get base price based on total group size (adults + children)
+    const totalTravelers = travelersNumber + childrenCount;
+    let basePrice;
+    switch (totalTravelers) {
       case 1:
-        pricePerPerson = categoryRates.onePerson;
+        basePrice = categoryRates.onePerson;
         break;
       case 2:
-        pricePerPerson = categoryRates.twoPerson;
+        basePrice = categoryRates.twoPerson;
         break;
       case 3:
-        pricePerPerson = categoryRates.threePerson;
+        basePrice = categoryRates.threePerson;
         break;
       case 4:
-        pricePerPerson = categoryRates.fourPerson;
+        basePrice = categoryRates.fourPerson;
         break;
       default:
-        pricePerPerson = categoryRates.fiveOrMorePerson;
+        basePrice = categoryRates.fiveOrMorePerson;
         break;
     }
 
-    if (!pricePerPerson || pricePerPerson <= 0) {
-      return sum;
+    if (!basePrice || basePrice <= 0) {
+      return { travelersPrice: 0, childrenPrice: 0, total: 0 };
     }
 
-    const totalWithoutDiscount = pricePerPerson * travelersNumber;
-    const discountAmount = (totalWithoutDiscount * (trip.discount || 0)) / 100;
-    const finalPrice = totalWithoutDiscount - discountAmount;
+    // Calculate adult price
+    const adultPrice = basePrice * travelersNumber;
 
-    return sum + finalPrice;
-  }, 0);
+    // Calculate children price with age-based discounts
+    let childrenTotalPrice = 0;
+    childrenAges.forEach((age) => {
+      if (age !== null && age !== undefined) {
+        const discount = calculateChildrenDiscount(age);
+        const childPrice = basePrice * (1 - discount);
+        childrenTotalPrice += childPrice;
+      } else {
+        // If age not provided, charge full price
+        childrenTotalPrice += basePrice;
+    }
+    });
+
+    // Calculate subtotal
+    const totalWithoutTripDiscount = adultPrice + childrenTotalPrice;
+
+    // Apply trip discount
+    const discountAmount = trip.discount
+      ? (totalWithoutTripDiscount * trip.discount) / 100
+      : 0;
+    const finalPrice = totalWithoutTripDiscount - discountAmount;
+
+    // Distribute discount proportionally
+    let travelersPrice = adultPrice;
+    let childrenPrice = childrenTotalPrice;
+    
+    if (discountAmount > 0 && totalWithoutTripDiscount > 0) {
+      const travelersDiscountRatio = adultPrice / totalWithoutTripDiscount;
+      const childrenDiscountRatio = childrenTotalPrice / totalWithoutTripDiscount;
+      
+      travelersPrice = adultPrice - (discountAmount * travelersDiscountRatio);
+      childrenPrice = childrenTotalPrice - (discountAmount * childrenDiscountRatio);
+      
+      // Ensure exact match
+      const calculatedTotal = travelersPrice + childrenPrice;
+      const difference = finalPrice - calculatedTotal;
+      if (Math.abs(difference) > 0.0001) {
+        if (travelersPrice >= childrenPrice) {
+          travelersPrice += difference;
+        } else {
+          childrenPrice += difference;
+        }
+      }
+    }
+
+    // Round to 2 decimal places
+    travelersPrice = Math.round(travelersPrice * 100) / 100;
+    childrenPrice = Math.round(childrenPrice * 100) / 100;
+
+    return {
+      travelersPrice,
+      childrenPrice,
+      total: finalPrice,
+      pricePerTraveler: travelersNumber > 0 ? travelersPrice / travelersNumber : 0,
+    };
+  };
+
+  // Calculate totals with breakdown
+  const { subtotal, travelersTotal, childrenTotal, travelersCount } = checkoutTrips.reduce(
+    (acc, trip) => {
+      const breakdown = calculateTripPrice(trip);
+      acc.subtotal += breakdown.total;
+      acc.travelersTotal += breakdown.travelersPrice;
+      acc.childrenTotal += breakdown.childrenPrice;
+      acc.travelersCount += trip.travelersNumber || 1;
+      return acc;
+    },
+    { subtotal: 0, travelersTotal: 0, childrenTotal: 0, travelersCount: 0 }
+  );
 
   const total = subtotal + serviceFee;
 
@@ -601,44 +678,8 @@ const Checkout = () => {
             ? cartItem.trip[0]
             : cartItem;
 
-        // Ensure we have proper travelersNumber
-        const travelersNumber = cartItem.travelersNumber || 1;
-
-        // Get selected category for this trip
-        const selectedCategory =
-          selectedCategories[tripId] || cartItem.selectedCategory || "standard";
-
-        // Get applicable rates
-        const rates = getApplicableRates(trip);
-        const categoryRates = getCategoryRates(rates, selectedCategory);
-
-        // Determine price per person based on category and travelers
-        let pricePerPerson = 0;
-        if (categoryRates) {
-          switch (travelersNumber) {
-            case 1:
-              pricePerPerson = categoryRates.onePerson;
-              break;
-            case 2:
-              pricePerPerson = categoryRates.twoPerson;
-              break;
-            case 3:
-              pricePerPerson = categoryRates.threePerson;
-              break;
-            case 4:
-              pricePerPerson = categoryRates.fourPerson;
-              break;
-            default:
-              pricePerPerson = categoryRates.fiveOrMorePerson;
-              break;
-          }
-        }
-
-        const totalWithoutDiscount = pricePerPerson * travelersNumber;
-        const discountAmount =
-          (totalWithoutDiscount * (trip.discount || cartItem.discount || 0)) /
-          100;
-        const finalPrice = totalWithoutDiscount - discountAmount;
+        // Use calculateTripPrice to get the correct price including children
+        const priceBreakdown = calculateTripPrice(cartItem);
 
         return {
           tripId, // Use the tripId we defined earlier (prioritizes tripId over _id)
@@ -649,17 +690,17 @@ const Checkout = () => {
             "Unknown Trip",
           mainImage: cartItem.mainImage || trip.mainImage || "",
           startingDate: cartItem.startingDate || new Date().toISOString(),
-          travelersNumber,
+          travelersNumber: cartItem.travelersNumber || 1,
           childrenCount: cartItem.childrenCount || 0,
           childrenAges: cartItem.childrenAges || [],
           pricingType: trip.pricingType,
           discount: trip.discount || cartItem.discount || 0,
-          itemSubtotal: finalPrice,
-          itemTotal: finalPrice,
+          itemSubtotal: priceBreakdown.total,
+          itemTotal: priceBreakdown.total,
           specialRequests: "",
           regularPrices: trip.regularPrices,
           seasons: trip.seasons,
-          selectedCategory,
+          selectedCategory: selectedCategories[tripId] || cartItem.selectedCategory || "standard",
         };
       });
 
@@ -720,15 +761,19 @@ const Checkout = () => {
       // Create order
       const result = await dispatch(createOrder(requiredFields));
 
-      if (result?.error) {
-        toast.error(
-          result.error.message || "Failed to create order. Please try again.",
-        );
+      // Check if order creation was rejected
+      if (result.type === "order/createOrder/rejected" || result?.payload?.errorMessage) {
+        const errorMessage = result.payload?.errorMessage || result.payload?.message || "Failed to create order. Please try again.";
+        toast.error(errorMessage);
+        console.error("Order creation failed:", result.payload);
+        return;
       }
+
+      // If successful, the useEffect will handle redirect
     } catch (error) {
-      toast.error(
-        "An error occurred while creating your order. Please try again.",
-      );
+      console.error("Order creation error:", error);
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || "An error occurred while creating your order. Please try again.";
+      toast.error(errorMessage);
     }
   };
 
@@ -1468,8 +1513,8 @@ const Checkout = () => {
                       }, 0);
                     })()}
                     serviceFee={serviceFee}
-                    total={(() => {
-                      // Recalculate total for allowed trips only
+                    subtotal={(() => {
+                      // Recalculate subtotal for allowed trips only using calculateTripPrice
                       const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
                       const tripsWithPendingRequests = new Set(
                         existingRequests
@@ -1481,27 +1526,63 @@ const Checkout = () => {
                         return !blockedTripIds.has(tripId?.toString()) &&
                                !tripsWithPendingRequests.has(tripId?.toString());
                       });
-                      const allowedSubtotal = allowedTrips.reduce((sum, trip) => {
+                      return allowedTrips.reduce((sum, trip) => sum + calculateTripPrice(trip).total, 0);
+                    })()}
+                    travelersTotal={(() => {
+                      const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
+                      const tripsWithPendingRequests = new Set(
+                        existingRequests
+                          .filter((req) => req.request?.status !== "approved")
+                          .map((req) => req.tripId?.toString())
+                      );
+                      const allowedTrips = checkoutTrips.filter((trip) => {
                         const tripId = trip.tripId || trip._id;
-                        const travelersNumber = trip.travelersNumber || 1;
-                        const rates = getApplicableRates(trip);
-                        if (!rates) return sum;
-                        const selectedCategory = selectedCategories[tripId] || trip.selectedCategory || "standard";
-                        const categoryRates = getCategoryRates(rates, selectedCategory);
-                        if (!categoryRates) return sum;
-                        let pricePerPerson = 0;
-                        switch (travelersNumber) {
-                          case 1: pricePerPerson = categoryRates.onePerson; break;
-                          case 2: pricePerPerson = categoryRates.twoPerson; break;
-                          case 3: pricePerPerson = categoryRates.threePerson; break;
-                          case 4: pricePerPerson = categoryRates.fourPerson; break;
-                          default: pricePerPerson = categoryRates.fiveOrMorePerson; break;
-                        }
-                        if (!pricePerPerson || pricePerPerson <= 0) return sum;
-                        const totalWithoutDiscount = pricePerPerson * travelersNumber;
-                        const discountAmount = (totalWithoutDiscount * (trip.discount || 0)) / 100;
-                        return sum + (totalWithoutDiscount - discountAmount);
-                      }, 0);
+                        return !blockedTripIds.has(tripId?.toString()) &&
+                               !tripsWithPendingRequests.has(tripId?.toString());
+                      });
+                      return allowedTrips.reduce((sum, trip) => sum + calculateTripPrice(trip).travelersPrice, 0);
+                    })()}
+                    childrenTotal={(() => {
+                      const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
+                      const tripsWithPendingRequests = new Set(
+                        existingRequests
+                          .filter((req) => req.request?.status !== "approved")
+                          .map((req) => req.tripId?.toString())
+                      );
+                      const allowedTrips = checkoutTrips.filter((trip) => {
+                        const tripId = trip.tripId || trip._id;
+                        return !blockedTripIds.has(tripId?.toString()) &&
+                               !tripsWithPendingRequests.has(tripId?.toString());
+                      });
+                      return allowedTrips.reduce((sum, trip) => sum + calculateTripPrice(trip).childrenPrice, 0);
+                    })()}
+                    travelersCount={(() => {
+                      const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
+                      const tripsWithPendingRequests = new Set(
+                        existingRequests
+                          .filter((req) => req.request?.status !== "approved")
+                          .map((req) => req.tripId?.toString())
+                      );
+                      const allowedTrips = checkoutTrips.filter((trip) => {
+                        const tripId = trip.tripId || trip._id;
+                        return !blockedTripIds.has(tripId?.toString()) &&
+                               !tripsWithPendingRequests.has(tripId?.toString());
+                      });
+                      return allowedTrips.reduce((sum, trip) => sum + (trip.travelersNumber || 1), 0);
+                    })()}
+                    total={(() => {
+                      const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
+                      const tripsWithPendingRequests = new Set(
+                        existingRequests
+                          .filter((req) => req.request?.status !== "approved")
+                          .map((req) => req.tripId?.toString())
+                      );
+                      const allowedTrips = checkoutTrips.filter((trip) => {
+                        const tripId = trip.tripId || trip._id;
+                        return !blockedTripIds.has(tripId?.toString()) &&
+                               !tripsWithPendingRequests.has(tripId?.toString());
+                      });
+                      const allowedSubtotal = allowedTrips.reduce((sum, trip) => sum + calculateTripPrice(trip).total, 0);
                       return allowedSubtotal + serviceFee;
                     })()}
                   />

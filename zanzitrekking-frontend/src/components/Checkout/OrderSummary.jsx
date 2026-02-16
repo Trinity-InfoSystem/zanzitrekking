@@ -5,7 +5,17 @@ import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
 import { IMAGES_URL } from "../../utils/constants";
 
-const OrderSummary = ({ cart_trips, subtotal, serviceFee, total }) => {
+const OrderSummary = ({ 
+  cart_trips, 
+  subtotal, 
+  travelersTotal, 
+  childrenTotal, 
+  travelersCount,
+  serviceFee, 
+  total 
+}) => {
+  const showBreakdown = childrenTotal > 0;
+  const pricePerTraveler = travelersCount > 0 ? travelersTotal / travelersCount : 0;
   const [topOffset, setTopOffset] = useState(72);
 
   useEffect(() => {
@@ -112,10 +122,56 @@ const OrderSummary = ({ cart_trips, subtotal, serviceFee, total }) => {
       {/* Price Summary */}
       <div className="border-t-2 border-gray-100 bg-gray-50 p-6">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-600">Subtotal</span>
-            <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
-          </div>
+          {/* Detailed Breakdown - Only show if children are present */}
+          {showBreakdown && (
+            <div className="space-y-2 rounded-lg border border-emerald-100 bg-emerald-50/30 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                Price Breakdown
+              </h3>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-600">
+                  Travelers ({travelersCount} {travelersCount === 1 ? 'adult' : 'adults'})
+                </span>
+                <span className="text-sm font-semibold text-gray-900">${travelersTotal.toFixed(2)}</span>
+              </div>
+              {pricePerTraveler > 0 && (
+                <div className="ml-4 flex items-center justify-between text-xs text-gray-500">
+                  <span>Price per traveler:</span>
+                  <span>${pricePerTraveler.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-600">Children</span>
+                <span className="text-sm font-semibold text-gray-900">${childrenTotal.toFixed(2)}</span>
+              </div>
+              <div className="mt-2 border-t border-emerald-200 pt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-600">Subtotal</span>
+                  <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-gray-600 leading-relaxed">
+                💡 <strong>How it works:</strong> The base price per person depends on your total group size (adults + children), selected season, and package type. Children receive age-based discounts (15% for ages 5-11, 10% for ages 12-15) applied to this base price.
+              </p>
+            </div>
+          )}
+
+          {/* Simple Subtotal if no children */}
+          {!showBreakdown && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">Subtotal</span>
+                <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+              </div>
+              {pricePerTraveler > 0 && (
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Price per traveler:</span>
+                  <span>${pricePerTraveler.toFixed(2)}</span>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-600">Service Fee</span>
             <span className="text-sm font-semibold text-gray-900">${serviceFee.toFixed(2)}</span>

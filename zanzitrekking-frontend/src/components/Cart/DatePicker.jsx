@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertTriangleIcon,
@@ -50,35 +50,46 @@ export const DatePicker = ({
   // Convert date to Date object if it's a string
   // For display: use local date to show correct day
   // For API: format using UTC components when sending
-  const getDateValue = () => {
-    if (!date) {
-      return addDays(new Date(), 1);
-    }
+  // Memoize to prevent infinite loops when date prop reference changes
+  // Use date value (time) as dependency to avoid re-creating when same date with different reference
+  const dateKey = useMemo(() => {
+    if (!date) return null;
     if (date instanceof Date) {
-      return date;
+      return date.getTime();
     }
+    return date; // String dates
+  }, [date]);
+  
+  const dateValue = useMemo(() => {
+    if (!date) {
+      const tomorrow = addDays(new Date(), 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      return tomorrow;
+    }
+    let parsedDate;
+    if (date instanceof Date) {
+      parsedDate = new Date(date);
+    } else if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     // Parse YYYY-MM-DD strings as local date for correct display
-    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return parse(date, "yyyy-MM-dd", new Date());
-    }
+      parsedDate = parse(date, "yyyy-MM-dd", new Date());
+    } else if (typeof date === "string" && date.includes("T")) {
     // For ISO strings, extract date part and parse as local
-    if (typeof date === "string" && date.includes("T")) {
       const datePart = date.split("T")[0];
-      return parse(datePart, "yyyy-MM-dd", new Date());
-    }
+      parsedDate = parse(datePart, "yyyy-MM-dd", new Date());
+    } else {
     // Fallback
-    return new Date(date);
-  };
-
-  const dateValue = getDateValue();
+      parsedDate = new Date(date);
+    }
+    parsedDate.setHours(0, 0, 0, 0);
+    return parsedDate;
+  }, [dateKey]);
   const minDate = addDays(new Date(), 1);
   minDate.setHours(0, 0, 0, 0);
 
   // Keep viewMonth in sync when dropdown opens (show selected date's month)
   useEffect(() => {
     if (isOpen) {
-      const d = getDateValue();
-      const newMonth = startOfMonth(d);
+      const newMonth = startOfMonth(dateValue);
       // Only update if month actually changed to prevent infinite loops
       setViewMonth((prevMonth) => {
         if (!isSameMonth(newMonth, prevMonth)) {
@@ -87,7 +98,7 @@ export const DatePicker = ({
         return prevMonth;
       });
     }
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, dateValue]);
 
   // Position dropdown below trigger when opening (for portal; fixed = viewport coords)
   useEffect(() => {
