@@ -1262,8 +1262,8 @@ class WeTravelService {
       }
       console.log("  ✅ Package created, ID:", packageId);
 
-      // Step 3: Set payment plan on the package
-      console.log("  Step 3: Setting payment plan on package...");
+      // Step 3: Calculate amounts (payment plan will be set on trip_options only, not on package)
+      console.log("  Step 3: Calculating payment amounts...");
       // WeTravel API requires amounts in minor currency units (cents)
       // For USD: $1.00 = 100 cents, so multiply by 100
       const depositAmountCents = Math.round(depositAmount * 100);
@@ -1273,37 +1273,7 @@ class WeTravelService {
       console.log("  - Deposit (cents):", depositAmountCents);
       console.log("  - Remaining (dollars):", remainingAmount);
       console.log("  - Remaining (cents):", remainingAmountCents);
-      
-      const paymentPlanData = {
-        data: {
-          enable_auto_payment: false,
-          allow_partial_payment: true,
-          deposit: depositAmountCents, // Must be in minor units (cents)
-          installments: [
-            {
-              price: depositAmountCents, // Must be in minor units (cents)
-              days_before_departure: 0,
-            },
-            {
-              price: remainingAmountCents, // Must be in minor units (cents)
-              days_before_departure: daysBeforeDeparture,
-            },
-          ],
-        },
-      };
-
-      const planResponse = await axios.post(
-        `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
-        paymentPlanData,
-        {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("  ✅ Payment plan set:", JSON.stringify(planResponse.data, null, 2));
+      console.log("  - Note: Payment plan will be set on trip_options only (not on package)");
 
       // Step 4: Update trip_options with payment plan (per WeTravel API team recommendation)
       // WeTravel requires explicit update of trip_options[0][payment_plan] with correct schema
@@ -1410,27 +1380,60 @@ class WeTravelService {
           });
 
           // Update trip with trip_options that include payment plan
-          // Golden Sample requires wrapping trip_options in a 'trip' object
+          // Try both structures: with and without 'trip' wrapper
           console.log("  - Updating trip_options with Golden Sample structure:");
           console.log("  - Full updatedTripOptions:", JSON.stringify(updatedTripOptions, null, 2));
           console.log("  - Payment plan being sent:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
           
-          const updateResponse = await axios.patch(
-            `${this.apiUrl}/draft_trips/${tripUuid}`,
-            {
-              data: {
-                trip: {
+          // Try structure without 'trip' wrapper first (more consistent with other PATCH requests)
+          let updateResponse;
+          try {
+            updateResponse = await axios.patch(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              {
+                data: {
                   trip_options: updatedTripOptions,
                 },
               },
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${this.accessToken}`,
-                "Content-Type": "application/json",
-              },
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            console.log("  ✅ PATCH succeeded with trip_options directly");
+          } catch (patchError) {
+            // If that fails, try with 'trip' wrapper
+            console.log("  ⚠️ PATCH failed without 'trip' wrapper:");
+            console.log("    - Error:", patchError.response?.data || patchError.message);
+            console.log("    - Status:", patchError.response?.status);
+            console.log("    - Trying with 'trip' wrapper...");
+            try {
+              updateResponse = await axios.patch(
+                `${this.apiUrl}/draft_trips/${tripUuid}`,
+                {
+                  data: {
+                    trip: {
+                      trip_options: updatedTripOptions,
+                    },
+                  },
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${this.accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              console.log("  ✅ PATCH succeeded with 'trip' wrapper");
+            } catch (tripWrapperError) {
+              console.error("  ❌ PATCH also failed with 'trip' wrapper:");
+              console.error("    - Error:", tripWrapperError.response?.data || tripWrapperError.message);
+              console.error("    - Status:", tripWrapperError.response?.status);
+              throw tripWrapperError;
             }
-          );
+          }
 
           console.log("  ✅ Updated trip_options[0] with payment plan schema");
           console.log("  - Update response:", JSON.stringify(updateResponse.data, null, 2));
@@ -1492,6 +1495,30 @@ class WeTravelService {
       // Step 6: Publish the trip if no URL found
       if (!paymentLinkUrl) {
         console.log("  Step 6: Publishing trip to create payment link...");
+        
+        // Before publishing, verify the trip_options structure one more time
+        try {
+          const prePublishCheck = await axios.get(
+            `${this.apiUrl}/draft_trips/${tripUuid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          const prePublishTripOptions = prePublishCheck.data.data.trip?.trip_options || [];
+          if (prePublishTripOptions.length > 0 && prePublishTripOptions[0].payment_plan) {
+            console.log("  - Pre-publish trip_options[0].payment_plan structure:");
+            console.log("    ", JSON.stringify(prePublishTripOptions[0].payment_plan, null, 2));
+            console.log("  - Pre-publish trip_options[0] keys:", Object.keys(prePublishTripOptions[0]));
+          } else {
+            console.warn("  ⚠️ Payment plan not found in trip_options before publish!");
+          }
+        } catch (prePublishError) {
+          console.warn("  ⚠️ Could not verify trip_options before publish:", prePublishError.message);
+        }
+        
         try {
           const publishResponse = await axios.post(
             `${this.apiUrl}/draft_trips/${tripUuid}/publish`,
@@ -1508,6 +1535,12 @@ class WeTravelService {
           const publishedTrip = publishResponse.data.data.trip;
           paymentLinkUrl = publishedTrip.url;
         } catch (publishError) {
+          // Log detailed error information
+          console.error("  ❌ Publishing failed:");
+          console.error("  - Error:", publishError.response?.data || publishError.message);
+          console.error("  - Status:", publishError.response?.status);
+          console.error("  - Full error response:", JSON.stringify(publishError.response?.data, null, 2));
+          
           // If publish fails, check if we can still get URL from draft
           if (publishError.response?.data?.error?.includes('trip_options')) {
             console.warn("  ⚠️ Publishing failed with trip_options error");
