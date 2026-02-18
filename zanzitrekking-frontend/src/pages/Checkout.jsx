@@ -1472,41 +1472,6 @@ const Checkout = () => {
                                !tripsWithPendingRequests.has(tripId?.toString());
                       });
                     })()}
-                    subtotal={(() => {
-                      // Recalculate subtotal for allowed trips only
-                      const blockedTripIds = new Set(blockedTrips.map((bt) => bt.tripId?.toString() || bt.trip?._id?.toString()));
-                      const tripsWithPendingRequests = new Set(
-                        existingRequests
-                          .filter((req) => req.request?.status !== "approved")
-                          .map((req) => req.tripId?.toString())
-                      );
-                      const allowedTrips = checkoutTrips.filter((trip) => {
-                        const tripId = trip.tripId || trip._id;
-                        return !blockedTripIds.has(tripId?.toString()) &&
-                               !tripsWithPendingRequests.has(tripId?.toString());
-                      });
-                      return allowedTrips.reduce((sum, trip) => {
-                        const tripId = trip.tripId || trip._id;
-                        const travelersNumber = trip.travelersNumber || 1;
-                        const rates = getApplicableRates(trip);
-                        if (!rates) return sum;
-                        const selectedCategory = selectedCategories[tripId] || trip.selectedCategory || "standard";
-                        const categoryRates = getCategoryRates(rates, selectedCategory);
-                        if (!categoryRates) return sum;
-                        let pricePerPerson = 0;
-                        switch (travelersNumber) {
-                          case 1: pricePerPerson = categoryRates.onePerson; break;
-                          case 2: pricePerPerson = categoryRates.twoPerson; break;
-                          case 3: pricePerPerson = categoryRates.threePerson; break;
-                          case 4: pricePerPerson = categoryRates.fourPerson; break;
-                          default: pricePerPerson = categoryRates.fiveOrMorePerson; break;
-                        }
-                        if (!pricePerPerson || pricePerPerson <= 0) return sum;
-                        const totalWithoutDiscount = pricePerPerson * travelersNumber;
-                        const discountAmount = (totalWithoutDiscount * (trip.discount || 0)) / 100;
-                        return sum + (totalWithoutDiscount - discountAmount);
-                      }, 0);
-                    })()}
                     serviceFee={serviceFee}
                     subtotal={(() => {
                       // Recalculate subtotal for allowed trips only using calculateTripPrice
