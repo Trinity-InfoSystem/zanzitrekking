@@ -1343,86 +1343,62 @@ class WeTravelService {
             });
           }
           
-          // Build payment_schedule array from installments
-          // Try matching the package payment plan structure exactly first
-          // Package uses: installments: [{ price, days_before_departure }]
-          // trip_options might need: payment_schedule: [{ price, days_before_departure }] or [{ amount_in_cents, days_before_departure }]
-          
-          // Try option 1: Using 'price' field (matching package installments structure)
-          const paymentScheduleWithPrice = [
-            {
-              price: depositAmountCents,
-              days_before_departure: 0,
-            },
-            {
-              price: remainingAmountCents,
-              days_before_departure: daysBeforeDeparture,
-            },
-          ];
-          
-          // Try option 2: Using 'amount_in_cents' field
-          const paymentScheduleWithAmount = [
+          // Build payment_schedule array using Golden Sample structure
+          // Must use 'amount_in_cents' (not 'price') and include 'description' fields
+          const paymentSchedule = [
             {
               amount_in_cents: depositAmountCents,
               days_before_departure: 0,
+              description: "Initial Deposit",
             },
             {
               amount_in_cents: remainingAmountCents,
               days_before_departure: daysBeforeDeparture,
+              description: "Remaining Balance",
             },
           ];
           
-          // Use 'price' first (matches package installments structure)
-          const paymentSchedule = paymentScheduleWithPrice;
+          // Validate payment schedule math: sum must equal package total price
+          const scheduleTotal = depositAmountCents + remainingAmountCents;
+          const packagePriceCents = Math.round(totalAmount * 100);
           
-          console.log("  - Payment schedule structure (using 'price'):", JSON.stringify(paymentSchedule, null, 2));
-          console.log("  - Alternative structure (using 'amount_in_cents'):", JSON.stringify(paymentScheduleWithAmount, null, 2));
-          
-          // Step 4: Update trip_options with payment plan using WeTravel's recommended structure
-          // Try matching the package payment plan structure EXACTLY first
-          // Maybe trip_options payment_plan should match package payment_plan structure?
-          const packagePaymentPlanStructure = {
-            enable_auto_payment: false,
-            allow_partial_payment: true,
-            deposit: depositAmountCents,
-            installments: [
-              {
-                price: depositAmountCents,
-                days_before_departure: 0,
-              },
-              {
-                price: remainingAmountCents,
-                days_before_departure: daysBeforeDeparture,
-              },
-            ],
-          };
-          
-          // Also try WeTravel's recommended structure
-          const wetravelRecommendedStructure = {
-            enabled: true,
-            deposit_amount_in_cents: depositAmountCents,
-            currency: currency,
-            payment_schedule: paymentSchedule,
-            allow_partial_payment: true,
-          };
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log("  - Trying package payment plan structure:", JSON.stringify(packagePaymentPlanStructure, null, 2));
-            console.log("  - Trying WeTravel recommended structure:", JSON.stringify(wetravelRecommendedStructure, null, 2));
+          if (scheduleTotal !== packagePriceCents) {
+            console.error("  ❌ Payment schedule validation failed:");
+            console.error(`    - Schedule total: ${scheduleTotal} cents`);
+            console.error(`    - Package total: ${packagePriceCents} cents`);
+            console.error(`    - Difference: ${Math.abs(scheduleTotal - packagePriceCents)} cents`);
+            throw new Error(`Payment schedule sum (${scheduleTotal}) does not match package total (${packagePriceCents}). This will cause publish validation to fail.`);
           }
           
+          console.log("  ✅ Payment schedule validation passed:");
+          console.log(`    - Deposit: ${depositAmountCents} cents`);
+          console.log(`    - Remaining: ${remainingAmountCents} cents`);
+          console.log(`    - Total: ${scheduleTotal} cents (matches package total)`);
+          
+          // Step 4: Update trip_options with payment plan using Golden Sample structure
+          // Must include: enabled, type: "custom", deposit_amount_in_cents, currency, payment_schedule, allow_partial_payment
+          const paymentPlanStructure = {
+            enabled: true,
+            type: "custom",
+            currency: currency,
+            deposit_amount_in_cents: depositAmountCents,
+            allow_partial_payment: false,
+            payment_schedule: paymentSchedule,
+          };
+          
+          console.log("  - Using Golden Sample payment plan structure:");
+          console.log("    - Structure:", JSON.stringify(paymentPlanStructure, null, 2));
+          
           // IMPORTANT: Preserve ALL original fields from trip_option, only add/update payment_plan
-          // Try package structure first (might be what WeTravel expects)
           const updatedTripOptions = tripOptions.map((option, index) => {
             if (index === 0 && option.uuid === tripOptionUuid) {
-              // Try matching package payment plan structure exactly
               const updatedOption = {
                 ...option, // Preserve all original fields (uuid, package_id, etc.)
-                payment_plan: packagePaymentPlanStructure, // Try package structure first
+                payment_plan: paymentPlanStructure, // Use Golden Sample structure
               };
               
               if (process.env.NODE_ENV === 'development') {
-                console.log("  - Updated trip_option structure (using package payment plan format):");
+                console.log("  - Updated trip_option structure:");
                 console.log("    - Preserved fields:", Object.keys(option));
                 console.log("    - Added payment_plan with fields:", Object.keys(updatedOption.payment_plan));
                 console.log("    - Full updated option:", JSON.stringify(updatedOption, null, 2));
@@ -1434,7 +1410,8 @@ class WeTravelService {
           });
 
           // Update trip with trip_options that include payment plan
-          console.log("  - Updating trip_options with this structure:");
+          // Golden Sample requires wrapping trip_options in a 'trip' object
+          console.log("  - Updating trip_options with Golden Sample structure:");
           console.log("  - Full updatedTripOptions:", JSON.stringify(updatedTripOptions, null, 2));
           console.log("  - Payment plan being sent:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
           
@@ -1442,7 +1419,9 @@ class WeTravelService {
             `${this.apiUrl}/draft_trips/${tripUuid}`,
             {
               data: {
-                trip_options: updatedTripOptions,
+                trip: {
+                  trip_options: updatedTripOptions,
+                },
               },
             },
             {
