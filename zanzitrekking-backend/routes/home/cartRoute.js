@@ -1,6 +1,12 @@
 // wishlistRoutes.js
 const express = require("express");
 const wishlistController = require("../../controllers/home/cartController");
+const { validate } = require("../../middlewares/validationMiddleware");
+const {
+  addToCartSchema,
+  updateCartTripSchema,
+  addToWishlistSchema,
+} = require("../../validators/cartValidation");
 
 const router = express.Router();
 
@@ -11,10 +17,11 @@ router.get(
 );
 router.post(
   "/home/trip/add-to-cart",
+  validate(addToCartSchema),
   wishlistController.add_to_cart
 );
 
-router.put("/home/trip/update-cart-trip", wishlistController.update_cart_trip);
+router.put("/home/trip/update-cart-trip", validate(updateCartTripSchema), wishlistController.update_cart_trip);
 router.delete(
   "/home/trip/delete-cart-trip/:cartId",
   wishlistController.delete_cart_trip
@@ -27,6 +34,7 @@ router.delete(
 // Wishlist routes
 router.post(
   "/home/trip/add-to-wishlist",
+  validate(addToWishlistSchema),
   wishlistController.add_to_wishlist
 );
 router.get(

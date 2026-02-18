@@ -1,6 +1,6 @@
 import { FaFacebookF } from "react-icons/fa6";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   clearMessage,
   customer_login,
@@ -12,6 +12,9 @@ import { FadeLoader } from "react-spinners";
 import { useDispatch, useSelector } from "react-redux";
 import { useGoogleLogin } from "@react-oauth/google";
 import { ArrowRight, Eye, EyeOff, Lock, LogIn, Mail, Shield } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { loginSchema } from "../utils/validationSchemas";
 
 const Login = () => {
   const { loader, errorMessage, successMessage, userInfo } = useSelector(
@@ -19,9 +22,15 @@ const Login = () => {
   );
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const emailRef = useRef();
-  const passwordRef = useRef();
   const [showPassword, setShowPassword] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(loginSchema),
+  });
 
   useEffect(() => {
     if (!window.FB) {
@@ -46,11 +55,8 @@ const Login = () => {
     }
   }, []);
 
-  const onSubmit = (e) => {
-    e.preventDefault();
-    const email = emailRef.current.value;
-    const password = passwordRef.current.value;
-    dispatch(customer_login({ email, password }));
+  const onSubmit = (data) => {
+    dispatch(customer_login({ email: data.email, password: data.password }));
   };
 
   const handleGoogleSuccess = (credentialResponse) => {
@@ -229,7 +235,7 @@ const Login = () => {
                   </p>
                 </div>
 
-                <form onSubmit={onSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                   {/* Email Input */}
                   <div>
                     <label
@@ -243,15 +249,20 @@ const Login = () => {
                         <Mail className="h-5 w-5 text-primary-400" />
                       </div>
                       <input
-                        className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                          errors.email
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                        }`}
                         type="email"
-                        name="email"
                         id="email"
-                        ref={emailRef}
+                        {...register("email")}
                         placeholder="your@email.com"
-                        required
                       />
                     </div>
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    )}
                   </div>
 
                   {/* Password Input */}
@@ -275,13 +286,15 @@ const Login = () => {
                         <Lock className="h-5 w-5 text-primary-400" />
                       </div>
                       <input
-                        className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                          errors.password
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                        }`}
                         type={showPassword ? "text" : "password"}
-                        name="password"
                         id="password"
-                        ref={passwordRef}
+                        {...register("password")}
                         placeholder="Enter your password"
-                        required
                       />
                       <button
                         type="button"
@@ -295,6 +308,9 @@ const Login = () => {
                         )}
                       </button>
                     </div>
+                    {errors.password && (
+                      <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                    )}
                   </div>
 
                   {/* Submit Button */}

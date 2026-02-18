@@ -1,4 +1,5 @@
 const PdfModel = require("../../models/pdf");
+const logger = require('./../../utilities/logger');
 const fs = require("fs").promises;
 const path = require("path");
 
@@ -69,7 +70,7 @@ class PDFController {
         try {
           await fs.unlink(oldFilePath);
         } catch (error) {
-          console.log("ℹ️ No old file to delete:", error.message);
+          logger.info("ℹ️ No old file to delete:", error.message);
         }
 
         await PdfModel.deleteOne({ _id: existingPdf._id });
@@ -110,7 +111,7 @@ class PDFController {
         try {
           await fs.unlink(oldFilePath);
         } catch (error) {
-          console.log("ℹ️ No old file to delete:", error.message);
+          logger.info("ℹ️ No old file to delete:", error.message);
         }
 
         pdf.name = req.file.originalname;
@@ -151,7 +152,7 @@ class PDFController {
       try {
         await fs.unlink(filePath);
       } catch (error) {
-        console.log("ℹ️ No old file to delete:", error.message);
+        logger.info("ℹ️ No old file to delete:", error.message);
       }
 
       await PdfModel.deleteOne({ _id: req.params.pdfId });

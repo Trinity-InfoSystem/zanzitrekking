@@ -14,10 +14,12 @@ import toast from "react-hot-toast";
 import HeaderText from "./HeaderText";
 import { IMAGES_URL } from "../../utils/constants";
 import { isViewer } from "../../utils/roleVerification";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { bannerSchema } from "../../utils/validationSchemas";
 
 const Banner = () => {
   const dispatch = useDispatch();
-  const [imagesData, setImagesData] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -29,37 +31,66 @@ const Banner = () => {
   );
   const role = useSelector((state) => state.auth?.userInfo?.role);
 
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(bannerSchema),
+    defaultValues: {
+      banners: [
+        {
+          title: "",
+          description: "",
+          image: null,
+        },
+      ],
+      sharedVideo: null,
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "banners",
+  });
+
+  const banners = watch("banners");
+
   useEffect(() => {
     dispatch(fetch_banner());
   }, [dispatch]);
 
   useEffect(() => {
     if (banner && banner.banners.length > 0) {
-      setImagesData(
-        banner.banners.map((b) => ({
-          file: null,
-          title: b.title,
-          description: b.description,
-          imageUrl: b.image,
+      reset({
+        banners: banner.banners.map((b) => ({
+          title: b.title || "",
+          description: b.description || "",
+          image: null, // Keep as null, use imageUrl for preview
         })),
-      );
+        sharedVideo: null,
+      });
 
       // Set shared video
       if (banner.sharedVideo) {
         setSharedVideoUrl(banner.sharedVideo);
       }
     }
-  }, [banner]);
+  }, [banner, reset]);
 
   useEffect(() => {
     if (!isPlaying) return;
     const interval = setInterval(() => {
-      if (imagesData.length > 0) {
-        setCurrentImageIndex((prev) => (prev + 1) % imagesData.length);
+      if (banners && banners.length > 0) {
+        setCurrentImageIndex((prev) => (prev + 1) % banners.length);
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [imagesData, isPlaying]);
+  }, [banners, isPlaying]);
 
   useEffect(() => {
     if (errorMessage) {
@@ -75,35 +106,21 @@ const Banner = () => {
 
   const handleNumImagesChange = (e) => {
     const newCount = Math.max(1, Number.parseInt(e.target.value, 10) || 1);
-    setImagesData((prev) =>
-      Array.from(
-        { length: newCount },
-        (_, i) =>
-          prev[i] || {
-            file: null,
-            title: "",
-            description: "",
-            imageUrl: "",
-          },
-      ),
-    );
-  };
-
-  const handleInputChange = (index, field, value) => {
-    setImagesData((prev) =>
-      prev.map((img, i) => (i === index ? { ...img, [field]: value } : img)),
-    );
-  };
-
-  const handleImageUpload = (index, file) => {
-    if (file) {
-      setImagesData((prev) =>
-        prev.map((img, i) =>
-          i === index
-            ? { ...img, file, imageUrl: URL.createObjectURL(file) }
-            : img,
-        ),
-      );
+    const currentCount = banners?.length || 0;
+    if (newCount > currentCount) {
+      // Add new banners
+      for (let i = currentCount; i < newCount; i++) {
+        append({
+          title: "",
+          description: "",
+          image: null,
+        });
+      }
+    } else if (newCount < currentCount) {
+      // Remove excess banners
+      for (let i = currentCount - 1; i >= newCount; i--) {
+        remove(i);
+      }
     }
   };
 
@@ -124,19 +141,22 @@ const Banner = () => {
     setSelectedVideo(null);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const onSubmit = (data) => {
     const formData = new FormData();
 
     // Add shared video
     if (sharedVideoFile) {
       formData.append("sharedVideo", sharedVideoFile);
+    } else if (data.sharedVideo) {
+      formData.append("sharedVideo", data.sharedVideo);
     }
 
-    imagesData.forEach((img, index) => {
-      if (img.file) formData.append(`banners[${index}][image]`, img.file);
-      formData.append(`banners[${index}][title]`, img.title);
-      formData.append(`banners[${index}][description]`, img.description);
+    data.banners.forEach((bannerItem, index) => {
+      if (bannerItem.image instanceof File) {
+        formData.append(`banners[${index}][image]`, bannerItem.image);
+      }
+      formData.append(`banners[${index}][title]`, bannerItem.title || "");
+      formData.append(`banners[${index}][description]`, bannerItem.description || "");
     });
 
     if (banner) {
@@ -175,7 +195,7 @@ const Banner = () => {
                   </span>
                   <input
                     type="number"
-                    value={imagesData.length}
+                    value={banners?.length || 1}
                     onChange={handleNumImagesChange}
                     min="1"
                     className="w-16 rounded-lg bg-gradient-to-r from-secondary to-sunshine-400 p-2 text-center text-sm font-semibold text-white focus:outline-none"
@@ -186,7 +206,7 @@ const Banner = () => {
             </div>
 
             <div className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                 {/* Shared Video Section */}
                 <div className="mb-8">
                   <h3 className="mb-4 text-lg font-bold text-primary-800">
@@ -271,14 +291,21 @@ const Banner = () => {
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {imagesData.map((img, index) => {
-                    let imageName = img?.imageUrl
-                      ? IMAGES_URL + img?.imageUrl.split("/").pop()
-                      : "/images/admin.png";
+                  {fields.map((field, index) => {
+                    const bannerItem = banners[index];
+                    const imageError = errors.banners?.[index]?.image;
+                    const titleError = errors.banners?.[index]?.title;
+                    const bannerImageUrl = banner?.banners?.[index]?.image;
+                    let imageName = bannerImageUrl
+                      ? IMAGES_URL + bannerImageUrl.split("/").pop()
+                      : null;
+                    const previewUrl = bannerItem?.image instanceof File
+                      ? URL.createObjectURL(bannerItem.image)
+                      : imageName;
 
                     return (
                       <div
-                        key={index}
+                        key={field.id}
                         className="group rounded-2xl border border-primary-200 bg-white p-5 shadow-nature-soft transition-all duration-300 hover:scale-[1.02] hover:shadow-nature-medium"
                       >
                         <div className="mb-4">
@@ -294,12 +321,10 @@ const Banner = () => {
                           </div>
 
                           <label className="group/upload relative block aspect-video w-full cursor-pointer overflow-hidden rounded-xl bg-gradient-to-br from-primary-50 to-secondary-50 ring-2 ring-primary-200 transition-all duration-300 hover:ring-secondary">
-                            {img.file || img.imageUrl ? (
+                            {previewUrl ? (
                               <>
                                 <img
-                                  src={
-                                    imageName || URL.createObjectURL(img.file)
-                                  }
+                                  src={previewUrl}
                                   alt={`Banner ${index + 1}`}
                                   className="h-full w-full object-cover transition-all duration-300 group-hover/upload:scale-110"
                                 />
@@ -324,50 +349,60 @@ const Banner = () => {
                                 </div>
                               </div>
                             )}
-                            <input
-                              type="file"
-                              hidden
-                              accept="image/*"
-                              onChange={(e) =>
-                                handleImageUpload(index, e.target.files[0])
-                              }
-                              disabled={isViewer(role)}
+                            <Controller
+                              name={`banners.${index}.image`}
+                              control={control}
+                              render={({ field: { onChange, value, ...field } }) => (
+                                <input
+                                  {...field}
+                                  type="file"
+                                  hidden
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      onChange(file);
+                                    }
+                                  }}
+                                  disabled={isViewer(role)}
+                                />
+                              )}
                             />
                           </label>
+                          {imageError && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {imageError.message}
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-4">
                           <div>
                             <label className="mb-2 block text-sm font-bold text-primary-800">
-                              Banner Title
+                              Banner Title *
                             </label>
                             <input
                               type="text"
-                              value={img.title}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  index,
-                                  "title",
-                                  e.target.value,
-                                )
-                              }
+                              {...register(`banners.${index}.title`)}
                               placeholder="Enter compelling title"
-                              className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                              className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                                titleError
+                                  ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                                  : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                              }`}
                             />
+                            {titleError && (
+                              <p className="mt-1 text-xs text-red-600">
+                                {titleError.message}
+                              </p>
+                            )}
                           </div>
                           <div>
                             <label className="mb-2 block text-sm font-bold text-primary-800">
                               Description
                             </label>
                             <textarea
-                              value={img.description}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  index,
-                                  "description",
-                                  e.target.value,
-                                )
-                              }
+                              {...register(`banners.${index}.description`)}
                               placeholder="Write engaging description"
                               rows={5}
                               className="w-full resize-none rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
@@ -378,6 +413,11 @@ const Banner = () => {
                     );
                   })}
                 </div>
+                {errors.banners && typeof errors.banners === "object" && !Array.isArray(errors.banners) && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {errors.banners.message}
+                  </p>
+                )}
 
                 {!isViewer(role) && (
                   <div className="flex justify-center">
@@ -402,8 +442,11 @@ const Banner = () => {
           </div>
 
           {/* Preview Section */}
-          {imagesData.length > 0 &&
-            imagesData.some((img) => img.file || img.imageUrl) && (
+          {banners && banners.length > 0 &&
+            banners.some((bannerItem, idx) => {
+              const bannerImageUrl = banner?.banners?.[idx]?.image;
+              return bannerItem?.image instanceof File || bannerImageUrl;
+            }) && (
               <div className="overflow-hidden rounded-2xl bg-white shadow-nature-medium ring-1 ring-primary-100">
                 <div className="bg-gradient-to-r from-primary via-primary-600 to-primary-700 p-6">
                   <div className="flex items-center justify-between">
@@ -438,10 +481,14 @@ const Banner = () => {
 
                 <div className="p-8">
                   <div className="relative aspect-[21/9] w-full overflow-hidden rounded-2xl shadow-2xl">
-                    {imagesData.map((img, index) => {
-                      let imageName = img?.imageUrl
-                        ? IMAGES_URL + img?.imageUrl.split("/").pop()
-                        : "/images/admin.png";
+                    {banners.map((bannerItem, index) => {
+                      const bannerImageUrl = banner?.banners?.[index]?.image;
+                      let imageName = bannerImageUrl
+                        ? IMAGES_URL + bannerImageUrl.split("/").pop()
+                        : null;
+                      const previewUrl = bannerItem?.image instanceof File
+                        ? URL.createObjectURL(bannerItem.image)
+                        : imageName;
                       return (
                         <div
                           key={index}
@@ -451,10 +498,10 @@ const Banner = () => {
                               : "scale-105 opacity-0"
                           }`}
                         >
-                          {(img.file || img.imageUrl) && (
+                          {previewUrl && (
                             <>
                               <img
-                                src={imageName || URL.createObjectURL(img.file)}
+                                src={previewUrl}
                                 alt={`Preview ${index + 1}`}
                                 className="h-full w-full object-cover"
                               />
@@ -462,10 +509,10 @@ const Banner = () => {
                                 <div className="absolute bottom-0 w-full p-8">
                                   <div className="max-w-2xl">
                                     <h3 className="mb-4 font-bold leading-tight text-white lg:text-4xl">
-                                      {img.title || `Banner ${index + 1}`}
+                                      {bannerItem.title || `Banner ${index + 1}`}
                                     </h3>
                                     <p className="leading-relaxed text-white/90 lg:text-lg">
-                                      {img.description ||
+                                      {bannerItem.description ||
                                         "Add a description to make this banner more engaging"}
                                     </p>
                                   </div>
@@ -479,7 +526,7 @@ const Banner = () => {
 
                     {/* Carousel Indicators */}
                     <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 transform space-x-2">
-                      {imagesData.map((_, index) => (
+                      {banners.map((_, index) => (
                         <button
                           key={index}
                           onClick={() => setCurrentImageIndex(index)}

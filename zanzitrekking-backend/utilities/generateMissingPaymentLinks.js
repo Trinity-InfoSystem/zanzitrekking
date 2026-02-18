@@ -1,4 +1,5 @@
 const Order = require("../models/order");
+const logger = require('./logger');
 const Trip = require("../models/trip");
 const weTravelService = require("./wetravelService");
 const {
@@ -11,7 +12,7 @@ const {
  */
 const generateMissingPaymentLinks = async () => {
   try {
-    console.log("[Payment Links] Starting missing payment links generation...");
+    logger.info("[Payment Links] Starting missing payment links generation...");
 
     // Find all orders with processing payment status but no payment link
     const ordersWithoutLinks = await Order.find({
@@ -23,7 +24,7 @@ const generateMissingPaymentLinks = async () => {
       ],
     }).lean();
 
-    console.log(
+    logger.info(
       `[Payment Links] Found ${ordersWithoutLinks.length} orders without payment links`
     );
 
@@ -37,8 +38,8 @@ const generateMissingPaymentLinks = async () => {
         const isTestOrder = order.orderNumber === "ZT-20251008-0004";
 
         if (isTestOrder) {
-          console.log(`[Payment Links] 🧪 TESTING ORDER: ${order.orderNumber}`);
-          console.log(`[Payment Links] 🧪 Order details:`, {
+          logger.info(`[Payment Links] 🧪 TESTING ORDER: ${order.orderNumber}`);
+          logger.info(`[Payment Links] 🧪 Order details:`, {
             orderNumber: order.orderNumber,
             cartItemsCount: order.cartItems?.length || 0,
             paymentStatus: order.payment?.status,
@@ -46,7 +47,7 @@ const generateMissingPaymentLinks = async () => {
         }
 
         if (!isTestOrder) {
-          console.log(
+          logger.info(
             `[Payment Links] Generating link for order ${order.orderNumber}...`
           );
         }
@@ -73,11 +74,11 @@ const generateMissingPaymentLinks = async () => {
             if (missingTripIds.length > 0) {
               linksSkipped++;
               if (isTestOrder) {
-                console.log(
+                logger.info(
                   `[Payment Links] 🧪 ⏭️  Skipping test order: Some trips no longer exist in database (tripIds: ${missingTripIds.join(", ")})`
                 );
               } else {
-                console.log(
+                logger.info(
                   `[Payment Links] ⏭️  Skipping order ${order.orderNumber}: Some trips no longer exist in database (tripIds: ${missingTripIds.join(", ")})`
                 );
               }
@@ -90,10 +91,10 @@ const generateMissingPaymentLinks = async () => {
 
           for (const cartItem of order.cartItems) {
             if (isTestOrder) {
-              console.log(
+              logger.info(
                 `[Payment Links] 🧪 Checking booking restrictions for cart item: ${cartItem.mainTitle}`
               );
-              console.log(`[Payment Links] 🧪 Cart Item:`, {
+              logger.info(`[Payment Links] 🧪 Cart Item:`, {
                 mainTitle: cartItem.mainTitle,
                 selectedCategory: cartItem.selectedCategory,
                 startingDate: cartItem.startingDate,
@@ -114,7 +115,7 @@ const generateMissingPaymentLinks = async () => {
             });
 
             if (isTestOrder) {
-              console.log(`[Payment Links] 🧪 Booking Restriction Result:`, {
+              logger.info(`[Payment Links] 🧪 Booking Restriction Result:`, {
                 allowed: restriction.allowed,
                 warning: restriction.warning,
                 daysUntilTrip: restriction.daysUntilTrip,
@@ -124,13 +125,13 @@ const generateMissingPaymentLinks = async () => {
             if (!restriction.allowed) {
               hasRestrictionIssue = true;
               if (isTestOrder) {
-                console.log(
+                logger.info(
                   `[Payment Links] 🧪 ⚠️  Booking restriction failed for item "${cartItem.mainTitle}": ${restriction.warning}`
                 );
               }
             } else if (restriction.warning) {
               if (isTestOrder) {
-                console.log(
+                logger.info(
                   `[Payment Links] 🧪 ⚠️  Booking restriction warning for item "${cartItem.mainTitle}": ${restriction.warning}`
                 );
               }
@@ -141,10 +142,10 @@ const generateMissingPaymentLinks = async () => {
           if (hasRestrictionIssue) {
             linksSkipped++;
             if (isTestOrder) {
-              console.log(
+              logger.info(
                 `[Payment Links] 🧪 ⏭️  Skipping test order: Booking restrictions not met`
               );
-              console.log(
+              logger.info(
                 `[Payment Links] 🧪 Restriction details:`,
                 JSON.stringify(restrictionDetails, null, 2)
               );
@@ -157,7 +158,7 @@ const generateMissingPaymentLinks = async () => {
         const orderData = weTravelService.formatOrderForPaymentLink(order);
 
         if (isTestOrder) {
-          console.log(`[Payment Links] 🧪 Formatted order data:`, {
+          logger.info(`[Payment Links] 🧪 Formatted order data:`, {
             tripTitle: orderData.tripTitle,
             startDate: orderData.startDate,
             endDate: orderData.endDate,
@@ -170,7 +171,7 @@ const generateMissingPaymentLinks = async () => {
         if (isTripDateInPast(orderData.startDate)) {
           linksSkipped++;
           if (isTestOrder) {
-            console.log(
+            logger.info(
               `[Payment Links] 🧪 ⏭️  Skipping test order: Trip start date (${orderData.startDate}) is in the past`
             );
           }
@@ -179,7 +180,7 @@ const generateMissingPaymentLinks = async () => {
 
         // Create payment link
         if (isTestOrder) {
-          console.log(
+          logger.info(
             `[Payment Links] 🧪 Creating payment link for test order...`
           );
         }
@@ -199,24 +200,24 @@ const generateMissingPaymentLinks = async () => {
 
         linksGenerated++;
         if (isTestOrder) {
-          console.log(
+          logger.info(
             `[Payment Links] 🧪 ✅ Link generated for test order ${order.orderNumber}: ${weTravelResponse.trip.url}`
           );
-          console.log(`[Payment Links] 🧪 Payment link details:`, {
+          logger.info(`[Payment Links] 🧪 Payment link details:`, {
             url: weTravelResponse.trip.url,
             uuid: weTravelResponse.trip.uuid,
           });
         }
       } catch (error) {
         linksFailed++;
-        console.error(
+        logger.error(
           `[Payment Links] ❌ Failed to generate link for order ${order.orderNumber}:`,
           error.message
         );
       }
     }
 
-    console.log(
+    logger.info(
       `[Payment Links] Job complete. Generated: ${linksGenerated}, Failed: ${linksFailed}, Skipped: ${linksSkipped}`
     );
 
@@ -228,7 +229,7 @@ const generateMissingPaymentLinks = async () => {
       totalOrders: ordersWithoutLinks.length,
     };
   } catch (error) {
-    console.error("[Payment Links] Error in missing payment links job:", error);
+    logger.error("[Payment Links] Error in missing payment links job:", error);
     return {
       success: false,
       error: error.message,

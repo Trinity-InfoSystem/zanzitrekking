@@ -973,7 +973,6 @@ const Payments = () => {
             </div>
           )}
         </div>
-        )}
 
         {/* Payment Status Update Warning Modal */}
         {showPaymentStatusModal && (

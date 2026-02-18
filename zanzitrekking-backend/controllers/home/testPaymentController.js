@@ -1,4 +1,5 @@
 const Order = require("../../models/order");
+const logger = require('./../../utilities/logger');
 const weTravelService = require("../../utilities/wetravelService");
 const { responseReturn } = require("../../utilities/response");
 
@@ -91,7 +92,7 @@ class TestPaymentController {
         });
       }
     } catch (error) {
-      console.error("Test order creation error:", error);
+      logger.error("Test order creation error:", error);
       return responseReturn(res, 500, {
         error: "Failed to create test order",
         message: error.message,
@@ -172,7 +173,7 @@ class TestPaymentController {
         note: "Check the order in database to verify status was updated",
       });
     } catch (error) {
-      console.error("Webhook simulation error:", error);
+      logger.error("Webhook simulation error:", error);
       return responseReturn(res, 500, {
         error: "Failed to simulate webhook",
         message: error.message,

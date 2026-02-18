@@ -1,4 +1,5 @@
 const ClientModel = require("../../models/client");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
@@ -31,7 +32,7 @@ class ClientController {
         client: createdClient,
       });
     } catch (error) {
-      console.error("Error adding client:", error);
+      logger.error("Error adding client:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,
@@ -73,7 +74,11 @@ class ClientController {
             oldLogoFileName
           );
           if (fs.existsSync(oldLogoPath)) {
-            fs.unlinkSync(oldLogoPath);
+            try {
+              await fs.promises.unlink(oldLogoPath);
+            } catch (error) {
+              logger.error("Error deleting old logo:", error);
+            }
           }
         }
         updateFields.logo = `${basePath}${logoFile.filename}`;
@@ -92,7 +97,11 @@ class ClientController {
             oldLogoFileName
           );
           if (fs.existsSync(oldLogoPath)) {
-            fs.unlinkSync(oldLogoPath);
+            try {
+              await fs.promises.unlink(oldLogoPath);
+            } catch (error) {
+              logger.error("Error deleting old logo:", error);
+            }
           }
         }
         updateFields.logo = null;
@@ -109,7 +118,7 @@ class ClientController {
         client: updatedClient,
       });
     } catch (error) {
-      console.error("Error updating client:", error);
+      logger.error("Error updating client:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,

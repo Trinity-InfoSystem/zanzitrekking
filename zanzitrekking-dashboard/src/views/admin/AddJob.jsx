@@ -18,6 +18,9 @@ import { FaCode, FaFileAlt } from "react-icons/fa";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../admin/quill-custom.css";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { jobSchema } from "../../utils/validationSchemas";
 
 const AddJob = () => {
   const dispatch = useDispatch();
@@ -27,8 +30,6 @@ const AddJob = () => {
     (state) => state.job,
   );
 
-  const [contentType, setContentType] = useState("structured");
-  const [htmlContent, setHtmlContent] = useState("");
   const [showHtmlCode, setShowHtmlCode] = useState(false);
   // Store original HTML with style/script tags preserved
   const [originalHtmlContent, setOriginalHtmlContent] = useState("");
@@ -37,18 +38,33 @@ const AddJob = () => {
     styles: [],
     scripts: [],
   });
-  const [state, setState] = useState({
-    title: "",
-    description: "",
-    requirements: "",
-    location: "",
-    employmentType: "full-time",
-    salaryRange: "",
-    applicationDeadline: "",
-    isActive: true,
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(jobSchema),
+    defaultValues: {
+      title: "",
+      contentType: "structured",
+      htmlContent: "",
+      description: "",
+      requirements: "",
+      location: "",
+      employmentType: "full-time",
+      salaryRange: "",
+      applicationDeadline: "",
+      isActive: true,
+    },
   });
 
-  const [errors, setErrors] = useState({});
+  const contentType = watch("contentType");
+  const htmlContent = watch("htmlContent");
 
   // Helper function to extract style and script tags from HTML
   const extractStyleAndScript = (html) => {
@@ -106,45 +122,13 @@ const AddJob = () => {
     [],
   );
 
-  function validateForm() {
-    let valid = true;
-    const newErrors = {};
-
-    if (!state.title) {
-      newErrors.title = "Job title is required.";
-      valid = false;
-    }
-
-    // Validate content based on contentType
-    if (contentType === "html") {
-      if (!htmlContent || htmlContent.trim() === "") {
-        newErrors.htmlContent = "HTML content is required.";
-        valid = false;
-      }
-    } else {
-      if (!state.description || state.description.trim() === "") {
-        newErrors.description = "Job description is required.";
-        valid = false;
-      }
-      if (!state.employmentType) {
-        newErrors.employmentType = "Employment type is required.";
-        valid = false;
-      }
-    }
-
-    setErrors(newErrors);
-    return valid;
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const onSubmit = (data) => {
 
     // Ensure contentType is explicitly set
-    const finalContentType = contentType || "structured";
+    const finalContentType = data.contentType || "structured";
 
     // For HTML content, merge preserved style/script tags if in visual editor mode
-    let finalHtmlContent = htmlContent;
+    let finalHtmlContent = data.htmlContent || "";
     if (finalContentType === "html") {
       if (
         !showHtmlCode &&
@@ -153,32 +137,32 @@ const AddJob = () => {
       ) {
         // User is in visual editor mode, merge preserved style/script tags
         finalHtmlContent = mergeStyleAndScript(
-          htmlContent,
+          data.htmlContent || "",
           preservedStyleScript.styles,
           preservedStyleScript.scripts,
         );
       } else if (showHtmlCode) {
         // User is in HTML code mode, use the raw HTML directly
-        finalHtmlContent = htmlContent;
+        finalHtmlContent = data.htmlContent || "";
       }
     }
 
     const jobData = {
-      title: state.title,
+      title: data.title,
       contentType: finalContentType,
       htmlContent: finalContentType === "html" ? finalHtmlContent : "",
-      description: finalContentType === "html" ? "" : state.description || "",
+      description: finalContentType === "html" ? "" : data.description || "",
       // Include structured fields for both content types
       // For HTML content, requirements are not used, but other fields are available
       requirements:
-        finalContentType === "structured" && state.requirements
-          ? state.requirements.split(",").map((r) => r.trim())
+        finalContentType === "structured" && data.requirements
+          ? data.requirements.split(",").map((r) => r.trim())
           : [],
-      location: state.location || "",
-      employmentType: state.employmentType || "full-time",
-      salaryRange: state.salaryRange || "",
-      applicationDeadline: state.applicationDeadline || null,
-      isActive: state.isActive === true || state.isActive === "true",
+      location: data.location || "",
+      employmentType: data.employmentType || "full-time",
+      salaryRange: data.salaryRange || "",
+      applicationDeadline: data.applicationDeadline || null,
+      isActive: data.isActive === true || data.isActive === "true",
     };
 
     // Submit job data
@@ -199,8 +183,10 @@ const AddJob = () => {
     } else {
       // Clear job data when adding new job
       dispatch(clearJob());
-      setState({
+      reset({
         title: "",
+        contentType: "structured",
+        htmlContent: "",
         description: "",
         requirements: "",
         location: "",
@@ -209,8 +195,6 @@ const AddJob = () => {
         applicationDeadline: "",
         isActive: true,
       });
-      setContentType("structured");
-      setHtmlContent("");
     }
     return () => {
       if (!jobId) {
@@ -222,7 +206,7 @@ const AddJob = () => {
   useEffect(() => {
     if (job && job._id && jobId) {
       const contentTypeValue = job?.contentType || "structured";
-      setContentType(contentTypeValue);
+      setValue("contentType", contentTypeValue);
 
       // Store original HTML content
       const originalHtml = job?.htmlContent || "";
@@ -241,19 +225,21 @@ const AddJob = () => {
         const hasStyleOrScript =
           extracted.styles.length > 0 || extracted.scripts.length > 0;
         if (hasStyleOrScript) {
-          setHtmlContent(originalHtml);
+          setValue("htmlContent", originalHtml);
           setShowHtmlCode(true); // Start in HTML code view to preserve everything
         } else {
-          setHtmlContent(extracted.bodyContent || originalHtml);
+          setValue("htmlContent", extracted.bodyContent || originalHtml);
           setShowHtmlCode(false); // Start in visual editor
         }
       } else {
-        setHtmlContent("");
+        setValue("htmlContent", "");
         setPreservedStyleScript({ styles: [], scripts: [] });
       }
 
-      setState({
+      reset({
         title: job?.title || "",
+        contentType: contentTypeValue,
+        htmlContent: contentTypeValue === "html" ? (job?.htmlContent || "") : "",
         description: job?.description || "",
         requirements: job?.requirements?.join(", ") || "",
         location: job?.location || "",
@@ -265,7 +251,7 @@ const AddJob = () => {
         isActive: job?.isActive !== undefined ? job.isActive : true,
       });
     }
-  }, [job, jobId]);
+  }, [job, jobId, setValue, reset]);
 
   useEffect(() => {
     if (successMessage) {
@@ -311,7 +297,7 @@ const AddJob = () => {
             </h2>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="p-6">
             <div className="space-y-6">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-primary-800">
@@ -319,15 +305,16 @@ const AddJob = () => {
                 </label>
                 <input
                   type="text"
-                  value={state.title}
-                  onChange={(e) =>
-                    setState({ ...state, title: e.target.value })
-                  }
-                  className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                  {...register("title")}
+                  className={`w-full rounded-lg border-2 bg-white px-4 py-2.5 text-sm text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.title
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                   placeholder="Enter job title"
                 />
                 {errors.title && (
-                  <p className="mt-1 text-xs text-red-600">{errors.title}</p>
+                  <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>
                 )}
               </div>
 
@@ -339,7 +326,7 @@ const AddJob = () => {
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => setContentType("structured")}
+                    onClick={() => setValue("contentType", "structured")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
                       contentType === "structured"
                         ? "shadow-coral-medium bg-gradient-to-r from-secondary to-sunshine-400 text-white"
@@ -351,7 +338,7 @@ const AddJob = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setContentType("html")}
+                    onClick={() => setValue("contentType", "html")}
                     className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
                       contentType === "html"
                         ? "shadow-coral-medium bg-gradient-to-r from-secondary to-sunshine-400 text-white"
@@ -375,28 +362,30 @@ const AddJob = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          if (showHtmlCode) {
-                            // Switching from HTML code to Visual editor
-                            // Extract style/script tags and store them
-                            const extracted =
-                              extractStyleAndScript(htmlContent);
-                            setPreservedStyleScript({
-                              styles: extracted.styles,
-                              scripts: extracted.scripts,
-                            });
-                            // Set only body content for ReactQuill
-                            setHtmlContent(extracted.bodyContent);
-                          } else {
-                            // Switching from Visual editor to HTML code
-                            // Merge preserved style/script tags back
-                            const merged = mergeStyleAndScript(
-                              htmlContent,
-                              preservedStyleScript.styles,
-                              preservedStyleScript.scripts,
-                            );
-                            setHtmlContent(merged);
-                          }
-                          setShowHtmlCode(!showHtmlCode);
+                        if (showHtmlCode) {
+                          // Switching from HTML code to Visual editor
+                          // Extract style/script tags and store them
+                          const currentHtml = watch("htmlContent") || "";
+                          const extracted =
+                            extractStyleAndScript(currentHtml);
+                          setPreservedStyleScript({
+                            styles: extracted.styles,
+                            scripts: extracted.scripts,
+                          });
+                          // Set only body content for ReactQuill
+                          setValue("htmlContent", extracted.bodyContent);
+                        } else {
+                          // Switching from Visual editor to HTML code
+                          // Merge preserved style/script tags back
+                          const currentHtml = watch("htmlContent") || "";
+                          const merged = mergeStyleAndScript(
+                            currentHtml,
+                            preservedStyleScript.styles,
+                            preservedStyleScript.scripts,
+                          );
+                          setValue("htmlContent", merged);
+                        }
+                        setShowHtmlCode(!showHtmlCode);
                         }}
                         className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-info to-info-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:scale-105"
                       >
@@ -408,16 +397,25 @@ const AddJob = () => {
                     {showHtmlCode ? (
                       /* HTML Code Editor */
                       <div>
-                        <textarea
-                          value={htmlContent}
-                          onChange={(e) => setHtmlContent(e.target.value)}
-                          placeholder="Enter your HTML code here..."
-                          rows={15}
-                          className="w-full resize-none rounded-lg border-2 border-primary-200 bg-neutral-900 px-4 py-3 font-mono text-xs text-green-400 placeholder:text-neutral-500 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-                          style={{
-                            fontFamily: "'Courier New', monospace",
-                            lineHeight: "1.5",
-                          }}
+                        <Controller
+                          name="htmlContent"
+                          control={control}
+                          render={({ field }) => (
+                            <textarea
+                              {...field}
+                              placeholder="Enter your HTML code here..."
+                              rows={15}
+                              className={`w-full resize-none rounded-lg border-2 bg-neutral-900 px-4 py-3 font-mono text-xs text-green-400 placeholder:text-neutral-500 focus:outline-none focus:ring-2 ${
+                                errors.htmlContent
+                                  ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                                  : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                              }`}
+                              style={{
+                                fontFamily: "'Courier New', monospace",
+                                lineHeight: "1.5",
+                              }}
+                            />
+                          )}
                         />
                         <p className="mt-2 text-xs text-text-light">
                           Direct HTML code editor. Make sure your HTML is valid.
@@ -441,13 +439,19 @@ const AddJob = () => {
                           </div>
                         )}
                         <div className="rounded-lg border-2 border-primary-200 bg-white">
-                          <ReactQuill
-                            theme="snow"
-                            value={htmlContent}
-                            onChange={setHtmlContent}
-                            modules={quillModules}
-                            placeholder="Start writing your job description..."
-                            className="min-h-[300px]"
+                          <Controller
+                            name="htmlContent"
+                            control={control}
+                            render={({ field }) => (
+                              <ReactQuill
+                                theme="snow"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                modules={quillModules}
+                                placeholder="Start writing your job description..."
+                                className="min-h-[300px]"
+                              />
+                            )}
                           />
                         </div>
                         <p className="mt-2 text-xs text-text-light">
@@ -459,7 +463,7 @@ const AddJob = () => {
                     )}
                     {errors.htmlContent && (
                       <p className="mt-1 text-xs text-red-600">
-                        {errors.htmlContent}
+                        {errors.htmlContent.message}
                       </p>
                     )}
                   </div>
@@ -472,10 +476,7 @@ const AddJob = () => {
                       </label>
                       <input
                         type="text"
-                        value={state.location}
-                        onChange={(e) =>
-                          setState({ ...state, location: e.target.value })
-                        }
+                        {...register("location")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                         placeholder="Enter location (optional)"
                       />
@@ -486,15 +487,14 @@ const AddJob = () => {
                         Employment Type
                       </label>
                       <select
-                        value={state.employmentType}
-                        onChange={(e) =>
-                          setState({ ...state, employmentType: e.target.value })
-                        }
+                        {...register("employmentType")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                       >
                         <option value="full-time">Full-time</option>
                         <option value="part-time">Part-time</option>
                         <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                        <option value="freelance">Freelance</option>
                       </select>
                     </div>
                   </div>
@@ -506,10 +506,7 @@ const AddJob = () => {
                       </label>
                       <input
                         type="text"
-                        value={state.salaryRange}
-                        onChange={(e) =>
-                          setState({ ...state, salaryRange: e.target.value })
-                        }
+                        {...register("salaryRange")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                         placeholder="e.g., $50,000 - $70,000"
                       />
@@ -521,13 +518,7 @@ const AddJob = () => {
                       </label>
                       <input
                         type="date"
-                        value={state.applicationDeadline}
-                        onChange={(e) =>
-                          setState({
-                            ...state,
-                            applicationDeadline: e.target.value,
-                          })
-                        }
+                        {...register("applicationDeadline")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                       />
                     </div>
@@ -540,17 +531,18 @@ const AddJob = () => {
                       Description *
                     </label>
                     <textarea
-                      value={state.description}
-                      onChange={(e) =>
-                        setState({ ...state, description: e.target.value })
-                      }
+                      {...register("description")}
                       rows={6}
-                      className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                      className={`w-full rounded-lg border-2 bg-white px-4 py-2.5 text-sm text-text-dark focus:outline-none focus:ring-2 ${
+                        errors.description
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
                       placeholder="Enter job description"
                     />
                     {errors.description && (
                       <p className="mt-1 text-xs text-red-600">
-                        {errors.description}
+                        {errors.description.message}
                       </p>
                     )}
                   </div>
@@ -560,10 +552,7 @@ const AddJob = () => {
                       Requirements (comma-separated)
                     </label>
                     <textarea
-                      value={state.requirements}
-                      onChange={(e) =>
-                        setState({ ...state, requirements: e.target.value })
-                      }
+                      {...register("requirements")}
                       rows={4}
                       className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                       placeholder="Requirement 1, Requirement 2, Requirement 3..."
@@ -577,10 +566,7 @@ const AddJob = () => {
                       </label>
                       <input
                         type="text"
-                        value={state.location}
-                        onChange={(e) =>
-                          setState({ ...state, location: e.target.value })
-                        }
+                        {...register("location")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                         placeholder="Enter location (optional)"
                       />
@@ -591,19 +577,22 @@ const AddJob = () => {
                         Employment Type *
                       </label>
                       <select
-                        value={state.employmentType}
-                        onChange={(e) =>
-                          setState({ ...state, employmentType: e.target.value })
-                        }
-                        className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                        {...register("employmentType")}
+                        className={`w-full rounded-lg border-2 bg-white px-4 py-2.5 text-sm text-text-dark focus:outline-none focus:ring-2 ${
+                          errors.employmentType
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                        }`}
                       >
                         <option value="full-time">Full-time</option>
                         <option value="part-time">Part-time</option>
                         <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                        <option value="freelance">Freelance</option>
                       </select>
                       {errors.employmentType && (
                         <p className="mt-1 text-xs text-red-600">
-                          {errors.employmentType}
+                          {errors.employmentType.message}
                         </p>
                       )}
                     </div>
@@ -616,10 +605,7 @@ const AddJob = () => {
                       </label>
                       <input
                         type="text"
-                        value={state.salaryRange}
-                        onChange={(e) =>
-                          setState({ ...state, salaryRange: e.target.value })
-                        }
+                        {...register("salaryRange")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                         placeholder="e.g., $50,000 - $70,000"
                       />
@@ -631,13 +617,7 @@ const AddJob = () => {
                       </label>
                       <input
                         type="date"
-                        value={state.applicationDeadline}
-                        onChange={(e) =>
-                          setState({
-                            ...state,
-                            applicationDeadline: e.target.value,
-                          })
-                        }
+                        {...register("applicationDeadline")}
                         className="w-full rounded-lg border-2 border-primary-200 bg-white px-4 py-2.5 text-sm text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                       />
                     </div>
@@ -648,10 +628,7 @@ const AddJob = () => {
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={state.isActive}
-                  onChange={(e) =>
-                    setState({ ...state, isActive: e.target.checked })
-                  }
+                  {...register("isActive")}
                   className="h-4 w-4 rounded border-primary-300 text-secondary accent-secondary focus:ring-2 focus:ring-secondary-200"
                 />
                 <label className="text-sm font-semibold text-primary-800">

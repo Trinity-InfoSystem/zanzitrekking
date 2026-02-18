@@ -9,42 +9,53 @@ import {
   Shield,
   XCircle,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { passwordSchema } from "../../utils/validationSchemas";
+
+const changePasswordSchema = yup.object({
+  current: yup.string().required("Current password is required"),
+  new: passwordSchema,
+  confirm: yup
+    .string()
+    .oneOf([yup.ref("new")], "Passwords must match")
+    .required("Please confirm your password"),
+});
 
 const ChangePassword = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [passwords, setPasswords] = useState({
-    current: "",
-    new: "",
-    confirm: "",
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setPasswords((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(changePasswordSchema),
+  });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const newPassword = watch("new");
+  const confirmPassword = watch("confirm");
+
+  const passwordsMatch =
+    newPassword === confirmPassword && newPassword !== "";
+  const hasMinLength = newPassword?.length >= 8;
+  const hasUppercase = /[A-Z]/.test(newPassword || "");
+  const hasLowercase = /[a-z]/.test(newPassword || "");
+  const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword || "");
+  const hasNumber = /\d/.test(newPassword || "");
+
+  const onSubmit = async (data) => {
     setIsSubmitting(true);
-
+    // TODO: Implement actual password change API call
     setTimeout(() => {
       setIsSubmitting(false);
     }, 1500);
   };
-
-  const passwordsMatch =
-    passwords.new === passwords.confirm && passwords.new !== "";
-  const hasMinLength = passwords.new.length >= 8;
-  const hasUppercase = /[A-Z]/.test(passwords.new);
-  const hasLowercase = /[a-z]/.test(passwords.new);
-  const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(passwords.new);
-  const hasNumber = /\d/.test(passwords.new);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -67,7 +78,7 @@ const ChangePassword = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6 p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6">
             {/* Current Password */}
             <div className="space-y-2">
               <label
@@ -80,13 +91,14 @@ const ChangePassword = () => {
               <div className="relative">
                 <input
                   type={showCurrentPassword ? "text" : "password"}
-                  name="current"
                   id="current"
-                  value={passwords.current}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pr-12 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                  {...register("current")}
+                  className={`w-full rounded-lg border bg-white px-4 py-3 pr-12 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:outline-none focus:ring-2 ${
+                    errors.current
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                  }`}
                   placeholder="Enter current password"
-                  required
                 />
                 <button
                   type="button"
@@ -100,6 +112,9 @@ const ChangePassword = () => {
                   )}
                 </button>
               </div>
+              {errors.current && (
+                <p className="text-sm text-red-600">{errors.current.message}</p>
+              )}
             </div>
 
             {/* New Password */}
@@ -114,13 +129,14 @@ const ChangePassword = () => {
               <div className="relative">
                 <input
                   type={showNewPassword ? "text" : "password"}
-                  name="new"
                   id="new"
-                  value={passwords.new}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pr-12 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                  {...register("new")}
+                  className={`w-full rounded-lg border bg-white px-4 py-3 pr-12 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:outline-none focus:ring-2 ${
+                    errors.new
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                  }`}
                   placeholder="Enter new password"
-                  required
                 />
                 <button
                   type="button"
@@ -134,9 +150,12 @@ const ChangePassword = () => {
                   )}
                 </button>
               </div>
+              {errors.new && (
+                <p className="text-sm text-red-600">{errors.new.message}</p>
+              )}
 
               {/* Password Requirements */}
-              {passwords.new && (
+              {newPassword && (
                 <div className="mt-4 rounded-lg border border-neutral-200 bg-background-muted p-4">
                   <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary-800">
                     <Shield className="h-4 w-4 text-primary-600" />
@@ -220,19 +239,16 @@ const ChangePassword = () => {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
-                  name="confirm"
                   id="confirm"
-                  value={passwords.confirm}
-                  onChange={handleChange}
+                  {...register("confirm")}
                   className={`w-full rounded-lg border px-4 py-3 pr-12 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:outline-none focus:ring-2 ${
-                    passwords.confirm
-                      ? passwordsMatch
+                    errors.confirmPassword || (confirmPassword && !passwordsMatch)
+                      ? "border-error-300 focus:border-error-500 focus:ring-error-200"
+                      : confirmPassword && passwordsMatch
                         ? "border-success-300 focus:border-success-500 focus:ring-success-200"
-                        : "border-error-300 focus:border-error-500 focus:ring-error-200"
-                      : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                        : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
                   }`}
                   placeholder="Confirm new password"
-                  required
                 />
                 <button
                   type="button"
@@ -246,8 +262,10 @@ const ChangePassword = () => {
                   )}
                 </button>
               </div>
-
-              {passwords.confirm && !passwordsMatch && (
+              {errors.confirm && (
+                <p className="text-sm text-red-600">{errors.confirm.message}</p>
+              )}
+              {confirmPassword && !errors.confirm && !passwordsMatch && (
                 <div className="flex items-center gap-2 rounded-lg border border-error-200 bg-error-50 p-3">
                   <XCircle className="h-4 w-4 text-error-600" />
                   <p className="text-sm font-medium text-error-700">
@@ -255,7 +273,7 @@ const ChangePassword = () => {
                   </p>
                 </div>
               )}
-              {passwords.confirm && passwordsMatch && (
+              {confirmPassword && passwordsMatch && !errors.confirm && (
                 <div className="flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 p-3">
                   <CheckCircle className="h-4 w-4 text-success-600" />
                   <p className="text-sm font-medium text-success-700">

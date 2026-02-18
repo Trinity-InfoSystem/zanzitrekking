@@ -18,6 +18,7 @@ import {
   get_cart_trips,
   get_wishlist_trips,
 } from "../store/reducers/cardReducer";
+import { formatDateForAPI } from "../utils/dateUtils";
 import toast from "react-hot-toast";
 import TripList from "../components/trips/TripList";
 import TripListSkeleton from "../components/trips/TripListSkeleton";
@@ -358,7 +359,7 @@ const Trips = () => {
         add_to_cart({
           userId: userInfo.id,
           tripId: trip._id,
-          startingDate: new Date().toISOString(),
+          startingDate: formatDateForAPI(new Date()),
           travelersNumber: 1,
           mainTitle: trip.mainTitle,
           mainImage: trip.mainImage,

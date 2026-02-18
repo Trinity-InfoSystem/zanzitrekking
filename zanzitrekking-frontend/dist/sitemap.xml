@@ -7,79 +7,79 @@
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
     <loc>https://booking.zanzisafaris.com/</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>1</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/trips</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/blog</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/about-us</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/contact-us</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/careers</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/reviews/google</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/reviews/tripadvisor</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/reviews/safariBooking</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/reviews/getYourGuide</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/terms-of-service</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/privacy-policy</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://booking.zanzisafaris.com/cookie-policy</loc>
-    <lastmod>2026-02-16</lastmod>
+    <lastmod>2026-02-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

@@ -1,4 +1,5 @@
 const Message = require("../../models/chat/chat");
+const logger = require('./../../utilities/logger');
 const Customer = require("../../models/customer");
 const Admin = require("../../models/admin");
 const createError = require("http-errors");
@@ -100,10 +101,20 @@ class messageController {
   // Send a new message
   send_message = async (req, res, next) => {
     try {
-      const { sender, senderModel, receiver, receiverModel, content } =
-        req.body;
+      // Derive sender from authenticated JWT token (set by middleware)
+      // req.id is set by customerJwtMiddleware or jwtMiddleware
+      const sender = req.id;
+      if (!sender) {
+        return res.status(401).json({ error: "Unauthorized - sender not found" });
+      }
 
-      console.log(req.body);
+      // Determine senderModel based on which middleware was used
+      // If req.role exists, it's an admin; otherwise it's a customer
+      const senderModel = req.role ? "Admin" : "Customer";
+      
+      const { receiver, receiverModel, content } = req.body;
+
+      logger.info({ sender, senderModel, receiver, receiverModel, content });
 
       const conversationContext = buildConversationContext({
         sender,
@@ -449,10 +460,18 @@ class messageController {
 
   send_file = async (req, res, next) => {
     try {
-      const { sender, senderModel, receiver, receiverModel, content } =
-        req.body;
+      // Derive sender from authenticated JWT token (set by middleware)
+      const sender = req.id;
+      if (!sender) {
+        return res.status(401).json({ error: "Unauthorized - sender not found" });
+      }
 
-      console.log(req.body);
+      // Determine senderModel based on which middleware was used
+      const senderModel = req.role ? "Admin" : "Customer";
+      
+      const { receiver, receiverModel, content } = req.body;
+
+      logger.info({ sender, senderModel, receiver, receiverModel, content });
 
       if (!req.file) {
         throw createError(400, "No file uploaded");
@@ -526,7 +545,11 @@ class messageController {
           message.attachment
         );
         if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+          try {
+            await fs.promises.unlink(filePath);
+          } catch (error) {
+            logger.error("Error deleting attachment file:", error);
+          }
         }
       }
 

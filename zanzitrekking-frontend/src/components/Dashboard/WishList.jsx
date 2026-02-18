@@ -19,6 +19,7 @@ import {
 } from "../../store/reducers/cardReducer";
 import toast from "react-hot-toast";
 import { IMAGES_URL } from "../../utils/constants";
+import { formatDateForAPI } from "../../utils/dateUtils";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ const Wishlist = () => {
         add_to_cart({
           userId: userInfo.id,
           tripId: actualTripId,
-          startingDate: new Date().toISOString(),
+          startingDate: formatDateForAPI(new Date()),
           travelersNumber: 1,
           mainTitle: trip.mainTitle,
           mainImage: trip.mainImage,

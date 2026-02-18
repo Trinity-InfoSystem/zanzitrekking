@@ -1,6 +1,6 @@
 import { FaFacebookF } from "react-icons/fa6";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   clearMessage,
@@ -22,6 +22,9 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { registerSchema } from "../utils/validationSchemas";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -29,13 +32,20 @@ const Register = () => {
     (state) => state.auth,
   );
   const dispatch = useDispatch();
-  const nameRef = useRef();
-  const emailRef = useRef();
-  const passwordRef = useRef();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(registerSchema),
+  });
+
+  const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
 
   // Password validation states
   const [passwordChecks, setPasswordChecks] = useState({
@@ -80,31 +90,8 @@ const Register = () => {
     });
   }, [password]);
 
-  const register = (e) => {
-    e.preventDefault();
-    const name = nameRef.current.value;
-    const email = emailRef.current.value;
-    const passwordValue = passwordRef.current.value;
-
-    // Validate password requirements
-    const isPasswordValid = Object.values(passwordChecks).every(
-      (check) => check,
-    );
-
-    if (!isPasswordValid) {
-      toast.error(
-        "Please ensure your password meets all the requirements below",
-      );
-      return;
-    }
-
-    // Validate password match
-    if (passwordValue !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    dispatch(customer_register({ name, email, password: passwordValue }));
+  const onSubmit = (data) => {
+    dispatch(customer_register({ name: data.name, email: data.email, password: data.password }));
   };
 
   const isPasswordValid = Object.values(passwordChecks).every((check) => check);
@@ -276,7 +263,7 @@ const Register = () => {
                   </p>
                 </div>
 
-                <form onSubmit={register} className="space-y-5">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                   {/* Name Input */}
                   <div>
                     <label
@@ -290,15 +277,20 @@ const Register = () => {
                         <User className="h-5 w-5 text-primary-400" />
                       </div>
                       <input
-                        className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                          errors.name
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                        }`}
                         type="text"
-                        name="name"
                         id="name"
-                        ref={nameRef}
+                        {...register("name")}
                         placeholder="John Doe"
-                        required
                       />
                     </div>
+                    {errors.name && (
+                      <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                    )}
                   </div>
 
                   {/* Email Input */}
@@ -314,15 +306,20 @@ const Register = () => {
                         <Mail className="h-5 w-5 text-primary-400" />
                       </div>
                       <input
-                        className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                          errors.email
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                        }`}
                         type="email"
-                        name="email"
                         id="email"
-                        ref={emailRef}
+                        {...register("email")}
                         placeholder="your@email.com"
-                        required
                       />
                     </div>
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    )}
                   </div>
 
                   {/* Password Input */}
@@ -338,15 +335,15 @@ const Register = () => {
                         <Lock className="h-5 w-5 text-primary-400" />
                       </div>
                       <input
-                        className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                        className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                          errors.password
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                        }`}
                         type={showPassword ? "text" : "password"}
-                        name="password"
                         id="password"
-                        ref={passwordRef}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        {...register("password")}
                         placeholder="Create a strong password"
-                        required
                       />
                       <button
                         type="button"
@@ -455,19 +452,16 @@ const Register = () => {
                       </div>
                       <input
                         className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:outline-none focus:ring-2 ${
-                          confirmPassword
-                            ? passwordsMatch
+                          errors.confirmPassword || (confirmPassword && !passwordsMatch)
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : confirmPassword && passwordsMatch
                               ? "border-green-500 focus:border-green-500 focus:ring-green-200"
-                              : "border-red-500 focus:border-red-500 focus:ring-red-200"
-                            : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                              : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
                         }`}
                         type={showConfirmPassword ? "text" : "password"}
-                        name="confirmPassword"
                         id="confirmPassword"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        {...register("confirmPassword")}
                         placeholder="Confirm your password"
-                        required
                       />
                       <button
                         type="button"
@@ -481,12 +475,17 @@ const Register = () => {
                         )}
                       </button>
                     </div>
-                    {confirmPassword && !passwordsMatch && (
+                    {errors.confirmPassword && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.confirmPassword.message}
+                      </p>
+                    )}
+                    {confirmPassword && !errors.confirmPassword && !passwordsMatch && (
                       <p className="mt-1 text-xs text-red-600">
                         Passwords do not match
                       </p>
                     )}
-                    {confirmPassword && passwordsMatch && (
+                    {confirmPassword && passwordsMatch && !errors.confirmPassword && (
                       <p className="mt-1 text-xs text-green-600">
                         Passwords match
                       </p>

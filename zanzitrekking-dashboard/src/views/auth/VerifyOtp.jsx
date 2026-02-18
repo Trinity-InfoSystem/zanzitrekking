@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { verify_otp, clearMessage } from "../../store/Reducers/authReducer";
+import { verify_otp, clearMessage, forgot_password } from "../../store/Reducers/authReducer";
 import { PropagateLoader } from "react-spinners";
 import toast from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { KeyIcon, ArrowLeftIcon, RotateCcwIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { verifyOtpSchema } from "../../utils/validationSchemas";
 
 const VerifyOtp = () => {
   const dispatch = useDispatch();
@@ -14,34 +17,29 @@ const VerifyOtp = () => {
     (state) => state.auth,
   );
 
-  const [state, setState] = useState({
-    otp: "",
-    email: location.state?.email || "",
+  const email = location.state?.email || "";
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(verifyOtpSchema),
   });
 
-  const inputHandle = (e) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-    setState((prev) => ({
-      ...prev,
-      [e.target.name]: value,
-    }));
-  };
+  const otp = watch("otp");
 
-  const submit = (e) => {
-    e.preventDefault();
-    if (state.otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
-      return;
-    }
-    dispatch(verify_otp(state));
+  const onSubmit = (data) => {
+    dispatch(verify_otp({ email, otp: data.otp }));
   };
 
   const resendOtp = () => {
-    if (!state.email) {
+    if (!email) {
       toast.error("Email is required");
       return;
     }
-    dispatch(forgot_password({ email: state.email }));
+    dispatch(forgot_password({ email }));
     toast.success("OTP sent again!");
   };
 
@@ -54,7 +52,7 @@ const VerifyOtp = () => {
       toast.success(successMessage);
       dispatch(clearMessage());
       navigate("/reset-password", {
-        state: { email: state.email, otp: state.otp },
+        state: { email, otp },
       });
     }
   }, [
@@ -62,8 +60,8 @@ const VerifyOtp = () => {
     successMessage,
     navigate,
     dispatch,
-    state.email,
-    state.otp,
+    email,
+    otp,
   ]);
 
   useEffect(() => {
@@ -103,12 +101,12 @@ const VerifyOtp = () => {
                 Enter the 6-digit code sent to your email
               </p>
               <p className="mt-1 text-xs font-medium text-secondary">
-                {state.email}
+                {email}
               </p>
             </div>
 
             {/* Form Section */}
-            <form className="mt-8 space-y-6" onSubmit={submit}>
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-5">
                 {/* OTP Field */}
                 <div className="group relative">
@@ -116,13 +114,18 @@ const VerifyOtp = () => {
                     id="otp"
                     name="otp"
                     type="text"
-                    required
-                    value={state.otp}
-                    onChange={inputHandle}
-                    className="peer h-14 w-full rounded-lg border-2 border-primary-200 bg-white px-4 pt-4 text-center font-mono text-lg tracking-widest outline-none transition-all duration-200 focus:border-secondary focus:ring-2 focus:ring-secondary-200"
+                    {...register("otp")}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      e.target.value = value;
+                    }}
+                    className={`peer h-14 w-full rounded-lg border-2 bg-white px-4 pt-4 text-center font-mono text-lg tracking-widest outline-none transition-all duration-200 focus:ring-2 ${
+                      errors.otp
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder=" "
                     maxLength={6}
-                    pattern="\d{6}"
                     inputMode="numeric"
                   />
                   <label
@@ -132,6 +135,9 @@ const VerifyOtp = () => {
                     Verification Code
                   </label>
                   <KeyIcon className="absolute right-4 top-4 h-5 w-5 text-text-light" />
+                  {errors.otp && (
+                    <p className="mt-1 text-center text-sm text-red-600">{errors.otp.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -139,7 +145,7 @@ const VerifyOtp = () => {
               <div>
                 <button
                   type="submit"
-                  disabled={loader || state.otp.length !== 6}
+                  disabled={loader}
                   className="shadow-coral-medium hover:shadow-coral-large group relative flex h-14 w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-r from-secondary to-sunshine-400 px-4 text-sm font-semibold text-white transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <span className="relative flex items-center gap-2">

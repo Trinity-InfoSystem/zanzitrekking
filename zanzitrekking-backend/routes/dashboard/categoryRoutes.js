@@ -2,12 +2,19 @@ const express = require("express");
 const CategoryController = require("../../controllers/dashboard/categoryController");
 const { jwtMiddleware } = require("../../middlewares/authJwtMiddleware");
 const { uploadOptions } = require("../../utilities/multerUpload");
+const { validate } = require("../../middlewares/validationMiddleware");
+const {
+  addCategorySchema,
+  updateCategorySchema,
+  deleteCategoriesSchema,
+} = require("../../validators/categoryValidation");
 const router = express.Router();
 
 router.post(
   "/category-add",
   uploadOptions.single("image"),
   jwtMiddleware,
+  validate(addCategorySchema),
   CategoryController.add_category
 );
 router.get("/category-get", jwtMiddleware, CategoryController.get_category);
@@ -20,6 +27,7 @@ router.post(
   "/category-update/:categoryId",
   uploadOptions.single("image"),
   jwtMiddleware,
+  validate(updateCategorySchema),
   CategoryController.update_category
 );
 router.post(
@@ -36,6 +44,7 @@ router.delete(
 router.post(
   "/category-delete-multiple",
   jwtMiddleware,
+  validate(deleteCategoriesSchema),
   CategoryController.delete_categories
 );
 

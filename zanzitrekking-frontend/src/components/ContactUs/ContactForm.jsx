@@ -2,54 +2,48 @@
 
 import { useState } from "react";
 import { Mail, MessageSquare, Phone, Send, User } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { contactSchema } from "../../utils/validationSchemas";
 import api from "../../api/api";
 
 const ContactForm = () => {
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    number: "",
-    message: "",
-  });
-
   const [status, setStatus] = useState({
     submitting: false,
     submitted: false,
     error: null,
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setForm({
-      ...form,
-      [name]: value,
-    });
-  };
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(contactSchema),
+  });
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setStatus({ submitting: true, submitted: false, error: null });
 
     try {
       await api.post("/home/contact", {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.number,
-        message: form.message,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone || "",
+        message: data.message,
+        subject: data.subject || "",
       });
 
       setStatus({ submitting: false, submitted: true, error: null });
-      setForm({
-        firstName: "",
-        lastName: "",
-        email: "",
-        number: "",
-        message: "",
-      });
+      reset();
     } catch (error) {
-      setStatus({ submitting: false, submitted: false, error: error.message });
+      setStatus({
+        submitting: false,
+        submitted: false,
+        error: error.response?.data?.error || error.message,
+      });
     }
   };
 
@@ -61,65 +55,56 @@ const ContactForm = () => {
 
       {status.error && <ErrorMessage message={`Error: ${status.error}`} />}
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormInput
             Icon={User}
             id="firstName"
-            name="firstName"
-            value={form.firstName}
-            onChange={handleInputChange}
+            register={register("firstName")}
             placeholder="Enter your first name"
             label="First Name"
             type="text"
-            required
+            error={errors.firstName}
           />
 
           <FormInput
             Icon={User}
             id="lastName"
-            name="lastName"
-            value={form.lastName}
-            onChange={handleInputChange}
+            register={register("lastName")}
             placeholder="Enter your last name"
             label="Last Name"
             type="text"
-            required
+            error={errors.lastName}
           />
 
           <FormInput
             Icon={Mail}
             id="email"
-            name="email"
-            value={form.email}
-            onChange={handleInputChange}
+            register={register("email")}
             placeholder="Enter your email"
             label="Email Address"
             type="email"
-            required
+            error={errors.email}
           />
 
           <FormInput
             Icon={Phone}
-            id="number"
-            name="number"
-            value={form.number}
-            onChange={handleInputChange}
+            id="phone"
+            register={register("phone")}
             placeholder="Enter your phone number"
             label="Phone Number"
             type="text"
+            error={errors.phone}
           />
         </div>
 
         <FormTextarea
           Icon={MessageSquare}
           id="message"
-          name="message"
-          value={form.message}
-          onChange={handleInputChange}
+          register={register("message")}
           placeholder="Type your message here"
           label="Message"
-          required
+          error={errors.message}
         />
 
         <SubmitButton submitting={status.submitting} />
@@ -169,13 +154,11 @@ const ErrorMessage = ({ message }) => (
 const FormInput = ({
   Icon,
   id,
-  name,
-  value,
-  onChange,
+  register,
   placeholder,
   label,
   type = "text",
-  required = false,
+  error,
 }) => (
   <div>
     <label
@@ -191,26 +174,28 @@ const FormInput = ({
       <input
         type={type}
         id={id}
-        name={name}
-        value={value}
-        onChange={onChange}
+        {...register}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 pl-11 text-neutral-900 shadow-sm transition-all placeholder:text-neutral-400 hover:border-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
-        required={required}
+        className={`w-full rounded-lg border bg-white px-4 py-2.5 pl-11 text-neutral-900 shadow-sm transition-all placeholder:text-neutral-400 focus:outline-none focus:ring-2 ${
+          error
+            ? "border-red-500 hover:border-red-600 focus:border-red-500 focus:ring-red-500/20"
+            : "border-neutral-300 hover:border-slate-400 focus:border-slate-500 focus:ring-slate-500/20"
+        }`}
       />
     </div>
+    {error && (
+      <p className="mt-1 text-sm text-red-600">{error.message}</p>
+    )}
   </div>
 );
 
 const FormTextarea = ({
   Icon,
   id,
-  name,
-  value,
-  onChange,
+  register,
   placeholder,
   label,
-  required = false,
+  error,
 }) => (
   <div>
     <label
@@ -225,15 +210,19 @@ const FormTextarea = ({
       </div>
       <textarea
         id={id}
-        name={name}
         rows={6}
-        value={value}
-        onChange={onChange}
+        {...register}
         placeholder={placeholder}
-        className="w-full resize-none rounded-lg border border-neutral-300 bg-white px-4 py-2.5 pl-11 text-neutral-900 shadow-sm transition-all placeholder:text-neutral-400 hover:border-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
-        required={required}
+        className={`w-full resize-none rounded-lg border bg-white px-4 py-2.5 pl-11 text-neutral-900 shadow-sm transition-all placeholder:text-neutral-400 focus:outline-none focus:ring-2 ${
+          error
+            ? "border-red-500 hover:border-red-600 focus:border-red-500 focus:ring-red-500/20"
+            : "border-neutral-300 hover:border-slate-400 focus:border-slate-500 focus:ring-slate-500/20"
+        }`}
       />
     </div>
+    {error && (
+      <p className="mt-1 text-sm text-red-600">{error.message}</p>
+    )}
   </div>
 );
 

@@ -1,4 +1,5 @@
 const Job = require("../../models/job");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 
 class JobControllers {
@@ -122,7 +123,7 @@ class JobControllers {
         job,
       });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -219,7 +220,7 @@ class JobControllers {
         });
       }
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -336,7 +337,7 @@ class JobControllers {
         job: updatedJob,
       });
     } catch (err) {
-      console.error("Error updating job:", err);
+      logger.error("Error updating job:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -355,7 +356,7 @@ class JobControllers {
         message: "Job deleted successfully",
       });
     } catch (err) {
-      console.error("Error deleting job:", err);
+      logger.error("Error deleting job:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -380,7 +381,7 @@ class JobControllers {
         job,
       });
     } catch (err) {
-      console.error("Error toggling job status:", err);
+      logger.error("Error toggling job status:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

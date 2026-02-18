@@ -5,6 +5,12 @@ const {
   jwtMiddleware,
   roleMiddleware,
 } = require("../../middlewares/authJwtMiddleware");
+const { validate } = require("../../middlewares/validationMiddleware");
+const {
+  updateReviewStatusSchema,
+  bulkUpdateReviewsSchema,
+  bulkDeleteReviewsSchema,
+} = require("../../validators/adminReviewValidation");
 
 // Admin review management routes
 router.get(
@@ -22,6 +28,7 @@ router.get(
 router.put(
   "/admin/reviews/:reviewId/status",
   jwtMiddleware,
+  validate(updateReviewStatusSchema),
   adminReviewController.updateReviewStatus
 );
 
@@ -34,12 +41,14 @@ router.delete(
 router.post(
   "/admin/reviews/bulk-update",
   jwtMiddleware,
+  validate(bulkUpdateReviewsSchema),
   adminReviewController.bulkUpdateReviews
 );
 
 router.post(
   "/admin/reviews/bulk-delete",
   jwtMiddleware,
+  validate(bulkDeleteReviewsSchema),
   adminReviewController.bulkDeleteReviews
 );
 

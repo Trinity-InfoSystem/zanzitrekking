@@ -16,6 +16,9 @@ import HeaderText from "./HeaderText";
 import api from "../../api/api";
 import Pagination from "../Pagination";
 import Search from "../components/Search";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { adminReviewSchema } from "../../utils/validationSchemas";
 
 // Confirm Modal
 const ConfirmModal = ({ open, onConfirm, onCancel, message }) => {
@@ -61,6 +64,25 @@ const Reviews = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [selectedReviewId, setSelectedReviewId] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(adminReviewSchema),
+    defaultValues: {
+      status: "",
+      rejectionReason: "",
+    },
+  });
+
+  const status = watch("status");
 
   // Fetch reviews
   const fetchReviews = async () => {
@@ -92,15 +114,39 @@ const Reviews = () => {
   }, [currentPage, parPage, searchValue, statusFilter]);
 
   // Update review status
-  const updateStatus = async (reviewId, newStatus) => {
+  const updateStatus = async (reviewId, newStatus, rejectionReason = "") => {
     try {
-      await api.put(`/admin/reviews/${reviewId}/status`, { status: newStatus });
+      const payload = { status: newStatus };
+      if (rejectionReason) {
+        payload.rejectionReason = rejectionReason;
+      }
+      await api.put(`/admin/reviews/${reviewId}/status`, payload);
       toast.success(`Review ${newStatus} successfully`);
       fetchReviews();
+      setStatusModalOpen(false);
+      setSelectedReviewId(null);
+      setSelectedStatus(null);
+      reset();
     } catch (error) {
       console.error("Error updating review:", error);
-      toast.error("Failed to update review");
+      toast.error(error?.response?.data?.error || "Failed to update review");
     }
+  };
+
+  const onStatusSubmit = (data) => {
+    if (selectedReviewId) {
+      updateStatus(selectedReviewId, data.status, data.rejectionReason || "");
+    }
+  };
+
+  const openStatusModal = (reviewId, newStatus) => {
+    setSelectedReviewId(reviewId);
+    setSelectedStatus(newStatus);
+    reset({
+      status: newStatus,
+      rejectionReason: "",
+    });
+    setStatusModalOpen(true);
   };
 
   // Delete review
@@ -177,6 +223,86 @@ const Reviews = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 p-4 md:p-5">
+      {/* Status Update Modal */}
+      {statusModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/20 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-nature-large ring-1 ring-primary-200">
+            <h2 className="mb-4 text-xl font-bold text-primary-800">
+              Update Review Status
+            </h2>
+            <form onSubmit={handleSubmit(onStatusSubmit)} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-primary-800">
+                  Status *
+                </label>
+                <select
+                  {...register("status")}
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.status
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
+                >
+                  <option value="">Select status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                {errors.status && (
+                  <p className="mt-1 text-xs text-red-600">
+                    {errors.status.message}
+                  </p>
+                )}
+              </div>
+
+              {status === "rejected" && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-primary-800">
+                    Rejection Reason *
+                  </label>
+                  <textarea
+                    {...register("rejectionReason")}
+                    rows={4}
+                    placeholder="Please provide a reason for rejection..."
+                    className={`w-full resize-none rounded-xl border-2 bg-white px-4 py-3 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errors.rejectionReason
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
+                  />
+                  {errors.rejectionReason && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.rejectionReason.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusModalOpen(false);
+                    setSelectedReviewId(null);
+                    setSelectedStatus(null);
+                    reset();
+                  }}
+                  className="rounded-xl bg-neutral-200 px-4 py-2 font-medium text-text-dark transition-all hover:bg-neutral-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-accent to-accent-600 px-4 py-2 font-semibold text-white shadow-sm transition-all hover:scale-105"
+                >
+                  Update Status
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Modal */}
       <ConfirmModal
         open={confirmOpen}
@@ -437,9 +563,7 @@ const Reviews = () => {
                         <div className="flex gap-2">
                           {review.status !== "approved" && (
                             <button
-                              onClick={() =>
-                                updateStatus(review._id, "approved")
-                              }
+                              onClick={() => openStatusModal(review._id, "approved")}
                               className="rounded-lg bg-gradient-to-r from-success to-success-600 p-2 text-white shadow-nature-soft transition-all hover:scale-110 hover:shadow-nature-medium"
                               title="Approve"
                             >
@@ -448,9 +572,7 @@ const Reviews = () => {
                           )}
                           {review.status !== "pending" && (
                             <button
-                              onClick={() =>
-                                updateStatus(review._id, "pending")
-                              }
+                              onClick={() => openStatusModal(review._id, "pending")}
                               className="rounded-lg bg-gradient-to-r from-sunshine to-sunshine-600 p-2 text-white shadow-sm transition-all hover:scale-110"
                               title="Set to Pending"
                             >
@@ -459,9 +581,7 @@ const Reviews = () => {
                           )}
                           {review.status !== "rejected" && (
                             <button
-                              onClick={() =>
-                                updateStatus(review._id, "rejected")
-                              }
+                              onClick={() => openStatusModal(review._id, "rejected")}
                               className="rounded-lg bg-gradient-to-r from-red-500 to-red-600 p-2 text-white shadow-sm transition-all hover:scale-110"
                               title="Reject"
                             >

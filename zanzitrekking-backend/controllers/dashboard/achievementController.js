@@ -1,4 +1,5 @@
 const AchievementModel = require("../../models/achievement");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
@@ -46,7 +47,7 @@ class AchievementController {
         achievement: createdAchievement,
       });
     } catch (error) {
-      console.error("Error adding achievement:", error);
+      logger.error("Error adding achievement:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,
@@ -103,7 +104,11 @@ class AchievementController {
             oldImageFileName
           );
           if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
+            try {
+              await fs.promises.unlink(oldImagePath);
+            } catch (error) {
+              logger.error("Error deleting old image:", error);
+            }
           }
         }
         updateFields.image = `${basePath}${imageFile.filename}`;
@@ -122,7 +127,11 @@ class AchievementController {
             oldImageFileName
           );
           if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
+            try {
+              await fs.promises.unlink(oldImagePath);
+            } catch (error) {
+              logger.error("Error deleting old image:", error);
+            }
           }
         }
         updateFields.image = null;
@@ -139,7 +148,7 @@ class AchievementController {
         achievement: updatedAchievement,
       });
     } catch (error) {
-      console.error("Error updating achievement:", error);
+      logger.error("Error updating achievement:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,

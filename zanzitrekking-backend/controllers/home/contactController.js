@@ -1,5 +1,6 @@
 const { responseReturn } = require("../../utilities/response");
 const emailQueue = require("../../workers/emailQueue");
+const logger = require('./../../utilities/logger');
 const { generateContactUsEmail } = require("../../utilities/contactEmailTemplates");
 
 const isValidEmail = (email = "") =>
@@ -56,7 +57,7 @@ class ContactController {
         message: "Message sent successfully",
       });
     } catch (err) {
-      console.error("Error sending contact message:", err);
+      logger.error("Error sending contact message:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

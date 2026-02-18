@@ -1,6 +1,8 @@
 const secret = process.env.SECRET;
 const jwt = require("jsonwebtoken");
 const { responseReturn } = require("../utilities/response");
+const Admin = require("../models/admin");
+const Customer = require("../models/customer");
 
 // Admin JWT Middleware - checks for adminAccessToken
 module.exports.jwtMiddleware = async (req, res, next) => {
@@ -12,8 +14,26 @@ module.exports.jwtMiddleware = async (req, res, next) => {
   }
   try {
     const decodedToken = jwt.verify(adminAccessToken, secret);
-    req.role = decodedToken.role;
-    req.id = decodedToken.id;
+    // Support both 'sub' and 'id' for backward compatibility
+    const userId = decodedToken.sub || decodedToken.id;
+    
+    if (!userId || !decodedToken.role) {
+      return responseReturn(res, 401, {
+        error: "Invalid token payload",
+      });
+    }
+
+    // Fetch admin data from database (minimal query)
+    const admin = await Admin.findById(userId).select('_id role accessRoutes');
+    if (!admin) {
+      return responseReturn(res, 401, {
+        error: "Admin not found",
+      });
+    }
+
+    req.id = admin._id;
+    req.role = admin.role;
+    req.accessRoutes = admin.accessRoutes;
     next();
   } catch (error) {
     return responseReturn(res, 401, {
@@ -44,11 +64,28 @@ module.exports.customerJwtMiddleware = async (req, res, next) => {
   }
   try {
     const decodedToken = jwt.verify(token, secret);
-    req.id = decodedToken.id;
-    req.name = decodedToken.name;
-    req.email = decodedToken.email;
-    req.method = decodedToken.method;
-    req.assignedAdmin = decodedToken.assignedAdmin;
+    // Support both 'sub' and 'id' for backward compatibility
+    const userId = decodedToken.sub || decodedToken.id;
+    
+    if (!userId) {
+      return responseReturn(res, 401, {
+        error: "Invalid token payload",
+      });
+    }
+
+    // Fetch customer data from database
+    const customer = await Customer.findById(userId).select('_id name email method assignedAdmin');
+    if (!customer) {
+      return responseReturn(res, 401, {
+        error: "Customer not found",
+      });
+    }
+
+    req.id = customer._id;
+    req.name = customer.name;
+    req.email = customer.email;
+    req.method = customer.method;
+    req.assignedAdmin = customer.assignedAdmin;
     next();
   } catch (error) {
     return responseReturn(res, 401, {

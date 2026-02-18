@@ -1,4 +1,5 @@
 const Order = require("../../models/order");
+const logger = require('./../../utilities/logger');
 const Cart = require("../../models/cart");
 const Customer = require("../../models/customer");
 const Trip = require("../../models/trip");
@@ -107,7 +108,7 @@ class OrderController {
             );
           } else {
             // Fallback to regular prices if no season matches
-            console.warn(
+            logger.warn(
               "No matching season found for trip date, using regular prices"
             );
             pricePerPerson = this.calculatePricePerPerson(
@@ -118,7 +119,7 @@ class OrderController {
             );
           }
         } else {
-          console.error("Unknown pricing type:", trip.pricingType);
+          logger.error("Unknown pricing type:", trip.pricingType);
           pricePerPerson = 0;
         }
 
@@ -240,11 +241,11 @@ class OrderController {
         const totalAmount = tempOrder.totalAmount;
 
         // Log payment info for debugging
-        console.log("🔍 [OrderController] Payment Info Debug:");
-        console.log("  - Payment Option:", paymentOption);
-        console.log("  - Deposit Amount:", depositAmount);
-        console.log("  - Total Amount:", totalAmount);
-        console.log("  - Payment Info Object:", JSON.stringify(paymentInfo, null, 2));
+        logger.info("🔍 [OrderController] Payment Info Debug:");
+        logger.info("  - Payment Option:", paymentOption);
+        logger.info("  - Deposit Amount:", depositAmount);
+        logger.info("  - Total Amount:", totalAmount);
+        logger.info("  - Payment Info Object:", JSON.stringify(paymentInfo, null, 2));
 
         // Generate order number first so we can use it in return URL
         orderNumber = await generateOrderNumber();
@@ -256,9 +257,9 @@ class OrderController {
         const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://booking.zanzisafaris.com' : 'http://localhost:5173');
         const returnUrl = `${frontendUrl}/order-confirmation?orderId=${orderNumber}`;
         
-        console.log("🔗 [OrderController] Return URL:", returnUrl);
-        console.log("  - FRONTEND_URL env:", process.env.FRONTEND_URL || 'not set');
-        console.log("  - NODE_ENV:", process.env.NODE_ENV || 'not set');
+        logger.info("🔗 [OrderController] Return URL:", returnUrl);
+        logger.info("  - FRONTEND_URL env:", process.env.FRONTEND_URL || 'not set');
+        logger.info("  - NODE_ENV:", process.env.NODE_ENV || 'not set');
 
         // Set order number on temp order for payment link formatting
         tempOrder.orderNumber = orderNumber;
@@ -273,13 +274,13 @@ class OrderController {
         // Create payment link with WeTravel
         weTravelResponse = await weTravelService.createPaymentLink(orderData);
 
-        console.log("✅ WeTravel payment link created successfully");
+        logger.info("✅ WeTravel payment link created successfully");
       } catch (error) {
-        console.error(
+        logger.error(
           "❌ Error generating WeTravel payment link:",
           error.message
         );
-        console.error("Error details:", error);
+        logger.error("Error details:", error);
         // Don't create order if payment link creation fails
         return responseReturn(res, 500, {
           error: "Failed to create payment link",
@@ -334,8 +335,8 @@ class OrderController {
         order,
       });
     } catch (error) {
-      console.error("Create order error:", error);
-      console.error("Error stack:", error.stack);
+      logger.error("Create order error:", error);
+      logger.error("Error stack:", error.stack);
       return responseReturn(res, 500, { 
         error: "Internal Server Error",
         message: error.message || "An unexpected error occurred while creating the order. Please try again."
@@ -490,7 +491,7 @@ class OrderController {
         order,
       });
     } catch (error) {
-      console.error("Update order pricing error:", error);
+      logger.error("Update order pricing error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -566,7 +567,7 @@ class OrderController {
         order,
       });
     } catch (error) {
-      console.error("Update order status error:", error);
+      logger.error("Update order status error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -598,7 +599,7 @@ class OrderController {
         order,
       });
     } catch (error) {
-      console.error("Get order by number error:", error);
+      logger.error("Get order by number error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -624,7 +625,7 @@ class OrderController {
 
       return responseReturn(res, 200, { order });
     } catch (error) {
-      console.error("Get order by ID error:", error);
+      logger.error("Get order by ID error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -680,7 +681,7 @@ class OrderController {
         },
       });
     } catch (error) {
-      console.error("Get customer order history error:", error);
+      logger.error("Get customer order history error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -786,7 +787,7 @@ class OrderController {
         },
       });
     } catch (error) {
-      console.error("Get all orders error:", error);
+      logger.error("Get all orders error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -856,7 +857,7 @@ class OrderController {
         try {
           if (normalizedStatus === "completed") {
             // Send payment confirmation email
-            console.log(
+            logger.info(
               `[Email] Preparing payment confirmation email for order ${order.orderNumber} to ${customerEmail}`
             );
             const emailData =
@@ -867,12 +868,12 @@ class OrderController {
               recipients: [customerEmail],
               attachment: emailData.attachment,
             });
-            console.log(
+            logger.info(
               `[Email] ✅ Payment confirmation email queued successfully for order ${order.orderNumber} to ${customerEmail}${emailData.attachment ? " (with QR code attachment)" : ""}`
             );
           } else if (normalizedStatus === "failed") {
             // Send payment rejection email
-            console.log(
+            logger.info(
               `[Email] Preparing payment rejection email for order ${order.orderNumber} to ${customerEmail}`
             );
             const emailData = await generatePaymentRejectionEmail(order);
@@ -882,12 +883,12 @@ class OrderController {
               recipients: [customerEmail],
               attachment: emailData.attachment,
             });
-            console.log(
+            logger.info(
               `[Email] ✅ Payment rejection email queued successfully for order ${order.orderNumber} to ${customerEmail}`
             );
           } else if (normalizedStatus === "refunded") {
             // Send refund notification email
-            console.log(
+            logger.info(
               `[Email] Preparing refund notification email for order ${order.orderNumber} to ${customerEmail}`
             );
             const emailData = await generateRefundEmail(order);
@@ -897,23 +898,23 @@ class OrderController {
               recipients: [customerEmail],
               attachment: emailData.attachment,
             });
-            console.log(
+            logger.info(
               `[Email] ✅ Refund notification email queued successfully for order ${order.orderNumber} to ${customerEmail}`
             );
           } else {
-            console.log(
+            logger.info(
               `[Email] Payment status "${normalizedStatus}" for order ${order.orderNumber} - no email notification required`
             );
           }
         } catch (emailError) {
-          console.error(
+          logger.error(
             `[Email] ❌ Error preparing/sending payment status email for order ${order.orderNumber} to ${customerEmail}:`,
             emailError
           );
           // Don't fail the request if email sending fails
         }
       } else {
-        console.warn(
+        logger.warn(
           `[Email] ⚠️ No email found for order ${order.orderNumber}, skipping email notification`
         );
       }
@@ -923,7 +924,7 @@ class OrderController {
         order,
       });
     } catch (error) {
-      console.error("Update payment status error:", error);
+      logger.error("Update payment status error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -973,7 +974,7 @@ class OrderController {
         order,
       });
     } catch (error) {
-      console.error("Cancel order error:", error);
+      logger.error("Cancel order error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -1031,7 +1032,7 @@ class OrderController {
         },
       });
     } catch (error) {
-      console.error("Get order statistics error:", error);
+      logger.error("Get order statistics error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -1042,7 +1043,7 @@ class OrderController {
       const result = await autoCompleteTrips();
       return responseReturn(res, 200, result);
     } catch (error) {
-      console.error("Auto-complete trips endpoint error:", error);
+      logger.error("Auto-complete trips endpoint error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -1055,7 +1056,7 @@ class OrderController {
       const result = await checkOrderTripsCompletion(orderId);
       return responseReturn(res, 200, result);
     } catch (error) {
-      console.error("Check order completion error:", error);
+      logger.error("Check order completion error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -1250,7 +1251,7 @@ class OrderController {
         })),
       });
     } catch (error) {
-      console.error("Get customer order statistics error:", error);
+      logger.error("Get customer order statistics error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };

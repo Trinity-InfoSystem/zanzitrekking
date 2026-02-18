@@ -1,4 +1,5 @@
 const Order = require("../../models/order");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const {
   generatePaymentConfirmationEmail,
@@ -21,11 +22,18 @@ class WeTravelWebhookController {
     // If webhook secret is configured, verify signature
     let webhookSecret = process.env.WETRAVEL_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      // If no secret configured, log warning but allow (for development)
-      console.warn(
-        "[Webhook] ⚠️ WETRAVEL_WEBHOOK_SECRET not configured - skipping signature verification"
+      // In production, webhook secret is required for security
+      if (process.env.NODE_ENV === 'production') {
+        logger.error(
+          "[Webhook] ❌ WETRAVEL_WEBHOOK_SECRET not configured in production - rejecting webhook"
+        );
+        return false;
+      }
+      // Allow in development only
+      logger.warn(
+        "[Webhook] ⚠️ WETRAVEL_WEBHOOK_SECRET not configured - skipping signature verification (development mode)"
       );
-      return true; // Allow in development, but should be configured in production
+      return true;
     }
 
     // Check for Svix signature format (svix-signature header)
@@ -35,7 +43,13 @@ class WeTravelWebhookController {
 
     // Standard signature verification (WeTravel direct or other formats)
     if (!signature) {
-      console.warn("[Webhook] ⚠️ No signature provided - allowing in development");
+      // In production, signature is required
+      if (process.env.NODE_ENV === 'production') {
+        logger.error("[Webhook] ❌ No signature provided in production - rejecting webhook");
+        return false;
+      }
+      // Allow in development only
+      logger.warn("[Webhook] ⚠️ No signature provided - allowing in development");
       return true;
     }
 
@@ -62,17 +76,17 @@ class WeTravelWebhookController {
       );
 
       if (!isValid) {
-        console.error("[Webhook] ❌ Invalid webhook signature");
-        console.error("[Webhook] Expected (first 20 chars):", normalizedExpected.substring(0, 20) + "...");
-        console.error("[Webhook] Received (first 20 chars):", normalizedReceived.substring(0, 20) + "...");
-        console.error("[Webhook] Payload length:", payloadString.length);
+        logger.error("[Webhook] ❌ Invalid webhook signature");
+        logger.error("[Webhook] Expected (first 20 chars):", normalizedExpected.substring(0, 20) + "...");
+        logger.error("[Webhook] Received (first 20 chars):", normalizedReceived.substring(0, 20) + "...");
+        logger.error("[Webhook] Payload length:", payloadString.length);
       } else {
-        console.log("[Webhook] ✅ Webhook signature verified successfully");
+        logger.info("[Webhook] ✅ Webhook signature verified successfully");
       }
 
       return isValid;
     } catch (error) {
-      console.error("[Webhook] ❌ Error verifying signature:", error);
+      logger.error("[Webhook] ❌ Error verifying signature:", error);
       return false;
     }
   }
@@ -89,7 +103,7 @@ class WeTravelWebhookController {
       const svixTimestamp = req.headers["svix-timestamp"];
 
       if (!svixSignature || !svixId || !svixTimestamp) {
-        console.error("[Webhook] ❌ Missing Svix headers (svix-signature, svix-id, svix-timestamp)");
+        logger.error("[Webhook] ❌ Missing Svix headers (svix-signature, svix-id, svix-timestamp)");
         return false;
       }
 
@@ -102,9 +116,9 @@ class WeTravelWebhookController {
         try {
           // Decode base64 secret
           signingSecret = Buffer.from(secret.substring(6), "base64").toString("utf8");
-          console.log("[Webhook] 🔐 Detected Svix whsec_ format - decoded");
+          logger.info("[Webhook] 🔐 Detected Svix whsec_ format - decoded");
         } catch (error) {
-          console.warn("[Webhook] ⚠️ Could not decode whsec_ secret, using as-is");
+          logger.warn("[Webhook] ⚠️ Could not decode whsec_ secret, using as-is");
         }
       }
 
@@ -133,7 +147,7 @@ class WeTravelWebhookController {
           );
 
           if (isValid) {
-            console.log("[Webhook] ✅ Svix webhook signature verified successfully");
+            logger.info("[Webhook] ✅ Svix webhook signature verified successfully");
             return true;
           }
         } catch (error) {
@@ -142,10 +156,10 @@ class WeTravelWebhookController {
         }
       }
 
-      console.error("[Webhook] ❌ Invalid Svix webhook signature");
+      logger.error("[Webhook] ❌ Invalid Svix webhook signature");
       return false;
     } catch (error) {
-      console.error("[Webhook] ❌ Error verifying Svix signature:", error);
+      logger.error("[Webhook] ❌ Error verifying Svix signature:", error);
       return false;
     }
   }
@@ -235,7 +249,7 @@ class WeTravelWebhookController {
         "payment.weTravelTripUuid": tripUuid,
       });
       if (orderByUuid) {
-        console.log(
+        logger.info(
           `[Webhook] ✅ Found order by trip UUID: ${orderByUuid.orderNumber}`
         );
         return orderByUuid;
@@ -248,7 +262,7 @@ class WeTravelWebhookController {
         orderNumber: orderNumber,
       });
       if (orderByNumber) {
-        console.log(
+        logger.info(
           `[Webhook] ✅ Found order by order number: ${orderByNumber.orderNumber}`
         );
         return orderByNumber;
@@ -261,7 +275,7 @@ class WeTravelWebhookController {
         "payment.transactionId": transactionId,
       });
       if (orderByTransaction) {
-        console.log(
+        logger.info(
           `[Webhook] ✅ Found order by transaction ID: ${orderByTransaction.orderNumber}`
         );
         return orderByTransaction;
@@ -285,17 +299,17 @@ class WeTravelWebhookController {
         ? null // Svix uses svix-signature header, handled separately in verifyWebhookSignature
         : req.headers["x-wetravel-signature"] || req.headers["wetravel-signature"] || req.headers["signature"];
 
-      console.log("[Webhook] 📥 Received WeTravel webhook event");
-      console.log("[Webhook] Event type:", payload.event || payload.type || "unknown");
-      console.log("[Webhook] Payload keys:", Object.keys(payload));
-      console.log("[Webhook] Has raw body:", !!req.rawBody);
-      console.log("[Webhook] Has signature:", !!signature);
+      logger.info("[Webhook] 📥 Received WeTravel webhook event");
+      logger.info("[Webhook] Event type:", payload.event || payload.type || "unknown");
+      logger.info("[Webhook] Payload keys:", Object.keys(payload));
+      logger.info("[Webhook] Has raw body:", !!req.rawBody);
+      logger.info("[Webhook] Has signature:", !!signature);
 
       // Verify webhook signature (if configured)
       // Pass req object to support Svix format verification
       const signaturePayload = req.rawBody || rawBody;
       if (!this.verifyWebhookSignature(signaturePayload, signature, req)) {
-        console.error("[Webhook] ❌ Invalid webhook signature");
+        logger.error("[Webhook] ❌ Invalid webhook signature");
         return responseReturn(res, 401, {
           error: "Invalid webhook signature",
         });
@@ -309,7 +323,7 @@ class WeTravelWebhookController {
         payload.data?.event ||
         "payment.completed";
 
-      console.log(`[Webhook] Processing event: ${eventType}`);
+      logger.info(`[Webhook] Processing event: ${eventType}`);
 
       // Only process payment-related events
       if (
@@ -317,7 +331,7 @@ class WeTravelWebhookController {
         !eventType.includes("transaction") &&
         !eventType.includes("order")
       ) {
-        console.log(`[Webhook] ⏭️ Skipping non-payment event: ${eventType}`);
+        logger.info(`[Webhook] ⏭️ Skipping non-payment event: ${eventType}`);
         return responseReturn(res, 200, {
           message: "Event received but not processed",
           eventType,
@@ -336,16 +350,16 @@ class WeTravelWebhookController {
 
       const mappedStatus = this.mapPaymentStatus(paymentStatus);
 
-      console.log(
+      logger.info(
         `[Webhook] Payment status: ${paymentStatus} -> ${mappedStatus}`
       );
 
       // Extract order identifiers
       const identifiers = this.extractOrderIdentifier(payload);
-      console.log("[Webhook] Order identifiers:", identifiers);
+      logger.info("[Webhook] Order identifiers:", identifiers);
 
       if (!identifiers.tripUuid && !identifiers.orderNumber && !identifiers.transactionId) {
-        console.error("[Webhook] ❌ No order identifier found in payload");
+        logger.error("[Webhook] ❌ No order identifier found in payload");
         return responseReturn(res, 400, {
           error: "No order identifier found in webhook payload",
           payloadKeys: Object.keys(payload),
@@ -356,7 +370,7 @@ class WeTravelWebhookController {
       const order = await this.findOrderByIdentifiers(identifiers);
 
       if (!order) {
-        console.error(
+        logger.error(
           `[Webhook] ❌ Order not found for identifiers:`,
           identifiers
         );
@@ -366,7 +380,7 @@ class WeTravelWebhookController {
         });
       }
 
-      console.log(
+      logger.info(
         `[Webhook] ✅ Found order: ${order.orderNumber} (current status: ${order.payment.status})`
       );
 
@@ -375,7 +389,7 @@ class WeTravelWebhookController {
         order.payment.status === "completed" &&
         mappedStatus === "completed"
       ) {
-        console.log(
+        logger.info(
           `[Webhook] ⏭️ Order ${order.orderNumber} already marked as completed - skipping`
         );
         return responseReturn(res, 200, {
@@ -424,7 +438,7 @@ class WeTravelWebhookController {
       // Save order
       await order.save();
 
-      console.log(
+      logger.info(
         `[Webhook] ✅ Updated order ${order.orderNumber} - Payment status: ${mappedStatus}, Order status: ${order.orderStatus}`
       );
 
@@ -434,7 +448,7 @@ class WeTravelWebhookController {
           const customerEmail =
             order.personalInfo?.email || order.customerId?.email;
 
-          console.log(
+          logger.info(
             `[Webhook] 📧 Email check for order ${order.orderNumber}:`,
             {
               hasPersonalInfoEmail: !!order.personalInfo?.email,
@@ -444,7 +458,7 @@ class WeTravelWebhookController {
           );
 
           if (customerEmail) {
-            console.log(
+            logger.info(
               `[Webhook] 📧 Preparing payment confirmation email for order ${order.orderNumber} to ${customerEmail}`
             );
 
@@ -454,11 +468,11 @@ class WeTravelWebhookController {
                 { path: "customerId", select: "name email" },
                 { path: "cartItems.tripId", select: "title mainImage days" },
               ]);
-              console.log(
+              logger.info(
                 `[Webhook] ✅ Order populated successfully. Cart items: ${order.cartItems?.length || 0}`
               );
             } catch (populateError) {
-              console.error(
+              logger.error(
                 `[Webhook] ❌ Error populating order:`,
                 populateError
               );
@@ -468,11 +482,11 @@ class WeTravelWebhookController {
             let emailData;
             try {
               emailData = await generatePaymentConfirmationEmail(order);
-              console.log(
+              logger.info(
                 `[Webhook] ✅ Email HTML generated successfully (${emailData.html?.length || 0} chars)`
               );
             } catch (emailGenError) {
-              console.error(
+              logger.error(
                 `[Webhook] ❌ Error generating email HTML:`,
                 emailGenError
               );
@@ -493,20 +507,20 @@ class WeTravelWebhookController {
             order.emailNotifications.paymentConfirmation = true;
             await order.save();
 
-            console.log(
+            logger.info(
               `[Webhook] ✅ Payment confirmation email queued for order ${order.orderNumber} to ${customerEmail}`
             );
           } else {
-            console.warn(
+            logger.warn(
               `[Webhook] ⚠️ No email found for order ${order.orderNumber}. PersonalInfo: ${JSON.stringify(order.personalInfo)}, CustomerId: ${order.customerId?._id || 'null'}`
             );
           }
         } catch (emailError) {
-          console.error(
+          logger.error(
             `[Webhook] ❌ Error sending confirmation email for order ${order.orderNumber}:`,
             emailError.message || emailError
           );
-          console.error(`[Webhook] Full error stack:`, emailError.stack);
+          logger.error(`[Webhook] Full error stack:`, emailError.stack);
           // Don't fail the webhook if email fails
         }
       }
@@ -519,8 +533,8 @@ class WeTravelWebhookController {
         orderStatus: order.orderStatus,
       });
     } catch (error) {
-      console.error("[Webhook] ❌ Error processing webhook:", error);
-      console.error("[Webhook] Error stack:", error.stack);
+      logger.error("[Webhook] ❌ Error processing webhook:", error);
+      logger.error("[Webhook] Error stack:", error.stack);
       return responseReturn(res, 500, {
         error: "Internal server error",
         message: error.message,

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const logger = require('./../utilities/logger');
 require("dotenv").config();
 const Achievement = require("../models/achievement");
 const ImpactStat = require("../models/impactStat");
@@ -8,7 +9,7 @@ const { dbConnect } = require("../utilities/db");
 const seedData = async () => {
   try {
     await dbConnect();
-    console.log("Connected to database");
+    logger.info("Connected to database");
 
     // Clear existing data (optional - comment out if you want to keep existing data)
     // await Achievement.deleteMany({});
@@ -216,21 +217,21 @@ const seedData = async () => {
 
     // Insert data
     const insertedCertifications = await Achievement.insertMany(certifications);
-    console.log(`Inserted ${insertedCertifications.length} certifications`);
+    logger.info(`Inserted ${insertedCertifications.length} certifications`);
 
     const insertedAwards = await Achievement.insertMany(awards);
-    console.log(`Inserted ${insertedAwards.length} awards`);
+    logger.info(`Inserted ${insertedAwards.length} awards`);
 
     const insertedImpactStats = await ImpactStat.insertMany(impactStats);
-    console.log(`Inserted ${insertedImpactStats.length} impact stats`);
+    logger.info(`Inserted ${insertedImpactStats.length} impact stats`);
 
     const insertedClients = await Client.insertMany(clients);
-    console.log(`Inserted ${insertedClients.length} clients`);
+    logger.info(`Inserted ${insertedClients.length} clients`);
 
-    console.log("Migration completed successfully!");
+    logger.info("Migration completed successfully!");
     process.exit(0);
   } catch (error) {
-    console.error("Migration error:", error);
+    logger.error("Migration error:", error);
     process.exit(1);
   }
 };

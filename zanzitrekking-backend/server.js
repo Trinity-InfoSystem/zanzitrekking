@@ -2,7 +2,6 @@
 require("dotenv").config();
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -11,7 +10,11 @@ const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const fetch = require("node-fetch");
 const path = require("path");
-const fs = require("fs");
+const logger = require("./utilities/logger");
+
+// Socket.IO and file handling modules
+const { initializeSocketIO } = require("./socket/socketHandler");
+const { handleFileDownload } = require("./middlewares/fileHandler");
 
 // Database
 const { dbConnect } = require("./utilities/db");
@@ -75,25 +78,25 @@ const safariAnalyticsRoutes = require("./routes/dashboard/safariAnalyticsRoutes"
 const orderRouter = require("./routes/home/orderRoutes");
 
 // CORS configuration
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://localhost:5174",
-  "https://booking.zanzisafaris.com",
-  "https://www.booking.zanzisafaris.com", // Add www version
-  "https://zanzisafaris.com", // Add main domain
-  "https://www.zanzisafaris.com", // Add www version
-  "https://admin.zanzisafaris.com",
-  "https://www.admin.zanzisafaris.com",
-];
+// Parse allowed origins from environment variable (comma-separated)
+// CORS_ORIGINS is required - no fallback to prevent hardcoded origins
+const corsOriginsEnv = process.env.CORS_ORIGINS;
+if (!corsOriginsEnv) {
+  logger.error('CORS_ORIGINS environment variable is required but not set');
+  throw new Error('CORS_ORIGINS environment variable is required. Please set it in your .env file.');
+}
+const allowedOrigins = corsOriginsEnv
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests) in development
+    // Allow requests with no origin (like mobile appToo many requests, please try again later.s or curl requests) in development
     if (!origin) {
       if (process.env.NODE_ENV === 'production') {
         // In production, log but allow (some legitimate requests may not have origin)
-        console.log('CORS: Request with no origin in production');
+        logger.warn('CORS: Request with no origin in production');
         return callback(null, true);
       }
       return callback(null, true);
@@ -112,8 +115,8 @@ const corsOptions = {
       callback(null, true);
     } else {
       // Log the rejected origin for debugging
-      console.log(`CORS: Rejected origin: ${origin}`);
-      console.log(`CORS: Allowed origins:`, allowedOrigins);
+      logger.warn(`CORS: Rejected origin: ${origin}`);
+      logger.debug(`CORS: Allowed origins:`, { allowedOrigins });
       callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
     }
   },
@@ -124,115 +127,8 @@ const corsOptions = {
   maxAge: 86400, // 24 hours
 };
 
-// Socket.IO configuration
-const io = new Server(server, {
-  cors: {
-    ...corsOptions,
-    allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Content-Type"],
-    maxAge: 3600,
-  },
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  transports: ["websocket", "polling"],
-});
-
-// Socket.IO event handlers
-io.engine.on("connection_error", (err) => {
-  // Connection error handled
-});
-
-io.on("connection", (socket) => {
-  socket.on("join", (userId) => {
-    socket.join(userId);
-    socket.emit("joined", { status: "success", room: userId });
-  });
-
-  socket.on("join_conversation", ({ conversationId }) => {
-    if (!conversationId) return;
-    socket.join(conversationId);
-  });
-
-  socket.on("leave_conversation", ({ conversationId }) => {
-    if (!conversationId) return;
-    socket.leave(conversationId);
-  });
-
-  socket.on("error", (error) => {
-    console.error("Socket error:", error);
-  });
-
-  socket.on("send_message", (messageData) => {
-    // Add createdAt timestamp
-    const messageWithTimestamp = {
-      ...messageData,
-      createdAt: new Date().toISOString(),
-    };
-
-    const targets = new Set();
-
-    if (messageData.receiver) {
-      targets.add(messageData.receiver);
-    }
-
-    if (messageData.conversationId) {
-      targets.add(messageData.conversationId);
-    }
-
-    targets.forEach((roomId) => {
-      io.to(roomId).emit("receive_message", messageWithTimestamp);
-    });
-  });
-
-  // Admin-to-Admin messaging
-  socket.on("send_admin_message", (messageData) => {
-    // Add createdAt timestamp
-    const messageWithTimestamp = {
-      ...messageData,
-      createdAt: new Date().toISOString(),
-    };
-
-    const targets = new Set();
-
-    if (messageData.receiver) {
-      targets.add(messageData.receiver);
-    }
-
-    if (messageData.conversationId) {
-      targets.add(messageData.conversationId);
-    }
-
-    targets.forEach((roomId) => {
-      io.to(roomId).emit("receive_admin_message", messageWithTimestamp);
-    });
-  });
-
-  // Admin typing indicators
-  socket.on("admin_typing", (data) => {
-    const { userId, receiverId, isTyping } = data;
-
-    // Send typing indicator to the receiver
-    io.to(receiverId).emit("admin_typing", {
-      userId,
-      isTyping,
-    });
-  });
-
-  // Admin message read status
-  socket.on("admin_message_read", (data) => {
-    const { messageId, readBy, receiverId } = data;
-
-    // Notify the sender that their message was read
-    io.to(receiverId).emit("admin_message_read", {
-      messageId,
-      readBy,
-    });
-  });
-
-  socket.on("disconnect", (reason) => {
-    // Socket disconnected
-  });
-});
+// Initialize Socket.IO
+const io = initializeSocketIO(server, corsOptions);
 
 // Middleware
 app.use(morgan("tiny"));
@@ -304,7 +200,7 @@ app.use("/api/safari", async (req, res) => {
     const data = await response.json();
     res.status(response.status).json(data);
   } catch (error) {
-    console.error("Safari API proxy error:", error);
+    logger.error("Safari API proxy error:", error);
     res.status(500).json({ error: "Proxy error", details: error.message });
   }
 });
@@ -347,159 +243,11 @@ app.use("/api", clientRoute);
 app.use("/api", adminUrgentBookingRequestRoute); // ADDED
 // Note: safariAnalyticsRoutes is registered earlier, before the Safari API proxy
 // File download endpoint with enhanced security and multiple location support
-app.get("/api/download-file/:filename", (req, res) => {
-  try {
-    const filename = req.params.filename;
-    const requestedDownloadName = req.query.original;
-
-    if (!filename) {
-      return res.status(400).json({ error: "Filename is required" });
-    }
-
-    // Security: Prevent directory traversal
-    if (
-      filename.includes("..") ||
-      filename.includes("/") ||
-      filename.includes("\\")
-    ) {
-      return res.status(400).json({ error: "Invalid filename" });
-    }
-
-    // Multiple possible file locations (chat files and CV files)
-    const possiblePaths = [
-      path.join(__dirname, "public", "uploads", "cv_files", filename),
-      path.join(__dirname, "public", "uploads", "chat_files", filename),
-      path.join(__dirname, "uploads", "cv_files", filename),
-      path.join(__dirname, "uploads", "chat_files", filename),
-      path.join(process.cwd(), "public", "uploads", "cv_files", filename),
-      path.join(process.cwd(), "public", "uploads", "chat_files", filename),
-      path.join(process.cwd(), "uploads", "cv_files", filename),
-      path.join(process.cwd(), "uploads", "chat_files", filename),
-    ];
-
-    let filePath = null;
-    for (const possiblePath of possiblePaths) {
-      if (fs.existsSync(possiblePath)) {
-        filePath = possiblePath;
-        break;
-      }
-    }
-
-    if (!filePath) {
-      // Log directory contents for debugging
-      const cvDir = path.join(__dirname, "public", "uploads", "cv_files");
-      if (fs.existsSync(cvDir)) {
-        try {
-          fs.readdirSync(cvDir);
-        } catch (err) {
-          // Error reading directory
-        }
-      }
-
-      // Get actual directory listing for debugging
-      const debugInfo = {
-        filename: filename,
-        __dirname: __dirname,
-        processCwd: process.cwd(),
-        checkedPaths: possiblePaths.map((p) => ({
-          path: p.replace(__dirname, ""),
-          exists: fs.existsSync(p),
-        })),
-      };
-
-      // Check cv_files directory specifically
-      const cvDirPaths = [
-        path.join(__dirname, "public", "uploads", "cv_files"),
-        path.join(__dirname, "uploads", "cv_files"),
-        path.join(process.cwd(), "public", "uploads", "cv_files"),
-        path.join(process.cwd(), "uploads", "cv_files"),
-      ];
-
-      for (const cvDir of cvDirPaths) {
-        if (fs.existsSync(cvDir)) {
-          try {
-            const files = fs.readdirSync(cvDir);
-            debugInfo.cvFilesDirectory = {
-              path: cvDir.replace(__dirname, ""),
-              files: files,
-              fileExists: files.includes(filename),
-            };
-            break;
-          } catch (err) {
-            debugInfo.cvFilesDirectoryError = err.message;
-          }
-        }
-      }
-
-      return res.status(404).json({
-        error: "File not found",
-        ...(process.env.NODE_ENV === 'development' && { debug: debugInfo })
-      });
-    }
-
-    // Set CORS headers
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-
-    // Get file extension for content type
-    const ext = path.extname(filename).toLowerCase();
-
-    const contentTypes = {
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
-      ".webp": "image/webp",
-      ".pdf": "application/pdf",
-      ".txt": "text/plain",
-      ".doc": "application/msword",
-      ".docx":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".zip": "application/zip",
-      ".mp4": "video/mp4",
-      ".mp3": "audio/mpeg",
-    };
-
-    const contentType = contentTypes[ext] || "application/octet-stream";
-
-    let downloadName = filename;
-    if (requestedDownloadName && typeof requestedDownloadName === "string") {
-      const sanitized = requestedDownloadName
-        .replace(/[\r\n]/g, "")
-        .replace(/[\\/]/g, "")
-        .trim();
-      if (sanitized) {
-        downloadName = sanitized;
-      }
-    }
-
-    // Set headers
-    res.setHeader("Content-Type", contentType);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${downloadName}"`
-    );
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Content-Length", fs.statSync(filePath).size);
-
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    fileStream.on("error", (error) => {
-      console.error("File stream error:", error);
-      res.status(500).json({ error: "Error streaming file" });
-    });
-  } catch (error) {
-    console.error("Download error:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+app.get("/api/download-file/:filename", handleFileDownload);
 
 // Global error handling middleware - must be after all routes
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  logger.error('Error:', err);
   res.status(err.status || 500).json({
     error: process.env.NODE_ENV === 'production' 
       ? 'Internal server error' 
@@ -512,10 +260,10 @@ app.use((err, req, res, next) => {
 dbConnect()
   .then(() => {
     setupCronJobs();
-    console.log("✓ Database connected and cron jobs initialized");
+    logger.info("✓ Database connected and cron jobs initialized");
   })
   .catch((err) => {
-    console.error("Database connection failed:", err);
+    logger.error("Database connection failed:", err);
   });
 
 // Modified server startup for Passenger compatibility
@@ -524,7 +272,9 @@ const PORT = process.env.PORT || 5000;
 // Only start the server if not running under Passenger
 if (typeof PhusionPassenger === "undefined") {
   server.listen(PORT, () => {
-    console.log(`Server is up and running on http://localhost:${PORT}/`);
+    logger.info(`Server is up and running on http://localhost:${PORT}/`);
+    // Also log to console for visibility
+    console.log(`✓ Server is up and running on http://localhost:${PORT}/`);
   });
 }
 

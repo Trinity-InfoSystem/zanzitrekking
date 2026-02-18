@@ -1,4 +1,5 @@
 const Admin = require("../models/admin");
+const logger = require('./../utilities/logger');
 const { responseReturn } = require("../utilities/response");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
@@ -55,7 +56,7 @@ class AuthControllers {
         accessToken: accessToken, // Return accessToken for frontend to store as fallback
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -85,19 +86,20 @@ class AuthControllers {
         return responseReturn(res, 403, { message: error || "Invalid refresh token" });
       }
 
-      // Verify token payload has required fields
-      if (!data.id || !data.role) {
+      // Verify token payload has required fields (support both 'id' and 'sub' for backward compatibility)
+      const userId = data.sub || data.id;
+      if (!userId || !data.role) {
         return responseReturn(res, 401, { message: "Invalid refresh token payload" });
       }
 
       // Verify admin still exists
-      const admin = await Admin.findById(data.id);
+      const admin = await Admin.findById(userId);
       if (!admin) {
         return responseReturn(res, 401, { message: "Admin not found" });
       }
 
-      // Generate new access token
-      const payload = { id: data.id, role: data.role };
+      // Generate new access token with minimal payload
+      const payload = { sub: admin._id.toString(), role: admin.role };
       const newAccessToken = createAccessToken(payload);
 
       // Set cookie
@@ -114,7 +116,7 @@ class AuthControllers {
         accessToken: newAccessToken,
       });
     } catch (error) {
-      console.error("Refresh token error:", error);
+      logger.error("Refresh token error:", error);
       return responseReturn(res, 401, { message: "Invalid refresh token" });
     }
   };
@@ -194,7 +196,7 @@ class AuthControllers {
         data: { image: updatedImagePath },
       });
     } catch (error) {
-      console.error(`Error updating profile image: ${error.message}`);
+      logger.error(`Error updating profile image: ${error.message}`);
       return responseReturn(res, 500, {
         error: "Server error, could not update profile image",
       });
@@ -305,8 +307,11 @@ class AuthControllers {
       const otp = generateOtp();
       const otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
 
-      // Save OTP and expiry to admin document
-      admin.resetPasswordOTP = otp;
+      // Hash OTP before storing in database
+      const hashedOtp = await bcrypt.hash(otp, 10);
+
+      // Save hashed OTP and expiry to admin document
+      admin.resetPasswordOTP = hashedOtp;
       admin.resetPasswordExpires = otpExpiry;
       await admin.save();
 
@@ -337,7 +342,7 @@ class AuthControllers {
         email: email, // Return email for frontend state
       });
     } catch (error) {
-      console.error("Forgot password error:", error);
+      logger.error("Forgot password error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -346,14 +351,19 @@ class AuthControllers {
     const { email, otp } = req.body;
 
     try {
-      // Find admin with matching email and valid OTP
+      // Find admin with matching email and valid expiry
       const admin = await Admin.findOne({
         email,
-        resetPasswordOTP: otp,
         resetPasswordExpires: { $gt: Date.now() },
-      });
+      }).select('+resetPasswordOTP');
 
-      if (!admin) {
+      if (!admin || !admin.resetPasswordOTP) {
+        return responseReturn(res, 400, { error: "Invalid or expired OTP" });
+      }
+
+      // Compare provided OTP with hashed OTP
+      const isOtpValid = await bcrypt.compare(otp, admin.resetPasswordOTP);
+      if (!isOtpValid) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
@@ -365,7 +375,7 @@ class AuthControllers {
         verified: true,
       });
     } catch (error) {
-      console.error("Verify OTP error:", error);
+      logger.error("Verify OTP error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -374,14 +384,19 @@ class AuthControllers {
     const { email, otp, newPassword } = req.body;
 
     try {
-      // Find admin with matching email and valid OTP
+      // Find admin with matching email and valid expiry
       const admin = await Admin.findOne({
         email,
-        resetPasswordOTP: otp,
         resetPasswordExpires: { $gt: Date.now() },
-      });
+      }).select('+resetPasswordOTP');
 
-      if (!admin) {
+      if (!admin || !admin.resetPasswordOTP) {
+        return responseReturn(res, 400, { error: "Invalid or expired OTP" });
+      }
+
+      // Compare provided OTP with hashed OTP
+      const isOtpValid = await bcrypt.compare(otp, admin.resetPasswordOTP);
+      if (!isOtpValid) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
@@ -399,7 +414,7 @@ class AuthControllers {
         message: "Password reset successfully",
       });
     } catch (error) {
-      console.error("Reset password error:", error);
+      logger.error("Reset password error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -476,7 +491,7 @@ class AuthControllers {
         admin: adminWithoutPassword,
       });
     } catch (error) {
-      console.error("Create admin error:", error);
+      logger.error("Create admin error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -569,7 +584,7 @@ class AuthControllers {
         },
       });
     } catch (error) {
-      console.error("Delete admin error:", error);
+      logger.error("Delete admin error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

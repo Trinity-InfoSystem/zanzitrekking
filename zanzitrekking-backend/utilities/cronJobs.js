@@ -1,4 +1,5 @@
 const cron = require("node-cron");
+const logger = require('./logger');
 const { autoCompleteTrips } = require("./autoCompleteTrips");
 const { sendPaymentReminders } = require("./paymentReminder");
 const {
@@ -15,7 +16,7 @@ const setupCronJobs = () => {
     try {
       await autoCompleteTrips();
     } catch (error) {
-      console.error("[Cron] Error in auto-complete trips job:", error);
+      logger.error("[Cron] Error in auto-complete trips job:", error);
     }
   });
 
@@ -25,7 +26,7 @@ const setupCronJobs = () => {
     try {
       await sendPaymentReminders();
     } catch (error) {
-      console.error("[Cron] Error in payment reminder job:", error);
+      logger.error("[Cron] Error in payment reminder job:", error);
     }
   });
 
@@ -34,7 +35,7 @@ const setupCronJobs = () => {
     try {
       await generateMissingPaymentLinks();
     } catch (error) {
-      console.error("[Cron] Error in missing payment links job:", error);
+      logger.error("[Cron] Error in missing payment links job:", error);
     }
   });
 };

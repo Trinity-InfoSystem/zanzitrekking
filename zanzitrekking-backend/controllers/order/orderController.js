@@ -100,18 +100,13 @@ class OrderController {
   get_dashboard_data = async (req, res) => {
     const { userId } = req.params;
     try {
-      const recentOrders = await customerOrder
-        .find({ customerId: userId })
-        .limit(5);
-      const pendingOrders = await customerOrder
-        .find({ customerId: userId, delivery_status: "pending" })
-        .countDocuments();
-      const totalOrders = await customerOrder
-        .find({ customerId: userId })
-        .countDocuments();
-      const cancelledOrders = await customerOrder
-        .find({ customerId: userId, delivery_status: "cancelled" })
-        .countDocuments();
+      // Execute independent queries in parallel
+      const [recentOrders, pendingOrders, totalOrders, cancelledOrders] = await Promise.all([
+        customerOrder.find({ customerId: userId }).limit(5),
+        customerOrder.find({ customerId: userId, delivery_status: "pending" }).countDocuments(),
+        customerOrder.find({ customerId: userId }).countDocuments(),
+        customerOrder.find({ customerId: userId, delivery_status: "cancelled" }).countDocuments(),
+      ]);
 
       responseReturn(res, 200, {
         recentOrders,
@@ -119,7 +114,10 @@ class OrderController {
         totalOrders,
         cancelledOrders,
       });
-    } catch (error) {}
+    } catch (error) {
+      logger.error("Error fetching dashboard data:", error);
+      responseReturn(res, 500, { error: "Internal server error" });
+    }
   };
   get_orders = async (req, res) => {
     const { customerId, status } = req.params;

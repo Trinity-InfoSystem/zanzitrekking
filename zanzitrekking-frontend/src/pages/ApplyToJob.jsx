@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { jobApplicationSchema } from "../utils/validationSchemas";
 
 const overrideStyle = {
   display: "flex",
@@ -47,16 +50,18 @@ const ApplyToJob = () => {
     application: jobApplication,
   } = useSelector((state) => state.jobApplication);
   const fileInputRef = useRef(null);
-
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    additionalDetails: "",
-  });
   const [cvFile, setCvFile] = useState(null);
-  const [errors, setErrors] = useState({});
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(jobApplicationSchema),
+  });
 
   useEffect(() => {
     if (jobId) {
@@ -72,14 +77,11 @@ const ApplyToJob = () => {
   useEffect(() => {
     if (userInfo) {
       const nameParts = userInfo.name?.split(" ") || [];
-      setFormData((prev) => ({
-        ...prev,
-        firstName: nameParts[0] || "",
-        lastName: nameParts.slice(1).join(" ") || "",
-        email: userInfo.email || "",
-      }));
+      setValue("firstName", nameParts[0] || "");
+      setValue("lastName", nameParts.slice(1).join(" ") || "");
+      setValue("email", userInfo.email || "");
     }
-  }, [userInfo]);
+  }, [userInfo, setValue]);
 
   useEffect(() => {
     if (successMessage) {
@@ -98,63 +100,43 @@ const ApplyToJob = () => {
     }
   }, [successMessage, errorMessage, dispatch, navigate, job, jobApplication]);
 
-  const validateForm = () => {
-    const newErrors = {};
-    let valid = true;
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
-      valid = false;
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-      valid = false;
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-      valid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-      valid = false;
-    }
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-      valid = false;
-    }
+  const onSubmit = async (data) => {
     if (!cvFile) {
-      newErrors.cvFile = "CV file is required";
-      valid = false;
-    } else {
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (cvFile.size > maxSize) {
-        newErrors.cvFile = "CV file size must be less than 5MB";
-        valid = false;
-      }
-      const allowedTypes = [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ];
-      if (!allowedTypes.includes(cvFile.type)) {
-        newErrors.cvFile = "CV must be a PDF, DOC, or DOCX file";
-        valid = false;
-      }
+      setError("cvFile", {
+        type: "manual",
+        message: "CV file is required",
+      });
+      return;
     }
 
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) {return;}
+    // Validate file size and type
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (cvFile.size > maxSize) {
+      setError("cvFile", {
+        type: "manual",
+        message: "CV file size must be less than 5MB",
+      });
+      return;
+    }
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (!allowedTypes.includes(cvFile.type)) {
+      setError("cvFile", {
+        type: "manual",
+        message: "CV must be a PDF, DOC, or DOCX file",
+      });
+      return;
+    }
 
     const submitFormData = new FormData();
-    submitFormData.append("firstName", formData.firstName);
-    submitFormData.append("lastName", formData.lastName);
-    submitFormData.append("email", formData.email);
-    submitFormData.append("phone", formData.phone);
-    submitFormData.append("additionalDetails", formData.additionalDetails);
+    submitFormData.append("firstName", data.firstName);
+    submitFormData.append("lastName", data.lastName);
+    submitFormData.append("email", data.email);
+    submitFormData.append("phone", data.phone);
+    submitFormData.append("additionalDetails", data.additionalDetails || "");
     submitFormData.append("cvFile", cvFile);
     submitFormData.append("customerId", userInfo._id || userInfo.id);
 
@@ -165,7 +147,7 @@ const ApplyToJob = () => {
     const file = e.target.files?.[0];
     if (file) {
       setCvFile(file);
-      setErrors({ ...errors, cvFile: "" });
+      clearErrors("cvFile");
     }
   };
 
@@ -302,7 +284,7 @@ const ApplyToJob = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="group/field">
                   <label className="mb-3 flex items-center gap-2 text-sm font-bold text-primary-900 transition-colors duration-300 group-focus-within/field:text-primary-700">
@@ -313,16 +295,17 @@ const ApplyToJob = () => {
                   </label>
                   <input
                     type="text"
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
-                    className="w-full rounded-xl border-2 border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:shadow-lg"
+                    {...register("firstName")}
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:shadow-lg ${
+                      errors.firstName
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-neutral-200 focus:border-primary-600 focus:ring-primary-600/20"
+                    }`}
                     placeholder="Enter your first name"
                   />
                   {errors.firstName && (
                     <p className="mt-2 text-xs font-semibold text-red-600">
-                      {errors.firstName}
+                      {errors.firstName.message}
                     </p>
                   )}
                 </div>
@@ -336,16 +319,17 @@ const ApplyToJob = () => {
                   </label>
                   <input
                     type="text"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
-                    className="w-full rounded-xl border-2 border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:shadow-lg"
+                    {...register("lastName")}
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:shadow-lg ${
+                      errors.lastName
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-neutral-200 focus:border-primary-600 focus:ring-primary-600/20"
+                    }`}
                     placeholder="Enter your last name"
                   />
                   {errors.lastName && (
                     <p className="mt-2 text-xs font-semibold text-red-600">
-                      {errors.lastName}
+                      {errors.lastName.message}
                     </p>
                   )}
                 </div>
@@ -361,16 +345,17 @@ const ApplyToJob = () => {
                   </label>
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full rounded-xl border-2 border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:shadow-lg"
+                    {...register("email")}
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:shadow-lg ${
+                      errors.email
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-neutral-200 focus:border-primary-600 focus:ring-primary-600/20"
+                    }`}
                     placeholder="your.email@example.com"
                   />
                   {errors.email && (
                     <p className="mt-2 text-xs font-semibold text-red-600">
-                      {errors.email}
+                      {errors.email.message}
                     </p>
                   )}
                 </div>
@@ -384,16 +369,17 @@ const ApplyToJob = () => {
                   </label>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className="w-full rounded-xl border-2 border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:shadow-lg"
+                    {...register("phone")}
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:shadow-lg ${
+                      errors.phone
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-neutral-200 focus:border-primary-600 focus:ring-primary-600/20"
+                    }`}
                     placeholder="+1234567890"
                   />
                   {errors.phone && (
                     <p className="mt-2 text-xs font-semibold text-red-600">
-                      {errors.phone}
+                      {errors.phone.message}
                     </p>
                   )}
                 </div>
@@ -407,13 +393,7 @@ const ApplyToJob = () => {
                   Additional Details
                 </label>
                 <textarea
-                  value={formData.additionalDetails}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      additionalDetails: e.target.value,
-                    })
-                  }
+                  {...register("additionalDetails")}
                   rows={6}
                   className="w-full rounded-xl border-2 border-neutral-200 bg-white px-4 py-3.5 text-sm font-medium text-neutral-900 transition-all duration-300 placeholder:text-neutral-400 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:shadow-lg"
                   placeholder="Tell us why you're interested in this position, your relevant experience, or any other information you'd like to share..."
@@ -455,7 +435,7 @@ const ApplyToJob = () => {
                 </div>
                 {errors.cvFile && (
                   <p className="mt-2 text-xs font-semibold text-red-600">
-                    {errors.cvFile}
+                    {errors.cvFile.message}
                   </p>
                 )}
                 {cvFile && (

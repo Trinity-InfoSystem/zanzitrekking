@@ -15,6 +15,39 @@ import toast from "react-hot-toast";
 import HeaderText from "./HeaderText";
 import { IMAGES_URL } from "../../utils/constants";
 import { isViewer } from "../../utils/roleVerification";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+const companyInfoSchema = yup.object({
+  email: yup
+    .string()
+    .email("Please provide a valid email address")
+    .optional(),
+  address: yup
+    .string()
+    .trim()
+    .max(500, "Address must not exceed 500 characters")
+    .optional(),
+  phone: yup
+    .string()
+    .matches(/^[\d\s\-\+\(\)]+$/, "Phone number contains invalid characters")
+    .min(5, "Phone number is too short")
+    .max(20, "Phone number is too long")
+    .optional(),
+});
+
+const profilePasswordSchema = yup.object({
+  email: yup
+    .string()
+    .email("Please provide a valid email address")
+    .required("Email is required"),
+  o_password: yup.string().required("Current password is required"),
+  n_password: yup
+    .string()
+    .min(6, "Password must be at least 6 characters long")
+    .required("New password is required"),
+});
 
 const Profile = () => {
   const dispatch = useDispatch();
@@ -24,16 +57,32 @@ const Profile = () => {
 
   const role = useSelector((state) => state.auth?.userInfo?.role);
 
-  const [state, setState] = useState({
-    email: "",
-    address: "",
-    phone: "",
+  const {
+    register: registerCompany,
+    handleSubmit: handleSubmitCompany,
+    reset: resetCompany,
+    formState: { errors: errorsCompany },
+  } = useForm({
+    resolver: yupResolver(companyInfoSchema),
+    defaultValues: {
+      email: "",
+      address: "",
+      phone: "",
+    },
   });
 
-  const [passwordState, setPasswordState] = useState({
-    email: "",
-    o_password: "",
-    n_password: "",
+  const {
+    register: registerPassword,
+    handleSubmit: handleSubmitPassword,
+    reset: resetPassword,
+    formState: { errors: errorsPassword },
+  } = useForm({
+    resolver: yupResolver(profilePasswordSchema),
+    defaultValues: {
+      email: "",
+      o_password: "",
+      n_password: "",
+    },
   });
 
   const [previewImage, setPreviewImage] = useState(null);
@@ -43,13 +92,13 @@ const Profile = () => {
     if (!userInfo) {
       dispatch(get_user_info());
     } else {
-      setState({
+      resetCompany({
         email: userInfo.companyEmail || "",
         address: userInfo.companyAddress || "",
         phone: userInfo.companyPhoneNumber || "",
       });
     }
-  }, [dispatch, userInfo]);
+  }, [dispatch, userInfo, resetCompany]);
 
   const add_image = async (e) => {
     if (e.target.files.length > 0) {
@@ -65,40 +114,20 @@ const Profile = () => {
     }
   };
 
-  const inputHandle = (e) => {
-    setState((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const passwordInputHandle = (e) => {
-    setPasswordState((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const submitCompanyInfo = async (e) => {
-    e.preventDefault();
+  const submitCompanyInfo = async (data) => {
     setIsSubmitting(true);
     try {
-      await dispatch(update_company_info(state));
+      await dispatch(update_company_info(data));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const submitPasswordChange = async (e) => {
-    e.preventDefault();
-    if (passwordState.n_password.length < 6) {
-      toast.error("Password must be at least 6 characters long");
-      return;
-    }
+  const submitPasswordChange = async (data) => {
     setIsSubmitting(true);
     try {
-      await dispatch(update_password(passwordState));
-      setPasswordState({ email: "", o_password: "", n_password: "" });
+      await dispatch(update_password(data));
+      resetPassword({ email: "", o_password: "", n_password: "" });
     } finally {
       setIsSubmitting(false);
     }
@@ -192,7 +221,7 @@ const Profile = () => {
             </div>
 
             <div className="p-8">
-              <form onSubmit={submitCompanyInfo} className="space-y-6">
+              <form onSubmit={handleSubmitCompany(submitCompanyInfo)} className="space-y-6">
                 <div className="space-y-2">
                   <label
                     htmlFor="companyEmail"
@@ -202,14 +231,21 @@ const Profile = () => {
                   </label>
                   <div className="relative">
                     <input
-                      onChange={inputHandle}
-                      value={state.email}
+                      {...registerCompany("email")}
                       type="email"
-                      name="email"
                       id="companyEmail"
-                      className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                      className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                        errorsCompany.email
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
                       placeholder="Enter company email"
                     />
+                    {errorsCompany.email && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {errorsCompany.email.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -221,14 +257,21 @@ const Profile = () => {
                     Company Address
                   </label>
                   <input
-                    onChange={inputHandle}
-                    value={state.address}
+                    {...registerCompany("address")}
                     type="text"
-                    name="address"
                     id="address"
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errorsCompany.address
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder="Enter company address"
                   />
+                  {errorsCompany.address && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errorsCompany.address.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -239,14 +282,21 @@ const Profile = () => {
                     Company Phone
                   </label>
                   <input
-                    onChange={inputHandle}
-                    value={state.phone}
+                    {...registerCompany("phone")}
                     type="tel"
-                    name="phone"
                     id="phone"
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errorsCompany.phone
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder="Enter company phone"
                   />
+                  {errorsCompany.phone && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errorsCompany.phone.message}
+                    </p>
+                  )}
                 </div>
 
                 {!isViewer(role) && (
@@ -279,23 +329,30 @@ const Profile = () => {
             </div>
 
             <div className="p-8">
-              <form onSubmit={submitPasswordChange} className="space-y-6">
+              <form onSubmit={handleSubmitPassword(submitPasswordChange)} className="space-y-6">
                 <div className="space-y-2">
                   <label
                     htmlFor="email"
                     className="mb-2 block text-sm font-semibold text-primary-800"
                   >
-                    Email Confirmation
+                    Email Confirmation *
                   </label>
                   <input
-                    onChange={passwordInputHandle}
-                    value={passwordState.email}
+                    {...registerPassword("email")}
                     type="email"
-                    name="email"
                     id="email"
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errorsPassword.email
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder="Confirm your email"
                   />
+                  {errorsPassword.email && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errorsPassword.email.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -303,18 +360,25 @@ const Profile = () => {
                     htmlFor="o_password"
                     className="mb-2 block text-sm font-semibold text-primary-800"
                   >
-                    Current Password
+                    Current Password *
                   </label>
                   <input
-                    onChange={passwordInputHandle}
-                    value={passwordState.o_password}
+                    {...registerPassword("o_password")}
                     type="password"
-                    name="o_password"
                     id="o_password"
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errorsPassword.o_password
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder="Enter current password"
                     autoComplete="current-password"
                   />
+                  {errorsPassword.o_password && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errorsPassword.o_password.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -322,18 +386,25 @@ const Profile = () => {
                     htmlFor="n_password"
                     className="mb-2 block text-sm font-semibold text-primary-800"
                   >
-                    New Password
+                    New Password *
                   </label>
                   <input
-                    onChange={passwordInputHandle}
-                    value={passwordState.n_password}
+                    {...registerPassword("n_password")}
                     type="password"
-                    name="n_password"
                     id="n_password"
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errorsPassword.n_password
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder="Enter new password (min. 6 characters)"
                     autoComplete="new-password"
                   />
+                  {errorsPassword.n_password && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errorsPassword.n_password.message}
+                    </p>
+                  )}
                 </div>
 
                 {!isViewer(role) && (

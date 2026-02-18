@@ -24,6 +24,9 @@ import CategoryTable from "./CategoryTable";
 import CategoryForm from "./CategoryForm";
 import { isAdmin, isEditor } from "../../utils/roleVerification";
 import SortSelect from "../components/SortSelect";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { categorySchema } from "../../utils/validationSchemas";
 
 const Category = () => {
   const dispatch = useDispatch();
@@ -40,48 +43,51 @@ const Category = () => {
   const [parPage, setParPage] = useState(5);
   const [sort, setSort] = useState("newest-desc");
   const [imageShow, setImage] = useState("");
-  const [state, setState] = useState({ name: "", image: "" });
-  const [errors, setErrors] = useState({ name: "", image: "" });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toDeleteId, setToDeleteId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
-  function handleImage(e) {
-    const files = e.target.files;
-    if (files.length > 0) {
-      setImage(URL.createObjectURL(files[0]));
-      setState((prevState) => ({
-        ...prevState,
-        image: files[0],
-      }));
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      image: null,
+    },
+  });
+
+  const imageFile = watch("image");
+
+  useEffect(() => {
+    if (imageFile && imageFile instanceof File) {
+      setImage(URL.createObjectURL(imageFile));
       if (categoryId) {
-        dispatch(category_image_update({ image: files[0], categoryId }));
+        dispatch(category_image_update({ image: imageFile, categoryId }));
         dispatch(get_one_category(categoryId));
       }
     }
+  }, [imageFile, categoryId, dispatch]);
+
+  function handleImage(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+      setValue("image", files[0], { shouldValidate: true });
+    }
   }
 
-  function validateForm() {
-    let valid = true;
-    const errors = { name: "", image: "" };
-
-    if (!state.name) {
-      errors.name = "Category name is required.";
-      valid = false;
-    }
-    // Only require image for new category (not update)
-    if (!categoryId && !state.image) {
-      errors.image = "Category image is required.";
-      valid = false;
-    }
-    setErrors(errors);
-    return valid;
-  }
-
-  function add_category(e) {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const add_category = (data) => {
+    const state = {
+      name: data.name,
+      image: data.image,
+    };
     if (categoryId) {
       dispatch(update_category({ ...state, categoryId })).then(() => {
         dispatch(get_one_category(categoryId));
@@ -89,10 +95,11 @@ const Category = () => {
       });
     } else {
       dispatch(categoryAdd(state));
-      setState({ name: "", image: "" });
+      reset({ name: "", image: null });
+      setImage("");
     }
     setShow(false);
-  }
+  };
 
   const deleteCategory = (id) => {
     dispatch(categoryDelete(id));
@@ -130,13 +137,15 @@ const Category = () => {
       );
       dispatch(get_one_category(categoryId));
       if (categoryId) {
-        setState({
+        reset({
           name: category?.name || "",
-          image: category?.image || "",
+          image: null,
         });
         setImage(category?.image || "");
+      } else {
+        reset({ name: "", image: null });
+        setImage("");
       }
-      setImage("");
       dispatch(clearMessage());
     }
   }, [
@@ -169,13 +178,13 @@ const Category = () => {
 
   useEffect(() => {
     if (category && categoryId) {
-      setState({
+      reset({
         name: category?.name || "",
-        image: category?.image || "",
+        image: null,
       });
       setImage(category?.image || "");
     }
-  }, [category, categoryId]);
+  }, [category, categoryId, reset]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 p-4 md:p-5">
@@ -304,13 +313,13 @@ const Category = () => {
                 </div>
                 {/* Form Content */}
                 <CategoryForm
-                  state={state}
-                  setState={setState}
+                  register={register}
+                  control={control}
                   errors={errors}
                   loader={loader}
                   imageShow={imageShow}
                   handleImage={handleImage}
-                  add_category={add_category}
+                  add_category={handleSubmit(add_category)}
                   categoryId={categoryId}
                   onClose={() => setShow(false)}
                 />

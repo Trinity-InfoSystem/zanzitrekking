@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { partnerAdd, clearMessage } from "../../store/Reducers/partnerReducer";
@@ -8,6 +8,9 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { partnerSchema } from "../../utils/validationSchemas";
 
 const AddPartner = () => {
   const navigate = useNavigate();
@@ -16,19 +19,39 @@ const AddPartner = () => {
     (state) => state.partner,
   );
 
-  const [formData, setFormData] = useState({
-    name: "",
-    badge: "",
-    color: "from-teal-500 to-cyan-500",
-    rating: 5,
-    reviews: 0,
-    website: "",
-    description: "",
-    order: 0,
+  const [logoPreview, setLogoPreview] = useState(null);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(partnerSchema),
+    defaultValues: {
+      name: "",
+      badge: "",
+      color: "from-teal-500 to-cyan-500",
+      rating: 5,
+      reviews: 0,
+      website: "",
+      description: "",
+      order: 0,
+    },
   });
 
-  const [logo, setLogo] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
+  const logo = watch("logo");
+
+  useEffect(() => {
+    if (logo && logo instanceof File) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target.result);
+      };
+      reader.readAsDataURL(logo);
+    }
+  }, [logo]);
 
   const colorOptions = [
     { value: "from-red-500 to-pink-500", label: "Red to Pink" },
@@ -39,26 +62,6 @@ const AddPartner = () => {
     { value: "from-teal-500 to-cyan-500", label: "Teal to Cyan" },
   ];
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setLogo(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   // Handle success and error messages
   useEffect(() => {
     if (errorMessage) {
@@ -67,7 +70,6 @@ const AddPartner = () => {
     }
     if (successMessage) {
       toast.success(successMessage);
-      // Navigate back to partners list after successful creation
       setTimeout(() => {
         dispatch(clearMessage());
         navigate("/admin/dashboard/partners");
@@ -75,24 +77,17 @@ const AddPartner = () => {
     }
   }, [successMessage, errorMessage, dispatch, navigate]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.badge || !logo) {
-      toast.error("Please fill in all required fields and upload a logo");
-      return;
-    }
-
+  const onSubmit = (data) => {
     const submitData = new FormData();
-    submitData.append("name", formData.name);
-    submitData.append("badge", formData.badge);
-    submitData.append("color", formData.color);
-    submitData.append("rating", formData.rating);
-    submitData.append("reviews", formData.reviews);
-    submitData.append("website", formData.website);
-    submitData.append("description", formData.description);
-    submitData.append("order", formData.order);
-    submitData.append("logo", logo);
+    submitData.append("name", data.name);
+    submitData.append("badge", data.badge);
+    submitData.append("color", data.color);
+    submitData.append("rating", data.rating);
+    submitData.append("reviews", data.reviews);
+    if (data.website) submitData.append("website", data.website);
+    if (data.description) submitData.append("description", data.description);
+    submitData.append("order", data.order || 0);
+    submitData.append("logo", data.logo);
 
     dispatch(partnerAdd(submitData));
   };
@@ -112,7 +107,7 @@ const AddPartner = () => {
         </div>
 
         <div className="w-full">
-          <form onSubmit={handleSubmit} className="mt-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-5">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Partner Name */}
               <div>
@@ -121,13 +116,17 @@ const AddPartner = () => {
                 </label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                  {...register("name")}
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.name
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                   placeholder="Enter partner name"
-                  required
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                )}
               </div>
 
               {/* Badge */}
@@ -137,13 +136,17 @@ const AddPartner = () => {
                 </label>
                 <input
                   type="text"
-                  name="badge"
-                  value={formData.badge}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                  {...register("badge")}
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.badge
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                   placeholder="e.g., Premium Partner"
-                  required
                 />
+                {errors.badge && (
+                  <p className="mt-1 text-sm text-red-600">{errors.badge.message}</p>
+                )}
               </div>
 
               {/* Color */}
@@ -152,11 +155,12 @@ const AddPartner = () => {
                   Badge Color *
                 </label>
                 <select
-                  name="color"
-                  value={formData.color}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-                  required
+                  {...register("color")}
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.color
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 >
                   {colorOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -164,6 +168,9 @@ const AddPartner = () => {
                     </option>
                   ))}
                 </select>
+                {errors.color && (
+                  <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
+                )}
               </div>
 
               {/* Website */}
@@ -188,15 +195,19 @@ const AddPartner = () => {
                 </label>
                 <input
                   type="number"
-                  name="rating"
-                  value={formData.rating}
-                  onChange={handleInputChange}
+                  {...register("rating", { valueAsNumber: true })}
                   min="0"
                   max="5"
                   step="0.1"
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-                  required
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.rating
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 />
+                {errors.rating && (
+                  <p className="mt-1 text-sm text-red-600">{errors.rating.message}</p>
+                )}
               </div>
 
               {/* Reviews Count */}
@@ -206,13 +217,17 @@ const AddPartner = () => {
                 </label>
                 <input
                   type="number"
-                  name="reviews"
-                  value={formData.reviews}
-                  onChange={handleInputChange}
+                  {...register("reviews", { valueAsNumber: true })}
                   min="0"
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-                  required
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.reviews
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 />
+                {errors.reviews && (
+                  <p className="mt-1 text-sm text-red-600">{errors.reviews.message}</p>
+                )}
               </div>
 
               {/* Order */}
@@ -222,12 +237,37 @@ const AddPartner = () => {
                 </label>
                 <input
                   type="number"
-                  name="order"
-                  value={formData.order}
-                  onChange={handleInputChange}
+                  {...register("order", { valueAsNumber: true })}
                   min="0"
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.order
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 />
+                {errors.order && (
+                  <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
+                )}
+              </div>
+
+              {/* Website */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-primary-800">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  {...register("website")}
+                  className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                    errors.website
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
+                  placeholder="https://example.com"
+                />
+                {errors.website && (
+                  <p className="mt-1 text-sm text-red-600">{errors.website.message}</p>
+                )}
               </div>
 
               {/* Logo Upload */}
@@ -247,14 +287,30 @@ const AddPartner = () => {
                       <span className="text-sm text-text-light">No image</span>
                     )}
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*,.svg"
-                    onChange={handleImageChange}
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-                    required
+                  <Controller
+                    name="logo"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <input
+                        {...field}
+                        type="file"
+                        accept="image/*,.svg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          onChange(file);
+                        }}
+                        className={`w-full rounded-xl border-2 bg-white px-3 py-2 text-text-dark focus:outline-none focus:ring-2 ${
+                          errors.logo
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                        }`}
+                      />
+                    )}
                   />
                 </div>
+                {errors.logo && (
+                  <p className="mt-1 text-sm text-red-600">{errors.logo.message}</p>
+                )}
               </div>
 
               {/* Description */}

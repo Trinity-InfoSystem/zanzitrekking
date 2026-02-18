@@ -1,4 +1,5 @@
 const Order = require("../../models/order");
+const logger = require('./../../utilities/logger');
 const Customer = require("../../models/customer");
 const Trip = require("../../models/trip");
 const Cart = require("../../models/cart");
@@ -23,79 +24,140 @@ const getDashboardStats = async (req, res) => {
       0
     );
 
-    // Get total revenue (completed orders)
-    const totalRevenueResult = await Order.aggregate([
-      {
-        $match: {
-          "payment.status": "completed",
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$totalAmount" },
-        },
-      },
-    ]);
-
-    // Get current month revenue
-    const currentMonthRevenueResult = await Order.aggregate([
-      {
-        $match: {
-          "payment.status": "completed",
-          createdAt: { $gte: startOfMonth },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          currentMonthRevenue: { $sum: "$totalAmount" },
-        },
-      },
-    ]);
-
-    // Get last month revenue for comparison
-    const lastMonthRevenueResult = await Order.aggregate([
-      {
-        $match: {
-          "payment.status": "completed",
-          createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          lastMonthRevenue: { $sum: "$totalAmount" },
-        },
-      },
-    ]);
-
-    // Get total customers
-    const totalCustomers = await Customer.countDocuments();
-
-    // Get active trips (trips with upcoming dates)
-    const activeTrips = await Trip.countDocuments({
-      $or: [
-        { pricingType: "yearRound" },
+    // Execute all independent queries in parallel for better performance
+    const [
+      totalRevenueResult,
+      currentMonthRevenueResult,
+      lastMonthRevenueResult,
+      totalCustomers,
+      activeTrips,
+      totalOrders,
+      pendingPayments,
+      completedPayments,
+      monthlyRevenueData,
+      monthlyCustomerData,
+    ] = await Promise.all([
+      // Get total revenue (completed orders)
+      Order.aggregate([
         {
-          pricingType: "seasonal",
-          "seasons.endDate": { $gte: currentDate },
+          $match: {
+            "payment.status": "completed",
+          },
         },
-      ],
-    });
-
-    // Get total orders
-    const totalOrders = await Order.countDocuments();
-
-    // Get pending payments
-    const pendingPayments = await Order.countDocuments({
-      "payment.status": { $in: ["processing", "pending"] },
-    });
-
-    // Get completed payments
-    const completedPayments = await Order.countDocuments({
-      "payment.status": "completed",
-    });
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$totalAmount" },
+          },
+        },
+      ]),
+      // Get current month revenue
+      Order.aggregate([
+        {
+          $match: {
+            "payment.status": "completed",
+            createdAt: { $gte: startOfMonth },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            currentMonthRevenue: { $sum: "$totalAmount" },
+          },
+        },
+      ]),
+      // Get last month revenue for comparison
+      Order.aggregate([
+        {
+          $match: {
+            "payment.status": "completed",
+            createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            lastMonthRevenue: { $sum: "$totalAmount" },
+          },
+        },
+      ]),
+      // Get total customers
+      Customer.countDocuments(),
+      // Get active trips (trips with upcoming dates)
+      Trip.countDocuments({
+        $or: [
+          { pricingType: "yearRound" },
+          {
+            pricingType: "seasonal",
+            "seasons.endDate": { $gte: currentDate },
+          },
+        ],
+      }),
+      // Get total orders
+      Order.countDocuments(),
+      // Get pending payments
+      Order.countDocuments({
+        "payment.status": { $in: ["processing", "pending"] },
+      }),
+      // Get completed payments
+      Order.countDocuments({
+        "payment.status": "completed",
+      }),
+      // Get monthly revenue data for chart (last 12 months)
+      Order.aggregate([
+        {
+          $match: {
+            "payment.status": "completed",
+            createdAt: {
+              $gte: new Date(
+                currentDate.getFullYear() - 1,
+                currentDate.getMonth(),
+                1
+              ),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            revenue: { $sum: "$totalAmount" },
+            orders: { $sum: 1 },
+          },
+        },
+        {
+          $sort: { "_id.year": 1, "_id.month": 1 },
+        },
+      ]),
+      // Get monthly customer registrations
+      Customer.aggregate([
+        {
+          $match: {
+            createdAt: {
+              $gte: new Date(
+                currentDate.getFullYear() - 1,
+                currentDate.getMonth(),
+                1
+              ),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            customers: { $sum: 1 },
+          },
+        },
+        {
+          $sort: { "_id.year": 1, "_id.month": 1 },
+        },
+      ]),
+    ]);
 
     // Calculate revenue change percentage
     const totalRevenue = totalRevenueResult[0]?.totalRevenue || 0;
@@ -103,6 +165,7 @@ const getDashboardStats = async (req, res) => {
       currentMonthRevenueResult[0]?.currentMonthRevenue || 0;
     const lastMonthRevenue = lastMonthRevenueResult[0]?.lastMonthRevenue || 0;
 
+    // Calculate revenue change percentage
     const revenueChange =
       lastMonthRevenue > 0
         ? (
@@ -110,62 +173,6 @@ const getDashboardStats = async (req, res) => {
             100
           ).toFixed(1)
         : 0;
-
-    // Get monthly revenue data for chart (last 12 months)
-    const monthlyRevenueData = await Order.aggregate([
-      {
-        $match: {
-          "payment.status": "completed",
-          createdAt: {
-            $gte: new Date(
-              currentDate.getFullYear() - 1,
-              currentDate.getMonth(),
-              1
-            ),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          revenue: { $sum: "$totalAmount" },
-          orders: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { "_id.year": 1, "_id.month": 1 },
-      },
-    ]);
-
-    // Get monthly customer registrations
-    const monthlyCustomerData = await Customer.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: new Date(
-              currentDate.getFullYear() - 1,
-              currentDate.getMonth(),
-              1
-            ),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          customers: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { "_id.year": 1, "_id.month": 1 },
-      },
-    ]);
 
     // Format chart data
     const months = [
@@ -245,7 +252,7 @@ const getDashboardStats = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("Error fetching dashboard statistics:", error);
+    logger.error("Error fetching dashboard statistics:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch dashboard statistics",
@@ -270,7 +277,7 @@ const getRecentOrders = async (req, res) => {
       data: recentOrders,
     });
   } catch (error) {
-    console.error("Error fetching recent orders:", error);
+    logger.error("Error fetching recent orders:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch recent orders",

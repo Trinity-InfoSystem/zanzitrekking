@@ -270,8 +270,7 @@ const Chat = () => {
       formData.append("attachment", selectedFile);
     }
 
-    // Send just IDs to backend, not objects
-    formData.append("sender", userInfo.id);
+    // Sender is now derived from JWT token on backend - removed for security
     formData.append("senderModel", "Customer");
     formData.append("receiver", activeAdminId);
     formData.append("receiverModel", "Admin");
@@ -319,9 +318,8 @@ const Chat = () => {
         });
       setSelectedFile(null);
     } else {
-      // Send just IDs to backend API, not objects
+      // Sender is now derived from JWT token on backend - removed for security
       const baseMessage = {
-        sender: userInfo.id, // Backend expects just the ID string
         senderModel: "Customer",
         receiver: activeAdminId, // Backend expects just the ID string
         receiverModel: "Admin",

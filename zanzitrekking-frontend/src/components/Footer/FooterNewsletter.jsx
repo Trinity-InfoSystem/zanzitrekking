@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { CheckCircle2, Send, Sparkles } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -6,18 +6,35 @@ import {
   subscribe_newsletter,
 } from "../../store/reducers/newsletterReducer";
 import toast from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+const newsletterSchema = yup.object({
+  email: yup
+    .string()
+    .email("Please provide a valid email address")
+    .required("Email is required"),
+});
 
 const FooterNewsletter = () => {
-  const [email, setEmail] = useState("");
   const dispatch = useDispatch();
   const { successMessage, errorMessage } = useSelector(
     (state) => state.newsletter,
   );
 
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    dispatch(subscribe_newsletter({ email }));
-    setEmail("");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(newsletterSchema),
+  });
+
+  const onSubmit = (data) => {
+    dispatch(subscribe_newsletter({ email: data.email }));
+    reset();
   };
 
   useEffect(() => {
@@ -61,15 +78,17 @@ const FooterNewsletter = () => {
           </p>
 
           {/* Newsletter form */}
-          <form onSubmit={handleSubscribe} className="mx-auto max-w-md">
+          <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-md">
             <div className="relative">
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email")}
                 placeholder="Enter your email address"
-                className="w-full rounded-xl border-2 border-white/20 bg-white/10 px-6 py-4 pr-14 text-base text-white placeholder-primary-200 backdrop-blur-lg transition-all duration-300 focus:border-accent-400 focus:bg-white/15 focus:outline-none focus:ring-4 focus:ring-accent-400/20"
-                required
+                className={`w-full rounded-xl border-2 bg-white/10 px-6 py-4 pr-14 text-base text-white placeholder-primary-200 backdrop-blur-lg transition-all duration-300 focus:bg-white/15 focus:outline-none focus:ring-4 ${
+                  errors.email
+                    ? "border-red-400 focus:border-red-400 focus:ring-red-400/20"
+                    : "border-white/20 focus:border-accent-400 focus:ring-accent-400/20"
+                }`}
               />
               <button
                 type="submit"
@@ -79,7 +98,9 @@ const FooterNewsletter = () => {
                 <Send className="h-4.5 w-4.5" />
               </button>
             </div>
-
+            {errors.email && (
+              <p className="mt-2 text-sm text-red-200">{errors.email.message}</p>
+            )}
             <p className="mt-4 text-xs text-primary-200">
               By subscribing, you agree to receive updates. Unsubscribe anytime.
             </p>

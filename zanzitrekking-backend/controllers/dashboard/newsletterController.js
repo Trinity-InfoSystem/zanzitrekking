@@ -1,4 +1,5 @@
 const NewsletterModel = require("../../models/newsletter");
+const logger = require('./../../utilities/logger');
 const { validateEmail } = require("../../utilities/validators");
 const { responseReturn } = require("../../utilities/response");
 const emailQueue = require("../../workers/emailQueue");
@@ -66,7 +67,7 @@ class NewsletterController {
         subscription: newSubscription,
       });
     } catch (error) {
-      console.error("Subscription error:", error);
+      logger.error("Subscription error:", error);
       return responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,
@@ -168,7 +169,7 @@ class NewsletterController {
 
       return responseReturn(res, 200, subscribers);
     } catch (error) {
-      console.error("Get subscribers error:", error);
+      logger.error("Get subscribers error:", error);
       return responseReturn(res, 500, { error: error.message });
     }
   }
@@ -336,7 +337,7 @@ class NewsletterController {
         try {
           mails = JSON.parse(emails);
         } catch (parseError) {
-          console.error("[Newsletter] Error parsing emails JSON:", parseError);
+          logger.error("[Newsletter] Error parsing emails JSON:", parseError);
           return responseReturn(res, 400, {
             error: "Invalid emails format. Expected JSON array.",
           });

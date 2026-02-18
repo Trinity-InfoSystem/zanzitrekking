@@ -1,4 +1,5 @@
 const emailQueue = require("../../workers/emailQueue");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const Order = require("../../models/order");
 const { generatePaymentConfirmationEmail } = require("../../utilities/orderEmailTemplates");
@@ -31,7 +32,7 @@ class TestEmailController {
         passwordConfigured: !!process.env.EMAIL_PASSWORD,
       };
 
-      console.log("[Test Email] Email configuration:", {
+      logger.info("[Test Email] Email configuration:", {
         ...emailConfig,
         password: "***hidden***",
       });
@@ -74,7 +75,7 @@ class TestEmailController {
         recipients: [recipientEmail],
       });
 
-      console.log(`[Test Email] ✅ Test email queued for ${recipientEmail}`);
+      logger.info(`[Test Email] ✅ Test email queued for ${recipientEmail}`);
 
       return responseReturn(res, 200, {
         message: "Test email queued successfully",
@@ -86,7 +87,7 @@ class TestEmailController {
         note: "Check your inbox and spam folder. If email doesn't arrive, check server logs for errors.",
       });
     } catch (error) {
-      console.error("[Test Email] ❌ Error:", error);
+      logger.error("[Test Email] ❌ Error:", error);
       return responseReturn(res, 500, {
         error: "Failed to queue test email",
         message: error.message,
@@ -172,7 +173,7 @@ class TestEmailController {
         });
       }
 
-      console.log(
+      logger.info(
         `[Manual Email] 📧 Sending payment confirmation email for order ${orderNumber} to ${customerEmail}`
       );
 
@@ -200,7 +201,7 @@ class TestEmailController {
       order.emailNotifications.paymentConfirmation = true;
       await order.save();
 
-      console.log(
+      logger.info(
         `[Manual Email] ✅ Payment confirmation email queued for order ${orderNumber} to ${customerEmail}`
       );
 
@@ -212,7 +213,7 @@ class TestEmailController {
         emailNotificationUpdated: true,
       });
     } catch (error) {
-      console.error("[Manual Email] ❌ Error:", error);
+      logger.error("[Manual Email] ❌ Error:", error);
       return responseReturn(res, 500, {
         error: "Failed to send payment confirmation email",
         message: error.message,

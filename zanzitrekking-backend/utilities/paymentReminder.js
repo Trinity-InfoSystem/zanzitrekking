@@ -1,4 +1,5 @@
 const Order = require("../models/order");
+const logger = require('./logger');
 const Trip = require("../models/trip");
 const emailQueue = require("../workers/emailQueue");
 const {
@@ -11,7 +12,7 @@ const {
  */
 const sendPaymentReminders = async () => {
   try {
-    console.log("[Payment Reminder] Starting payment reminder job...");
+    logger.info("[Payment Reminder] Starting payment reminder job...");
 
     // Find all orders with processing payment status
     const ordersWithPendingPayment = await Order.find({
@@ -21,7 +22,7 @@ const sendPaymentReminders = async () => {
       .populate("customerId", "name email")
       .lean();
 
-    console.log(
+    logger.info(
       `[Payment Reminder] Found ${ordersWithPendingPayment.length} orders with pending payment`
     );
 
@@ -34,10 +35,10 @@ const sendPaymentReminders = async () => {
         const isTestOrder = order.orderNumber === "ZT-20251008-0004";
 
         if (isTestOrder) {
-          console.log(
+          logger.info(
             `[Payment Reminder] 🧪 TESTING ORDER: ${order.orderNumber}`
           );
-          console.log(`[Payment Reminder] Order details:`, {
+          logger.info(`[Payment Reminder] Order details:`, {
             orderNumber: order.orderNumber,
             cartItemsCount: order.cartItems?.length || 0,
             paymentStatus: order.payment?.status,
@@ -64,7 +65,7 @@ const sendPaymentReminders = async () => {
             );
 
             if (missingTripIds.length > 0) {
-              console.log(
+              logger.info(
                 `[Payment Reminder] ⏭️  Skipping order ${
                   order.orderNumber
                 }: Some trips no longer exist in database (tripIds: ${missingTripIds.join(
@@ -78,7 +79,7 @@ const sendPaymentReminders = async () => {
           const firstTripStartDate = order.cartItems[0].startingDate;
 
           if (isTestOrder) {
-            console.log(
+            logger.info(
               `[Payment Reminder] 🧪 Checking trip date for test order:`,
               {
                 tripStartDate: firstTripStartDate,
@@ -88,7 +89,7 @@ const sendPaymentReminders = async () => {
           }
 
           if (isTripDateInPast(firstTripStartDate)) {
-            console.log(
+            logger.info(
               `[Payment Reminder] ⏭️  Skipping order ${order.orderNumber}: Trip start date (${firstTripStartDate}) is in the past`
             );
             continue;
@@ -96,11 +97,11 @@ const sendPaymentReminders = async () => {
 
           // TESTING: Check booking restrictions for test order
           if (isTestOrder) {
-            console.log(
+            logger.info(
               `[Payment Reminder] 🧪 Checking booking restrictions for test order...`
             );
             for (const cartItem of order.cartItems) {
-              console.log(`[Payment Reminder] 🧪 Cart Item:`, {
+              logger.info(`[Payment Reminder] 🧪 Cart Item:`, {
                 mainTitle: cartItem.mainTitle,
                 selectedCategory: cartItem.selectedCategory,
                 startingDate: cartItem.startingDate,
@@ -113,7 +114,7 @@ const sendPaymentReminders = async () => {
                 null,
                 true
               );
-              console.log(`[Payment Reminder] 🧪 Booking Restriction Result:`, {
+              logger.info(`[Payment Reminder] 🧪 Booking Restriction Result:`, {
                 allowed: restriction.allowed,
                 warning: restriction.warning,
                 daysUntilTrip: restriction.daysUntilTrip,
@@ -134,7 +135,7 @@ const sendPaymentReminders = async () => {
           order.personalInfo?.email || order.customerId?.email;
 
         if (!customerEmail) {
-          console.warn(
+          logger.warn(
             `[Payment Reminder] No email found for order ${order.orderNumber}`
           );
           continue;
@@ -152,11 +153,11 @@ const sendPaymentReminders = async () => {
         emailQueue.add(emailJob);
         emailsSent++;
 
-        console.log(
+        logger.info(
           `[Payment Reminder] Reminder sent for order ${order.orderNumber} (${daysSinceOrder} days old)`
         );
       } catch (error) {
-        console.error(
+        logger.error(
           `[Payment Reminder] Failed to send reminder for order ${order.orderNumber}:`,
           error
         );
@@ -164,7 +165,7 @@ const sendPaymentReminders = async () => {
       }
     }
 
-    console.log(
+    logger.info(
       `[Payment Reminder] Job complete. Sent: ${emailsSent}, Failed: ${emailsFailed}`
     );
 
@@ -175,7 +176,7 @@ const sendPaymentReminders = async () => {
       totalOrders: ordersWithPendingPayment.length,
     };
   } catch (error) {
-    console.error("[Payment Reminder] Error in payment reminder job:", error);
+    logger.error("[Payment Reminder] Error in payment reminder job:", error);
     return {
       success: false,
       error: error.message,

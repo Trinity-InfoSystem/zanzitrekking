@@ -5,6 +5,11 @@ const {
   jwtMiddleware,
   roleMiddleware,
 } = require("../../middlewares/authJwtMiddleware");
+const { validate } = require("../../middlewares/validationMiddleware");
+const {
+  updateRequestStatusSchema,
+  bulkUpdateStatusSchema,
+} = require("../../validators/adminUrgentBookingValidation");
 
 // Admin urgent booking request management routes
 router.get(
@@ -28,12 +33,14 @@ router.get(
 router.put(
   "/admin/urgent-booking-requests/:requestId/status",
   jwtMiddleware,
+  validate(updateRequestStatusSchema),
   adminUrgentBookingRequestController.updateRequestStatus
 );
 
 router.post(
   "/admin/urgent-booking-requests/bulk-update",
   jwtMiddleware,
+  validate(bulkUpdateStatusSchema),
   adminUrgentBookingRequestController.bulkUpdateStatus
 );
 

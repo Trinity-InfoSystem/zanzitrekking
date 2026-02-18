@@ -92,6 +92,9 @@ import AddQuickModal from "../components/trip components/AddQuickModal";
 import PricingModal from "../components/trip components/PricingModal";
 import InclusionsExclusionsModal from "../components/trip components/InclusionsExclusionsModal";
 import ItineraryModal from "../components/trip components/ItineraryModal";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { tripBasicSchema } from "../../utils/validationSchemas";
 
 // Helper for Nominatim search
 const fetchNominatim = async (query) => {
@@ -247,18 +250,34 @@ const AddTrip = () => {
   const [endPointLoading, setEndPointLoading] = useState(false);
   const endPointInputRef = useRef();
 
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+    trigger,
+  } = useForm({
+    resolver: yupResolver(tripBasicSchema),
+    defaultValues: {
+      mainTitle: "",
+      overview: "",
+      description: "",
+      category: "",
+      mainImage: null,
+    },
+    mode: "onChange",
+  });
+
   const [formData, setFormData] = useState({
-    mainTitle: "",
-    overview: "",
-    description: "",
-    mainImage: null,
     mainImagePreview: null,
     mainVideo: null,
     mainVideoPreview: null,
     mainDestinations: [{ name: "", location: { lat: null, lng: null } }],
     startPoint: { name: "", location: { lat: null, lng: null } },
     endPoint: { name: "", location: { lat: null, lng: null } },
-    category: "",
     selectedInclusions: {
       budget: [],
       midRange: [],
@@ -298,6 +317,13 @@ const AddTrip = () => {
     },
     seasons: [],
   });
+
+  // Sync form values with react-hook-form
+  const mainTitle = watch("mainTitle");
+  const overview = watch("overview");
+  const description = watch("description");
+  const category = watch("category");
+  const mainImage = watch("mainImage");
 
   const { categories } = useSelector((state) => state.category);
   const { inclusions } = useSelector((state) => state.inclusion);
@@ -748,10 +774,19 @@ const AddTrip = () => {
       setDestinationResults(mainDestinations.map(() => []));
       setDestinationLoading(mainDestinations.map(() => false));
 
-      setFormData({
+      // Set react-hook-form values
+      reset({
         mainTitle: trip.mainTitle || "",
         overview: trip.overview || "",
         description: trip.description || "",
+        category: trip.category?._id || trip.category || "",
+        mainImage: null, // File input - keep as null, use preview for display
+      });
+
+      setFormData({
+        mainImagePreview: trip.mainImage || null,
+        mainVideo: null,
+        mainVideoPreview: trip.mainVideo || null,
         mainDestinations: mainDestinations,
         startPoint: trip.startPoint || {
           name: "",
@@ -761,10 +796,6 @@ const AddTrip = () => {
           name: "",
           location: { lat: null, lng: null },
         },
-        mainImagePreview: trip.mainImage || null,
-        mainVideo: null,
-        mainVideoPreview: trip.mainVideo || null,
-        category: trip.category?._id || trip.category || "",
         selectedInclusions: trip.inclusions || {
           budget: [],
           midRange: [],
@@ -805,22 +836,29 @@ const AddTrip = () => {
         seasons: trip.seasons || [],
       });
     }
-  }, [trip]);
+  }, [trip, reset]);
 
-  const handleSubmit = async () => {
+  const onSubmit = async (data) => {
+    // Validate basic fields first
+    const isValid = await trigger();
+    if (!isValid) {
+      toast.error("Please fill in all required fields correctly");
+      return;
+    }
+
     const submitData = new FormData();
 
-    // Basic fields
-    submitData.append("mainTitle", formData.mainTitle);
-    submitData.append("overview", formData.overview);
-    submitData.append("description", formData.description);
+    // Basic fields from react-hook-form
+    submitData.append("mainTitle", data.mainTitle);
+    submitData.append("overview", data.overview);
+    submitData.append("description", data.description);
     submitData.append(
       "mainDestination",
       JSON.stringify(formData.mainDestinations),
     );
     submitData.append("startPoint", JSON.stringify(formData.startPoint));
     submitData.append("endPoint", JSON.stringify(formData.endPoint));
-    submitData.append("category", formData.category);
+    submitData.append("category", data.category);
     submitData.append("pricingType", formData.pricingType);
 
     // Handle inclusions and exclusions
@@ -846,8 +884,10 @@ const AddTrip = () => {
     }
 
     // Handle main image
-    if (formData.mainImage instanceof File) {
-      submitData.append("mainImage", formData.mainImage);
+    if (data.mainImage instanceof File) {
+      submitData.append("mainImage", data.mainImage);
+    } else if (formData.mainImagePreview && !formData.mainImagePreview.startsWith("blob:")) {
+      // Existing image URL - handled by backend
     }
 
     // Handle main video
@@ -1640,20 +1680,23 @@ const AddTrip = () => {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-primary-800">
-                    Main Title
+                    Main Title *
                   </label>
                   <input
                     type="text"
-                    value={formData.mainTitle}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        mainTitle: e.target.value,
-                      }))
-                    }
-                    className="block w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    {...register("mainTitle")}
+                    className={`block w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errors.mainTitle
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder="Enter an exciting trip title"
                   />
+                  {errors.mainTitle && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.mainTitle.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3 sm:col-span-2">
@@ -1888,18 +1931,16 @@ const AddTrip = () => {
 
                 <div className="space-y-3 sm:col-span-2">
                   <label className="text-sm font-bold text-primary-800">
-                    Category
+                    Category *
                   </label>
                   <div className="flex items-center gap-2">
                     <select
-                      value={formData.category || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          category: e.target.value,
-                        }))
-                      }
-                      className="block w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                      {...register("category")}
+                      className={`block w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark focus:outline-none focus:ring-2 ${
+                        errors.category
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
                     >
                       <option value="">Select a category</option>
                       {[...(categories || [])]
@@ -1925,60 +1966,85 @@ const AddTrip = () => {
                       + Add New
                     </button>
                   </div>
+                  {errors.category && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.category.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3 sm:col-span-2">
                   <label className="text-sm font-bold text-primary-800">
-                    Overview
+                    Overview *
                   </label>
                   <textarea
-                    value={formData.overview}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        overview: e.target.value,
-                      }))
-                    }
-                    className="block w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    {...register("overview")}
+                    className={`block w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errors.overview
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     rows="6"
                     placeholder="Describe your amazing trip experience..."
                   />
+                  {errors.overview && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.overview.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3 sm:col-span-2">
                   <label className="text-sm font-bold text-primary-800">
-                    Short Description
+                    Short Description *
                   </label>
                   <textarea
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    className="block w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    {...register("description")}
+                    className={`block w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                      errors.description
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     rows="3"
                     placeholder="Brief description for trip cards (2-3 sentences)..."
                   />
+                  {errors.description && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.description.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">
-                  <ImageUpload
-                    id="main-image"
-                    preview={formData.mainImagePreview}
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          mainImage: file,
-                          mainImagePreview: URL.createObjectURL(file),
-                        }));
-                      }
-                    }}
-                    label="Main Trip Image"
+                  <label className="mb-2 block text-sm font-bold text-primary-800">
+                    Main Trip Image *
+                  </label>
+                  <Controller
+                    name="mainImage"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <ImageUpload
+                        id="main-image"
+                        preview={formData.mainImagePreview}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            onChange(file);
+                            setFormData((prev) => ({
+                              ...prev,
+                              mainImagePreview: URL.createObjectURL(file),
+                            }));
+                          }
+                        }}
+                        label="Main Trip Image"
+                      />
+                    )}
                   />
+                  {errors.mainImage && (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.mainImage.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2">
@@ -2117,7 +2183,7 @@ const AddTrip = () => {
               </button>
             )}
             <button
-              onClick={handleSubmit}
+              onClick={handleSubmit(onSubmit)}
               className="shadow-coral-medium hover:shadow-coral-large min-h-14 rounded-2xl bg-gradient-to-r from-secondary to-sunshine-400 px-12 py-5 text-lg font-bold text-white transition-all duration-300 hover:scale-[1.02] focus:outline-none disabled:opacity-50"
               disabled={loader}
             >

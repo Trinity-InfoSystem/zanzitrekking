@@ -1,5 +1,6 @@
 // wishlistController.js
 const Wishlist = require("../../models/wishlist");
+const logger = require('./../../utilities/logger');
 const Cart = require("../../models/cart");
 const Trip = require("../../models/trip"); // Import Trip model
 const { responseReturn } = require("../../utilities/response");
@@ -218,7 +219,7 @@ class WishlistController {
             return price;
           } else {
             // Last resort: return 0 instead of throwing error
-            console.error(
+            logger.error(
               "No season or regular prices available for trip:",
               trip._id
             );
@@ -248,7 +249,7 @@ class WishlistController {
             price = categoryPrices.onePerson;
           }
         } else {
-          console.error(
+          logger.error(
             "No category prices found for season:",
             applicableSeason.name
           );
@@ -744,7 +745,7 @@ class WishlistController {
             item.totalPrice = totalPrice;
             item.seasonName = seasonName;
           } catch (error) {
-            console.error(
+            logger.error(
               `Error updating date and price for cart item ${item._id}:`,
               error
             );
@@ -772,7 +773,7 @@ class WishlistController {
               item.pricePerPerson = pricePerPerson;
               item.totalPrice = totalPrice;
             } catch (error) {
-              console.error(
+              logger.error(
                 `Error calculating price for cart item ${item._id}:`,
                 error
               );

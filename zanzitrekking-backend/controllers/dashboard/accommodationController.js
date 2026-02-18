@@ -1,4 +1,5 @@
 const Accommodation = require("../../models/accommodation");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const StringSimilarity = require("../../utilities/stringSimilarity");
 
@@ -58,7 +59,7 @@ class AccommodationControllers {
         accommodation,
       });
     } catch (error) {
-      console.error("Error adding accommodation:", error);
+      logger.error("Error adding accommodation:", error);
       responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -216,7 +217,7 @@ class AccommodationControllers {
             );
             fs.unlink(filePath, (err) => {
               if (err) {
-                console.error(`Error deleting image: ${filePath}`, err.message);
+                logger.error(`Error deleting image: ${filePath}`, err.message);
               }
             });
           });
@@ -277,7 +278,7 @@ class AccommodationControllers {
         message: "Accommodation deleted successfully",
       });
     } catch (err) {
-      console.error("Error deleting accommodation:", err);
+      logger.error("Error deleting accommodation:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -294,7 +295,7 @@ class AccommodationControllers {
         deletedCount: deletedAccommodations.deletedCount,
       });
     } catch (err) {
-      console.error("Error deleting accommodations:", err);
+      logger.error("Error deleting accommodations:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

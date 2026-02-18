@@ -2,16 +2,22 @@ const express = require("express");
 const router = express.Router();
 const orderController = require("../../controllers/home/orderController");
 const { authJwtMiddleware } = require("../../middlewares/authJwtMiddleware");
+const { validate } = require("../../middlewares/validationMiddleware");
+const {
+  createOrderSchema,
+  updateOrderStatusSchema,
+  updatePaymentStatusSchema,
+} = require("../../validators/orderValidation");
 const {
   generateMissingPaymentLinks,
 } = require("../../utilities/generateMissingPaymentLinks");
 
 // Order management routes
-router.post("/create", orderController.createOrder);
+router.post("/create", validate(createOrderSchema), orderController.createOrder);
 router.get("/number/:orderNumber", orderController.getOrderByNumber); // For QR code scanning
 router.get("/:orderId", orderController.getOrderById);
-router.put("/:orderId/status", orderController.updateOrderStatus);
-router.put("/:orderId/payment", orderController.updatePaymentStatus);
+router.put("/:orderId/status", validate(updateOrderStatusSchema), orderController.updateOrderStatus);
+router.put("/:orderId/payment", validate(updatePaymentStatusSchema), orderController.updatePaymentStatus);
 router.put("/:orderId/cancel", orderController.cancelOrder);
 
 // Auto-complete trips

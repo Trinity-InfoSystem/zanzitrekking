@@ -3,6 +3,12 @@ const router = express.Router();
 const tripController = require("../../controllers/dashboard/tripController");
 const { uploadOptions } = require("../../utilities/multerUpload");
 const { jwtMiddleware } = require("../../middlewares/authJwtMiddleware");
+const { validate } = require("../../middlewares/validationMiddleware");
+const {
+  addTripSchema,
+  updateTripSchema,
+  deleteTripsSchema,
+} = require("../../validators/tripValidation");
 
 router.get("/trips-get", tripController.get_trips);
 router.get("/trip-get/:tripId", tripController.get_trip);
@@ -14,6 +20,7 @@ router.post(
   "/trip-add",
   jwtMiddleware,
   uploadOptions.any(),
+  validate(addTripSchema),
   tripController.add_trip
 );
 router.delete(
@@ -24,6 +31,7 @@ router.delete(
 router.post(
   "/trip-delete-multiple",
   jwtMiddleware,
+  validate(deleteTripsSchema),
   tripController.delete_trips
 );
 
@@ -31,6 +39,7 @@ router.put(
   "/trip-update/:tripId",
   uploadOptions.any(),
   jwtMiddleware,
+  validate(updateTripSchema),
   tripController.update_trip
 );
 

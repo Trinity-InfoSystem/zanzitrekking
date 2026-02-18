@@ -1,4 +1,5 @@
 const TripModel = require("../../models/trip");
+const logger = require('./../../utilities/logger');
 const CategoryModel = require("../../models/category");
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
@@ -224,7 +225,7 @@ class TripController {
         trip: createdTrip,
       });
     } catch (error) {
-      console.error("Error adding trip:", error);
+      logger.error("Error adding trip:", error);
       res.status(500).json({
         message: error.message || "Internal server error",
         error: error.message,
@@ -378,10 +379,10 @@ class TripController {
             oldImageFileName
           );
           try {
-            fs.unlinkSync(oldImagePath);
-            console.log("Deleted old main image:", oldImagePath);
+            await fs.promises.unlink(oldImagePath);
+            logger.info("Deleted old main image:", oldImagePath);
           } catch (err) {
-            console.error(`Error deleting old main image: ${err.message}`);
+            logger.error(`Error deleting old main image: ${err.message}`);
           }
         }
         updateFields.mainImage = `${basePath}${mainImageFile.filename}`;
@@ -404,10 +405,10 @@ class TripController {
             oldVideoFileName
           );
           try {
-            fs.unlinkSync(oldVideoPath);
-            console.log("Deleted old main video:", oldVideoPath);
+            await fs.promises.unlink(oldVideoPath);
+            logger.info("Deleted old main video:", oldVideoPath);
           } catch (err) {
-            console.error(`Error deleting old main video: ${err.message}`);
+            logger.error(`Error deleting old main video: ${err.message}`);
           }
         }
         updateFields.mainVideo = `${basePath}${mainVideoFile.filename}`;
@@ -456,10 +457,10 @@ class TripController {
               oldDayImageFileName
             );
             try {
-              fs.unlinkSync(oldDayImagePath);
-              console.log("Deleted old day image:", oldDayImagePath);
+              await fs.promises.unlink(oldDayImagePath);
+              logger.info("Deleted old day image:", oldDayImagePath);
             } catch (err) {
-              console.error(`Error deleting old day image: ${err.message}`);
+              logger.error(`Error deleting old day image: ${err.message}`);
             }
           }
           updatedDay.image = `${basePath}${dayImageFile.filename}`;
@@ -486,7 +487,7 @@ class TripController {
         trip: updatedTrip,
       });
     } catch (error) {
-      console.error("Error updating trip:", error);
+      logger.error("Error updating trip:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,
@@ -650,9 +651,9 @@ class TripController {
 
         fs.unlink(oldMainImagePath, (err) => {
           if (err) {
-            console.error(`Error deleting old main image: ${err.message}`);
+            logger.error(`Error deleting old main image: ${err.message}`);
           } else {
-            console.log(
+            logger.info(
               `Successfully deleted old main image: ${oldMainImagePath}`
             );
           }
@@ -673,9 +674,9 @@ class TripController {
 
         fs.unlink(oldMainVideoPath, (err) => {
           if (err) {
-            console.error(`Error deleting old main video: ${err.message}`);
+            logger.error(`Error deleting old main video: ${err.message}`);
           } else {
-            console.log(
+            logger.info(
               `Successfully deleted old main video: ${oldMainVideoPath}`
             );
           }
@@ -697,9 +698,9 @@ class TripController {
 
           fs.unlink(oldDayImagePath, (err) => {
             if (err) {
-              console.error(`Error deleting old day image: ${err.message}`);
+              logger.error(`Error deleting old day image: ${err.message}`);
             } else {
-              console.log(
+              logger.info(
                 `Successfully deleted old day image: ${oldDayImagePath}`
               );
             }
@@ -711,9 +712,9 @@ class TripController {
       await TripModel.findByIdAndDelete(tripId);
 
       responseReturn(res, 200, { message: "Trip deleted successfully" });
-      console.log("Trip Deleted:", tripId);
+      logger.info("Trip Deleted:", tripId);
     } catch (error) {
-      console.error("Error deleting trip:", error);
+      logger.error("Error deleting trip:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };
@@ -867,7 +868,7 @@ class TripController {
         priceRange,
       });
     } catch (error) {
-      console.error("Error in get_price_range:", error);
+      logger.error("Error in get_price_range:", error);
       responseReturn(res, 500, {
         error: "Error fetching price range",
         details: error.message,
@@ -1096,7 +1097,7 @@ class TripController {
         deletedCount: deletedTrips.deletedCount,
       });
     } catch (err) {
-      console.error("Error deleting trips:", err);
+      logger.error("Error deleting trips:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

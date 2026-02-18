@@ -28,8 +28,11 @@ import {
   getRequestStats,
   clearMessage,
 } from "../../store/Reducers/urgentBookingRequestReducer";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { adminUrgentBookingSchema } from "../../utils/validationSchemas";
 
-// Confirm Modal with reason input
+// Confirm Modal with reason input and validation
 const ConfirmModal = ({
   open,
   onConfirm,
@@ -37,65 +40,88 @@ const ConfirmModal = ({
   message,
   showReasonInput = false,
   reasonLabel = "Reason",
-  reasonValue = "",
-  onReasonChange = () => { },
-  showNotesInput = false,
-  notesLabel = "Admin Notes",
-  notesValue = "",
-  onNotesChange = () => { },
+  initialStatus = "",
 }) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(adminUrgentBookingSchema),
+    defaultValues: {
+      status: initialStatus,
+      rejectionReason: "",
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        status: initialStatus,
+        rejectionReason: "",
+      });
+    }
+  }, [open, initialStatus, reset]);
+
   if (!open) return null;
+
+  const onSubmit = (data) => {
+    onConfirm(data);
+    reset();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/20 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-nature-large ring-1 ring-primary-200">
         <h2 className="mb-4 text-lg font-bold text-accent">Confirm Action</h2>
         <p className="mb-4 text-text-dark">{message}</p>
 
-        {showReasonInput && (
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-medium text-text-dark">
-              {reasonLabel} *
-            </label>
-            <textarea
-              value={reasonValue}
-              onChange={(e) => onReasonChange(e.target.value)}
-              className="w-full rounded-lg border border-primary-200 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-200"
-              rows={3}
-              placeholder="Enter reason for rejection..."
-              required
-            />
-          </div>
-        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <input type="hidden" {...register("status")} value={initialStatus} />
 
-        {showNotesInput && (
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-medium text-text-dark">
-              {notesLabel}
-            </label>
-            <textarea
-              value={notesValue}
-              onChange={(e) => onNotesChange(e.target.value)}
-              className="w-full rounded-lg border border-primary-200 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-200"
-              rows={3}
-              placeholder="Add admin notes (optional)..."
-            />
-          </div>
-        )}
+          {showReasonInput && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-text-dark">
+                {reasonLabel} *
+              </label>
+              <textarea
+                {...register("rejectionReason")}
+                className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                  errors.rejectionReason
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                    : "border-primary-200 focus:border-accent focus:ring-accent-200"
+                }`}
+                rows={3}
+                placeholder="Enter reason for rejection..."
+              />
+              {errors.rejectionReason && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.rejectionReason.message}
+                </p>
+              )}
+            </div>
+          )}
 
-        <div className="flex justify-end gap-3">
-          <button
-            className="rounded-xl bg-neutral-200 px-4 py-2 font-medium text-text-dark transition-all hover:bg-neutral-300"
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-          <button
-            className="rounded-xl bg-gradient-to-r from-accent to-accent-600 px-4 py-2 font-semibold text-white shadow-sm transition-all hover:scale-105"
-            onClick={onConfirm}
-          >
-            Confirm
-          </button>
-        </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              className="rounded-xl bg-neutral-200 px-4 py-2 font-medium text-text-dark transition-all hover:bg-neutral-300"
+              onClick={() => {
+                onCancel();
+                reset();
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-xl bg-gradient-to-r from-accent to-accent-600 px-4 py-2 font-semibold text-white shadow-sm transition-all hover:scale-105"
+            >
+              Confirm
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -111,8 +137,6 @@ const UrgentBookingRequests = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [adminNotes, setAdminNotes] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [selectedAction, setSelectedAction] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -153,31 +177,20 @@ const UrgentBookingRequests = () => {
   }, [successMessage, errorMessage, dispatch]);
 
   // Update request status
-  const handleUpdateStatus = (
-    requestId,
-    newStatus,
-    reason = "",
-    notes = "",
-  ) => {
+  const handleUpdateStatus = (requestId, newStatus, reason = "") => {
     dispatch(
       updateRequestStatus({
         requestId,
         status: newStatus,
         rejectedReason: reason,
-        adminNotes: notes,
       }),
     );
   };
 
   // Bulk actions
-  const handleBulkAction = (action) => {
+  const handleBulkAction = (action, rejectionReason = "") => {
     if (selectedIds.length === 0) {
       toast.error("Please select requests first");
-      return;
-    }
-
-    if (action === "rejected" && !rejectionReason.trim()) {
-      toast.error("Please provide a rejection reason");
       return;
     }
 
@@ -186,12 +199,9 @@ const UrgentBookingRequests = () => {
         requestIds: selectedIds,
         status: action,
         rejectedReason: action === "rejected" ? rejectionReason.trim() : "",
-        adminNotes: adminNotes,
       }),
     );
     setSelectedIds([]);
-    setRejectionReason("");
-    setAdminNotes("");
   };
 
   // Checkbox handlers
@@ -376,47 +386,33 @@ const UrgentBookingRequests = () => {
         }
         showReasonInput={selectedAction === "rejected"}
         reasonLabel="Rejection Reason"
-        reasonValue={rejectionReason}
-        onReasonChange={setRejectionReason}
-        showNotesInput={
-          selectedAction === "approved" || selectedAction === "rejected"
-        }
-        notesLabel="Admin Notes"
-        notesValue={adminNotes}
-        onNotesChange={setAdminNotes}
+        initialStatus={selectedAction || ""}
         onCancel={() => {
           setConfirmOpen(false);
           setSelectedRequestId(null);
           setSelectedAction(null);
-          setRejectionReason("");
-          setAdminNotes("");
         }}
-        onConfirm={() => {
+        onConfirm={(data) => {
           if (!selectedRequestId || !selectedAction) return;
-
-          if (selectedAction === "rejected" && !rejectionReason.trim()) {
-            toast.error("Please provide a rejection reason");
-            return;
-          }
 
           if (selectedRequestId === "bulk") {
             // Handle bulk action
-            handleBulkAction(selectedAction);
+            handleBulkAction(
+              selectedAction,
+              selectedAction === "rejected" ? data.rejectionReason || "" : "",
+            );
           } else {
             // Handle single action
             handleUpdateStatus(
               selectedRequestId,
               selectedAction,
-              selectedAction === "rejected" ? rejectionReason.trim() : "",
-              adminNotes,
+              selectedAction === "rejected" ? data.rejectionReason || "" : "",
             );
           }
 
           setConfirmOpen(false);
           setSelectedRequestId(null);
           setSelectedAction(null);
-          setRejectionReason("");
-          setAdminNotes("");
         }}
       />
 
@@ -515,8 +511,6 @@ const UrgentBookingRequests = () => {
                   onClick={() => {
                     setSelectedAction("approved");
                     setSelectedRequestId("bulk");
-                    setRejectionReason("");
-                    setAdminNotes("");
                     setConfirmOpen(true);
                   }}
                 >
@@ -527,8 +521,6 @@ const UrgentBookingRequests = () => {
                   onClick={() => {
                     setSelectedAction("rejected");
                     setSelectedRequestId("bulk");
-                    setRejectionReason("");
-                    setAdminNotes("");
                     setConfirmOpen(true);
                   }}
                 >

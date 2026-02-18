@@ -1,4 +1,5 @@
 const Banner = require("../../models/banner");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
@@ -43,7 +44,7 @@ class BannerController {
         banner: newBanner,
       });
     } catch (err) {
-      console.error("Error in createBanner:", err);
+      logger.error("Error in createBanner:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -82,7 +83,11 @@ class BannerController {
 
           // Check if the old video exists, then delete it
           if (fs.existsSync(oldVideoPath)) {
-            fs.unlinkSync(oldVideoPath); // Delete the old video
+            try {
+              await fs.promises.unlink(oldVideoPath); // Delete the old video
+            } catch (error) {
+              logger.error("Error deleting old video:", error);
+            }
           }
         }
 
@@ -114,7 +119,11 @@ class BannerController {
 
             // Check if the old image exists, then delete it
             if (fs.existsSync(oldImagePath)) {
-              fs.unlinkSync(oldImagePath); // Delete the old image
+              try {
+                fs.unlinkSync(oldImagePath); // Delete the old image
+              } catch (error) {
+                logger.error("Error deleting old image:", error);
+              }
             }
           }
 
@@ -140,7 +149,7 @@ class BannerController {
         banner: savedBanner,
       });
     } catch (err) {
-      console.error("Error in updateBanner:", err);
+      logger.error("Error in updateBanner:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -154,7 +163,7 @@ class BannerController {
 
       res.status(200).json({ banner });
     } catch (error) {
-      console.error("Error fetching banner:", error);
+      logger.error("Error fetching banner:", error);
       res.status(500).json({ message: "Server error" });
     }
   };

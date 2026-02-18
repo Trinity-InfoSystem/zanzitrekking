@@ -1,4 +1,5 @@
 const Exclusion = require("../../models/exclusion");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const StringSimilarity = require("../../utilities/stringSimilarity");
 
@@ -182,7 +183,7 @@ class ExclusionControllers {
         message: "Exclusion deleted successfully",
       });
     } catch (err) {
-      console.error("Error deleting exclusion:", err);
+      logger.error("Error deleting exclusion:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -198,7 +199,7 @@ class ExclusionControllers {
         deletedCount: deletedExclusions.deletedCount,
       });
     } catch (err) {
-      console.error("Error deleting exclusions:", err);
+      logger.error("Error deleting exclusions:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

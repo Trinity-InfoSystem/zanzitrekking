@@ -12,6 +12,9 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { partnerSchema } from "../../utils/validationSchemas";
 
 const EditPartner = () => {
   const navigate = useNavigate();
@@ -21,19 +24,40 @@ const EditPartner = () => {
     (state) => state.partner,
   );
 
-  const [formData, setFormData] = useState({
-    name: "",
-    badge: "",
-    color: "from-teal-500 to-cyan-500",
-    rating: 5,
-    reviews: 0,
-    website: "",
-    description: "",
-    order: 0,
+  const [logoPreview, setLogoPreview] = useState(null);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(partnerSchema),
+    defaultValues: {
+      name: "",
+      badge: "",
+      color: "from-teal-500 to-cyan-500",
+      rating: 5,
+      reviews: 0,
+      website: "",
+      description: "",
+      order: 0,
+    },
   });
 
-  const [logo, setLogo] = useState(null);
-  const [logoPreview, setLogoPreview] = useState(null);
+  const logo = watch("logo");
+
+  useEffect(() => {
+    if (logo && logo instanceof File) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target.result);
+      };
+      reader.readAsDataURL(logo);
+    }
+  }, [logo]);
 
   const colorOptions = [
     { value: "from-red-500 to-pink-500", label: "Red to Pink" },
@@ -52,7 +76,7 @@ const EditPartner = () => {
 
   useEffect(() => {
     if (partner && partner._id) {
-      setFormData({
+      reset({
         name: partner.name || "",
         badge: partner.badge || "",
         color: partner.color || "from-teal-500 to-cyan-500",
@@ -66,7 +90,7 @@ const EditPartner = () => {
         setLogoPreview(partner.logo);
       }
     }
-  }, [partner]);
+  }, [partner, reset]);
 
   // Handle success and error messages
   useEffect(() => {
@@ -84,46 +108,19 @@ const EditPartner = () => {
     }
   }, [successMessage, errorMessage, dispatch, navigate]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setLogo(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.badge) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
+  const onSubmit = (data) => {
     const submitData = new FormData();
-    submitData.append("name", formData.name);
-    submitData.append("badge", formData.badge);
-    submitData.append("color", formData.color);
-    submitData.append("rating", formData.rating);
-    submitData.append("reviews", formData.reviews);
-    submitData.append("website", formData.website);
-    submitData.append("description", formData.description);
-    submitData.append("order", formData.order);
+    submitData.append("name", data.name);
+    submitData.append("badge", data.badge);
+    submitData.append("color", data.color);
+    submitData.append("rating", data.rating);
+    submitData.append("reviews", data.reviews);
+    if (data.website) submitData.append("website", data.website);
+    if (data.description) submitData.append("description", data.description);
+    submitData.append("order", data.order || 0);
 
-    if (logo) {
-      submitData.append("logo", logo);
+    if (data.logo) {
+      submitData.append("logo", data.logo);
     }
 
     dispatch(update_partner({ partnerId, formData: submitData }));
@@ -144,7 +141,7 @@ const EditPartner = () => {
         </div>
 
         <div className="w-full">
-          <form onSubmit={handleSubmit} className="mt-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-5">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Partner Name */}
               <div>
@@ -153,13 +150,17 @@ const EditPartner = () => {
                 </label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:border-secondary focus:ring-2 focus:ring-secondary-200"
+                  {...register("name")}
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:ring-2 ${
+                    errors.name
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                   placeholder="Enter partner name"
-                  required
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                )}
               </div>
 
               {/* Badge */}
@@ -169,13 +170,17 @@ const EditPartner = () => {
                 </label>
                 <input
                   type="text"
-                  name="badge"
-                  value={formData.badge}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:border-secondary focus:ring-2 focus:ring-secondary-200"
+                  {...register("badge")}
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:ring-2 ${
+                    errors.badge
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                   placeholder="e.g., Premium Partner"
-                  required
                 />
+                {errors.badge && (
+                  <p className="mt-1 text-sm text-red-600">{errors.badge.message}</p>
+                )}
               </div>
 
               {/* Color */}
@@ -184,11 +189,12 @@ const EditPartner = () => {
                   Badge Color *
                 </label>
                 <select
-                  name="color"
-                  value={formData.color}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none focus:border-secondary focus:ring-2 focus:ring-secondary-200"
-                  required
+                  {...register("color")}
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none focus:ring-2 ${
+                    errors.color
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 >
                   {colorOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -196,6 +202,9 @@ const EditPartner = () => {
                     </option>
                   ))}
                 </select>
+                {errors.color && (
+                  <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
+                )}
               </div>
 
               {/* Website */}
@@ -213,6 +222,26 @@ const EditPartner = () => {
                 />
               </div> */}
 
+              {/* Website */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-primary-800">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  {...register("website")}
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:ring-2 ${
+                    errors.website
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
+                  placeholder="https://example.com"
+                />
+                {errors.website && (
+                  <p className="mt-1 text-sm text-red-600">{errors.website.message}</p>
+                )}
+              </div>
+
               {/* Rating */}
               <div>
                 <label className="mb-2 block text-sm font-bold text-primary-800">
@@ -220,15 +249,19 @@ const EditPartner = () => {
                 </label>
                 <input
                   type="number"
-                  name="rating"
-                  value={formData.rating}
-                  onChange={handleInputChange}
+                  {...register("rating", { valueAsNumber: true })}
                   min="0"
                   max="5"
                   step="0.1"
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:border-secondary focus:ring-2 focus:ring-secondary-200"
-                  required
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:ring-2 ${
+                    errors.rating
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 />
+                {errors.rating && (
+                  <p className="mt-1 text-sm text-red-600">{errors.rating.message}</p>
+                )}
               </div>
 
               {/* Reviews Count */}
@@ -238,13 +271,17 @@ const EditPartner = () => {
                 </label>
                 <input
                   type="number"
-                  name="reviews"
-                  value={formData.reviews}
-                  onChange={handleInputChange}
+                  {...register("reviews", { valueAsNumber: true })}
                   min="0"
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:border-secondary focus:ring-2 focus:ring-secondary-200"
-                  required
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:ring-2 ${
+                    errors.reviews
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 />
+                {errors.reviews && (
+                  <p className="mt-1 text-sm text-red-600">{errors.reviews.message}</p>
+                )}
               </div>
 
               {/* Order */}
@@ -254,12 +291,17 @@ const EditPartner = () => {
                 </label>
                 <input
                   type="number"
-                  name="order"
-                  value={formData.order}
-                  onChange={handleInputChange}
+                  {...register("order", { valueAsNumber: true })}
                   min="0"
-                  className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:border-secondary focus:ring-2 focus:ring-secondary-200"
+                  className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none placeholder:text-text-light focus:ring-2 ${
+                    errors.order
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                      : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                  }`}
                 />
+                {errors.order && (
+                  <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
+                )}
               </div>
 
               {/* Logo Upload */}
@@ -279,13 +321,30 @@ const EditPartner = () => {
                       <span className="text-sm text-text-light">No image</span>
                     )}
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*,.svg"
-                    onChange={handleImageChange}
-                    className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-secondary file:to-sunshine-400 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:scale-105 focus:border-secondary focus:ring-2 focus:ring-secondary-200"
+                  <Controller
+                    name="logo"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <input
+                        {...field}
+                        type="file"
+                        accept="image/*,.svg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          onChange(file);
+                        }}
+                        className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-gradient-to-r file:from-secondary file:to-sunshine-400 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:scale-105 focus:ring-2 ${
+                          errors.logo
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                            : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                        }`}
+                      />
+                    )}
                   />
                 </div>
+                {errors.logo && (
+                  <p className="mt-1 text-sm text-red-600">{errors.logo.message}</p>
+                )}
                 <p className="mt-1 text-xs text-text-light">
                   Leave empty to keep current logo
                 </p>

@@ -1,4 +1,5 @@
 const WhoWeAreModel = require("../../models/whoWeAre");
+const logger = require('./../../utilities/logger');
 const Trip = require("../../models/trip");
 const Order = require("../../models/order");
 const { responseReturn } = require("../../utilities/response");
@@ -21,7 +22,7 @@ class WhoWeAreController {
       responseReturn(res, 200, { whoWeAre });
     } catch (error) {
       // Handle any potential errors
-      console.error("Error fetching WhoWeAre data:", error);
+      logger.error("Error fetching WhoWeAre data:", error);
       responseReturn(res, 500, {
         message: "Internal server error",
         error: error.message,
@@ -115,7 +116,7 @@ class WhoWeAreController {
         whoWeAre,
       });
     } catch (err) {
-      console.error("WhoWeAre Error:", err.message);
+      logger.error("WhoWeAre Error:", err.message);
       responseReturn(res, 500, {
         error: err.message || "Internal server error",
       });
@@ -170,16 +171,16 @@ class WhoWeAreController {
           if (fs.existsSync(oldImagePath)) {
             fs.unlink(oldImagePath, (err) => {
               if (err) {
-                console.error(
+                logger.error(
                   `Error deleting old image for ${field}: ${err.message}`
                 );
               } else {
-                console.log(`Successfully deleted old image: ${oldImagePath}`);
+                logger.info(`Successfully deleted old image: ${oldImagePath}`);
               }
             });
           }
         } catch (err) {
-          console.error(
+          logger.error(
             `Error processing old image for ${field}: ${err.message}`
           );
         }

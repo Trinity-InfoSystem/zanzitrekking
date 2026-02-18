@@ -13,6 +13,9 @@ import {
   Lock,
   Shield,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { resetPasswordSchema } from "../utils/validationSchemas";
 
 const ForgotPasswordReset = () => {
   const { loader, errorMessage, successMessage } = useSelector(
@@ -22,12 +25,26 @@ const ForgotPasswordReset = () => {
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(resetPasswordSchema),
+    defaultValues: {
+      otp: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
+  const password = watch("password");
 
   // Password validation states
   const [passwordChecks, setPasswordChecks] = useState({
@@ -35,6 +52,7 @@ const ForgotPasswordReset = () => {
     uppercase: false,
     lowercase: false,
     number: false,
+    symbol: false,
   });
 
   // Get email and OTP from location state
@@ -49,33 +67,19 @@ const ForgotPasswordReset = () => {
 
   // Password validation
   useEffect(() => {
-    setPasswordChecks({
-      length: newPassword.length >= 6,
-      uppercase: /[A-Z]/.test(newPassword),
-      lowercase: /[a-z]/.test(newPassword),
-      number: /\d/.test(newPassword),
-    });
-  }, [newPassword]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!newPassword || !confirmPassword) {
-      toast.error("Please fill in all fields");
-      return;
+    if (password) {
+      setPasswordChecks({
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /\d/.test(password),
+        symbol: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+      });
     }
+  }, [password]);
 
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    if (!passwordChecks.length) {
-      toast.error("Password must be at least 6 characters long");
-      return;
-    }
-
-    dispatch(reset_password({ email, otp, newPassword }));
+  const onSubmit = async (data) => {
+    dispatch(reset_password({ email, otp: data.otp, newPassword: data.password }));
   };
 
   const isPasswordValid = Object.values(passwordChecks).every((check) => check);
@@ -154,11 +158,36 @@ const ForgotPasswordReset = () => {
           <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft-lg">
             <div className="p-8">
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                {/* OTP Input */}
+                <div>
+                  <label
+                    htmlFor="otp"
+                    className="mb-2 block text-sm font-semibold text-text"
+                  >
+                    OTP Code
+                  </label>
+                  <input
+                    type="text"
+                    id="otp"
+                    {...register("otp")}
+                    className={`w-full rounded-lg border bg-white px-4 py-3 text-text transition-all focus:outline-none focus:ring-2 ${
+                      errors.otp
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                    }`}
+                    placeholder="Enter 6-digit OTP"
+                    maxLength={6}
+                  />
+                  {errors.otp && (
+                    <p className="mt-1 text-sm text-red-600">{errors.otp.message}</p>
+                  )}
+                </div>
+
                 {/* New Password */}
                 <div>
                   <label
-                    htmlFor="newPassword"
+                    htmlFor="password"
                     className="mb-2 block text-sm font-semibold text-text"
                   >
                     New Password
@@ -169,12 +198,14 @@ const ForgotPasswordReset = () => {
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
-                      id="newPassword"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      id="password"
+                      {...register("password")}
+                      className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                        errors.password
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                      }`}
                       placeholder="Enter new password"
-                      required
                     />
                     <button
                       type="button"
@@ -188,6 +219,9 @@ const ForgotPasswordReset = () => {
                       )}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  )}
                 </div>
 
                 {/* Confirm Password */}
@@ -205,11 +239,13 @@ const ForgotPasswordReset = () => {
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      {...register("confirmPassword")}
+                      className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 pr-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                        errors.confirmPassword
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                      }`}
                       placeholder="Confirm new password"
-                      required
                     />
                     <button
                       type="button"
@@ -225,10 +261,13 @@ const ForgotPasswordReset = () => {
                       )}
                     </button>
                   </div>
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                  )}
                 </div>
 
                 {/* Password Requirements */}
-                {newPassword && (
+                {password && (
                   <div className="space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
                     <p className="mb-2 text-xs font-semibold text-text">
                       Password Requirements:
@@ -244,7 +283,7 @@ const ForgotPasswordReset = () => {
                             : "text-neutral-500"
                         }
                       >
-                        At least 6 characters
+                        At least 8 characters
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
@@ -289,14 +328,28 @@ const ForgotPasswordReset = () => {
                         One number
                       </span>
                     </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <CheckCircle
+                        className={`h-3.5 w-3.5 ${passwordChecks.symbol ? "text-green-500" : "text-neutral-300"}`}
+                      />
+                      <span
+                        className={
+                          passwordChecks.symbol
+                            ? "text-green-600"
+                            : "text-neutral-500"
+                        }
+                      >
+                        One special character
+                      </span>
+                    </div>
                   </div>
                 )}
 
                 <button
                   type="submit"
-                  disabled={!isPasswordValid || newPassword !== confirmPassword}
+                  disabled={!isPasswordValid}
                   className={`group flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 text-base font-semibold text-white shadow-soft transition-all duration-200 ${
-                    isPasswordValid && newPassword === confirmPassword
+                    isPasswordValid
                       ? "bg-primary-800 hover:bg-primary-900 hover:shadow-soft-md"
                       : "cursor-not-allowed bg-neutral-400"
                   }`}

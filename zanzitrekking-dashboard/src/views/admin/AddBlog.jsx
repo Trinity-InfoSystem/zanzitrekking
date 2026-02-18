@@ -34,6 +34,9 @@ import { IMAGES_URL } from "../../utils/constants";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./quill-custom.css";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { blogPostSchema } from "../../utils/validationSchemas";
 
 const BlogPostForm = () => {
   const dispatch = useDispatch();
@@ -44,47 +47,15 @@ const BlogPostForm = () => {
   );
   
   // Category update loading state
-
-
+  const [categoryUpdating, setCategoryUpdating] = useState(false);
+  
   // Content type state
-  const [contentType, setContentType] = useState("structured");
-  const [htmlContent, setHtmlContent] = useState("");
   const [showHtmlCode, setShowHtmlCode] = useState(false);
   
   // Category state
   const [selectedCategory, setSelectedCategory] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
-  const [categoryUpdating, setCategoryUpdating] = useState(false);
-
-  // Form State
-  const [state, setState] = useState({
-    mainTitle: "",
-    creatorName: "",
-    creatorBio: "",
-    mainParagraph: "",
-    secondParagraph: "",
-    thirdParagraph: "",
-    secondTitle: "",
-    fourthParagraph: "",
-    proverb: "",
-    proverbWriter: "",
-    title: "",
-    paragraph: "",
-    creatorSocialLinks: {
-      facebook: "",
-      instagram: "",
-      twitter: "",
-    },
-  });
-
-  // Image State
-  const [images, setImages] = useState({
-    creatorImage: null,
-    mainImage: null,
-    relatedImage1: null,
-    relatedImage2: null,
-  });
 
   // Preview State
   const [previews, setPreviews] = useState({
@@ -93,6 +64,47 @@ const BlogPostForm = () => {
     relatedImage1: "",
     relatedImage2: "",
   });
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(blogPostSchema),
+    defaultValues: {
+      mainTitle: "",
+      creatorName: "",
+      creatorBio: "",
+      contentType: "structured",
+      htmlContent: "",
+      mainParagraph: "",
+      secondParagraph: "",
+      thirdParagraph: "",
+      secondTitle: "",
+      fourthParagraph: "",
+      proverb: "",
+      proverbWriter: "",
+      title: "",
+      paragraph: "",
+      creatorSocialLinks: {
+        facebook: "",
+        instagram: "",
+        twitter: "",
+      },
+      creatorImage: null,
+      mainImage: null,
+      relatedImage1: null,
+      relatedImage2: null,
+      category: "",
+    },
+  });
+
+  const contentType = watch("contentType");
+  const htmlContent = watch("htmlContent");
 
   // Quill modules configuration
   const quillModules = useMemo(
@@ -111,42 +123,21 @@ const BlogPostForm = () => {
     [],
   );
 
-  // Handle text input changes
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setState((prev) => {
-      if (prev[name] === value) return prev;
-      return {
-        ...prev,
-        [name]: value,
-      };
-    });
-  }, []);
-
   // Handle image changes
   const handleImageChange = useCallback((e, imageType) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImages((prev) => ({
-        ...prev,
-        [imageType]: file,
-      }));
+      setValue(imageType, file);
       setPreviews((prev) => ({
         ...prev,
         [imageType]: URL.createObjectURL(file),
       }));
     }
-  }, []);
+  }, [setValue]);
 
   const handleSocialLinkChange = useCallback((platform, value) => {
-    setState((prev) => ({
-      ...prev,
-      creatorSocialLinks: {
-        ...prev.creatorSocialLinks,
-        [platform]: value,
-      },
-    }));
-  }, []);
+    setValue(`creatorSocialLinks.${platform}`, value);
+  }, [setValue]);
 
   // Handle category update (only when editing)
   const handleCategoryUpdate = useCallback(async (categoryValue) => {
@@ -175,16 +166,15 @@ const BlogPostForm = () => {
   }, [blogPostId, dispatch]);
 
   // Handle form submission
-  const handleSubmit = useCallback(
-    (e) => {
-      e.preventDefault();
+  const onSubmit = useCallback(
+    (data) => {
       const formData = new FormData();
 
       // Mandatory fields
-      formData.append("mainTitle", state.mainTitle);
-      formData.append("creatorName", state.creatorName);
-      formData.append("creatorBio", state.creatorBio);
-      formData.append("contentType", contentType);
+      formData.append("mainTitle", data.mainTitle);
+      formData.append("creatorName", data.creatorName);
+      formData.append("creatorBio", data.creatorBio);
+      formData.append("contentType", data.contentType);
       
       // Category field - only append if it has a value
       const categoryToUse = selectedCategory || (newCategory.trim() ? newCategory.trim() : null);
@@ -193,49 +183,51 @@ const BlogPostForm = () => {
       }
 
       // Append content based on type
-      if (contentType === "html") {
-        formData.append("htmlContent", htmlContent);
+      if (data.contentType === "html") {
+        formData.append("htmlContent", data.htmlContent || "");
       } else {
         // Structured content
-        Object.keys(state).forEach((key) => {
-          if (key !== "creatorSocialLinks") {
-            formData.append(key, state[key]);
-          }
-        });
+        formData.append("mainParagraph", data.mainParagraph || "");
+        formData.append("secondParagraph", data.secondParagraph || "");
+        formData.append("thirdParagraph", data.thirdParagraph || "");
+        formData.append("secondTitle", data.secondTitle || "");
+        formData.append("fourthParagraph", data.fourthParagraph || "");
+        formData.append("proverb", data.proverb || "");
+        formData.append("proverbWriter", data.proverbWriter || "");
 
         // Special handling for related images
-        formData.append("relatedImages[title]", state.title);
-        formData.append("relatedImages[paragraph]", state.paragraph);
-        if (images.relatedImage1) {
-          formData.append("relatedImages[image1]", images.relatedImage1);
+        formData.append("relatedImages[title]", data.title || "");
+        formData.append("relatedImages[paragraph]", data.paragraph || "");
+        if (data.relatedImage1) {
+          formData.append("relatedImages[image1]", data.relatedImage1);
         }
-        if (images.relatedImage2) {
-          formData.append("relatedImages[image2]", images.relatedImage2);
+        if (data.relatedImage2) {
+          formData.append("relatedImages[image2]", data.relatedImage2);
         }
       }
 
       // Append creator image
-      if (images.creatorImage) {
-        formData.append("creatorImage", images.creatorImage);
+      if (data.creatorImage) {
+        formData.append("creatorImage", data.creatorImage);
       }
 
       // Append main image (optional)
-      if (images.mainImage) {
-        formData.append("mainImage", images.mainImage);
+      if (data.mainImage) {
+        formData.append("mainImage", data.mainImage);
       }
 
       // Social links
       formData.append(
         "creatorSocialLinks[facebook]",
-        state.creatorSocialLinks.facebook,
+        data.creatorSocialLinks?.facebook || "",
       );
       formData.append(
         "creatorSocialLinks[instagram]",
-        state.creatorSocialLinks.instagram,
+        data.creatorSocialLinks?.instagram || "",
       );
       formData.append(
         "creatorSocialLinks[twitter]",
-        state.creatorSocialLinks.twitter,
+        data.creatorSocialLinks?.twitter || "",
       );
 
       if (blogPostId) {
@@ -244,7 +236,7 @@ const BlogPostForm = () => {
         dispatch(blogPostAdd(formData));
       }
     },
-    [state, images, blogPostId, dispatch, contentType, htmlContent, selectedCategory, newCategory],
+    [blogPostId, dispatch, selectedCategory, newCategory],
   );
 
   // UI Components
@@ -266,33 +258,51 @@ const BlogPostForm = () => {
   );
 
   const InputField = useCallback(
-    ({ label, name, value, placeholder, type = "text", rows = 4 }) => (
-      <div className="mb-6">
-        <label className="mb-3 block text-sm font-bold text-primary-800">
-          {label}
-        </label>
-        {type === "textarea" ? (
-          <textarea
-            name={name}
-            value={value}
-            onChange={handleChange}
-            placeholder={placeholder}
-            rows={rows}
-            className="w-full resize-none rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-          />
-        ) : (
-          <input
-            type={type}
-            name={name}
-            value={value}
-            onChange={handleChange}
-            placeholder={placeholder}
-            className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-          />
-        )}
-      </div>
-    ),
-    [handleChange],
+    ({ label, name, placeholder, type = "text", rows = 4, required = false }) => {
+      const fieldName = name;
+      const error = errors[fieldName];
+      return (
+        <div className="mb-6">
+          <label className="mb-3 block text-sm font-bold text-primary-800">
+            {label} {required && <span className="text-red-500">*</span>}
+          </label>
+          {type === "textarea" ? (
+            <>
+              <textarea
+                {...register(fieldName)}
+                placeholder={placeholder}
+                rows={rows}
+                className={`w-full resize-none rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                  error
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                    : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                }`}
+              />
+              {error && (
+                <p className="mt-1 text-xs text-red-600">{error.message}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <input
+                type={type}
+                {...register(fieldName)}
+                placeholder={placeholder}
+                className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                  error
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                    : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                }`}
+              />
+              {error && (
+                <p className="mt-1 text-xs text-red-600">{error.message}</p>
+              )}
+            </>
+          )}
+        </div>
+      );
+    },
+    [register, errors],
   );
 
   const ImageUpload = useCallback(
@@ -365,16 +375,19 @@ const BlogPostForm = () => {
 
   useEffect(() => {
     if (blogPost && blogPost._id) {
-      setContentType(blogPost.contentType || "structured");
+      const contentTypeValue = blogPost.contentType || "structured";
+      setValue("contentType", contentTypeValue);
 
-      if (blogPost.contentType === "html") {
-        setHtmlContent(blogPost.htmlContent || "");
+      if (contentTypeValue === "html") {
+        setValue("htmlContent", blogPost.htmlContent || "");
       }
 
-      setState({
+      reset({
         mainTitle: blogPost.mainTitle || "",
         creatorName: blogPost.creatorName || "",
         creatorBio: blogPost.creatorBio || "",
+        contentType: contentTypeValue,
+        htmlContent: contentTypeValue === "html" ? (blogPost.htmlContent || "") : "",
         mainParagraph: blogPost.mainParagraph || "",
         secondParagraph: blogPost.secondParagraph || "",
         thirdParagraph: blogPost.thirdParagraph || "",
@@ -389,6 +402,7 @@ const BlogPostForm = () => {
           instagram: blogPost.creatorSocialLinks?.instagram || "",
           twitter: blogPost.creatorSocialLinks?.twitter || "",
         },
+        category: blogPost.category || "",
       });
       
       // Set category
@@ -405,7 +419,7 @@ const BlogPostForm = () => {
         relatedImage2: blogPost.relatedImages?.image2 || "",
       });
     }
-  }, [blogPost?._id]);
+  }, [blogPost?._id, setValue, reset]);
 
   useEffect(() => {
     if (successMessage) {
@@ -443,7 +457,7 @@ const BlogPostForm = () => {
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => setContentType("structured")}
+                onClick={() => setValue("contentType", "structured")}
                 className={`flex items-center gap-2 rounded-xl px-6 py-3 font-semibold transition-all ${
                   contentType === "structured"
                     ? "shadow-coral-medium bg-gradient-to-r from-secondary to-sunshine-400 text-white"
@@ -455,7 +469,7 @@ const BlogPostForm = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setContentType("html")}
+                onClick={() => setValue("contentType", "html")}
                 className={`flex items-center gap-2 rounded-xl px-6 py-3 font-semibold transition-all ${
                   contentType === "html"
                     ? "shadow-coral-medium bg-gradient-to-r from-secondary to-sunshine-400 text-white"
@@ -471,7 +485,7 @@ const BlogPostForm = () => {
 
         <form
           key={blogPostId || "new"}
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           className="space-y-8"
         >
           {/* Author Information - Always Mandatory */}
@@ -479,18 +493,18 @@ const BlogPostForm = () => {
             <div className="grid gap-8 lg:grid-cols-2">
               <div>
                 <InputField
-                  label="Creator's Name *"
+                  label="Creator's Name"
                   name="creatorName"
-                  value={state.creatorName}
                   placeholder="Enter the author's name"
+                  required
                 />
                 <InputField
-                  label="Creator's Bio *"
+                  label="Creator's Bio"
                   name="creatorBio"
-                  value={state.creatorBio}
                   placeholder="Tell us about the author..."
                   type="textarea"
                   rows={6}
+                  required
                 />
                 <div className="mt-6 rounded-xl bg-white p-6 ring-1 ring-primary-100">
                   <h3 className="mb-4 text-lg font-bold text-primary-800">
@@ -504,13 +518,19 @@ const BlogPostForm = () => {
                     </label>
                     <input
                       type="text"
-                      value={state.creatorSocialLinks.facebook || ""}
-                      onChange={(e) =>
-                        handleSocialLinkChange("facebook", e.target.value)
-                      }
+                      {...register("creatorSocialLinks.facebook")}
                       placeholder="https://facebook.com/username"
-                      className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                      className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                        errors.creatorSocialLinks?.facebook
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
                     />
+                    {errors.creatorSocialLinks?.facebook && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {errors.creatorSocialLinks.facebook.message}
+                      </p>
+                    )}
                   </div>
                   {/* Instagram */}
                   <div className="mb-4">
@@ -520,13 +540,19 @@ const BlogPostForm = () => {
                     </label>
                     <input
                       type="text"
-                      value={state.creatorSocialLinks.instagram || ""}
-                      onChange={(e) =>
-                        handleSocialLinkChange("instagram", e.target.value)
-                      }
+                      {...register("creatorSocialLinks.instagram")}
                       placeholder="https://instagram.com/username"
-                      className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                      className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                        errors.creatorSocialLinks?.instagram
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
                     />
+                    {errors.creatorSocialLinks?.instagram && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {errors.creatorSocialLinks.instagram.message}
+                      </p>
+                    )}
                   </div>
                   {/* Twitter */}
                   <div className="mb-4">
@@ -536,13 +562,19 @@ const BlogPostForm = () => {
                     </label>
                     <input
                       type="text"
-                      value={state.creatorSocialLinks.twitter || ""}
-                      onChange={(e) =>
-                        handleSocialLinkChange("twitter", e.target.value)
-                      }
+                      {...register("creatorSocialLinks.twitter")}
                       placeholder="https://twitter.com/username"
-                      className="w-full rounded-xl border-2 border-primary-200 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                      className={`w-full rounded-xl border-2 bg-white px-4 py-3.5 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                        errors.creatorSocialLinks?.twitter
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
                     />
+                    {errors.creatorSocialLinks?.twitter && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {errors.creatorSocialLinks.twitter.message}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -560,10 +592,10 @@ const BlogPostForm = () => {
           {/* Main Title - Always Required */}
           <FormSection title="Blog Post Title" icon={FaPen}>
             <InputField
-              label="Main Title *"
+              label="Main Title"
               name="mainTitle"
-              value={state.mainTitle}
               placeholder="Enter a compelling title for your blog post"
+              required
             />
             <ImageUpload
               id="main-image"
@@ -694,17 +726,31 @@ const BlogPostForm = () => {
                 {showHtmlCode ? (
                   /* HTML Code Editor */
                   <div>
-                    <textarea
-                      value={htmlContent}
-                      onChange={(e) => setHtmlContent(e.target.value)}
-                      placeholder="Enter your HTML code here..."
-                      rows={20}
-                      className="w-full resize-none rounded-xl border-2 border-primary-200 bg-neutral-900 px-4 py-3.5 font-mono text-sm text-green-400 placeholder:text-neutral-500 focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
-                      style={{
-                        fontFamily: "'Courier New', monospace",
-                        lineHeight: "1.5",
-                      }}
+                    <Controller
+                      name="htmlContent"
+                      control={control}
+                      render={({ field }) => (
+                        <textarea
+                          {...field}
+                          placeholder="Enter your HTML code here..."
+                          rows={20}
+                          className={`w-full resize-none rounded-xl border-2 bg-neutral-900 px-4 py-3.5 font-mono text-sm text-green-400 placeholder:text-neutral-500 focus:outline-none focus:ring-2 ${
+                            errors.htmlContent
+                              ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                              : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                          }`}
+                          style={{
+                            fontFamily: "'Courier New', monospace",
+                            lineHeight: "1.5",
+                          }}
+                        />
+                      )}
                     />
+                    {errors.htmlContent && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {errors.htmlContent.message}
+                      </p>
+                    )}
                     <p className="mt-2 text-sm text-text-light">
                       Direct HTML code editor. Make sure your HTML is valid.
                     </p>
@@ -713,15 +759,26 @@ const BlogPostForm = () => {
                   /* WYSIWYG Editor */
                   <div>
                     <div className="rounded-xl border-2 border-primary-200 bg-white">
-                      <ReactQuill
-                        theme="snow"
-                        value={htmlContent}
-                        onChange={setHtmlContent}
-                        modules={quillModules}
-                        placeholder="Start writing your blog content..."
-                        className="min-h-[400px]"
+                      <Controller
+                        name="htmlContent"
+                        control={control}
+                        render={({ field }) => (
+                          <ReactQuill
+                            theme="snow"
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            modules={quillModules}
+                            placeholder="Start writing your blog content..."
+                            className="min-h-[400px]"
+                          />
+                        )}
                       />
                     </div>
+                    {errors.htmlContent && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {errors.htmlContent.message}
+                      </p>
+                    )}
                     <p className="mt-2 text-sm text-text-light">
                       Use the rich text editor to format your content. You can
                       add images, videos, and links. Switch to HTML Code to edit
@@ -737,7 +794,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Opening Paragraph"
                   name="mainParagraph"
-                  value={state.mainParagraph}
                   placeholder="Start with an engaging opening paragraph..."
                   type="textarea"
                   rows={5}
@@ -745,7 +801,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Second Paragraph"
                   name="secondParagraph"
-                  value={state.secondParagraph}
                   placeholder="Continue your story..."
                   type="textarea"
                   rows={5}
@@ -753,7 +808,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Third Paragraph"
                   name="thirdParagraph"
-                  value={state.thirdParagraph}
                   placeholder="Develop your ideas further..."
                   type="textarea"
                   rows={5}
@@ -764,13 +818,11 @@ const BlogPostForm = () => {
                 <InputField
                   label="Secondary Title"
                   name="secondTitle"
-                  value={state.secondTitle}
                   placeholder="Add a subtitle or section header"
                 />
                 <InputField
                   label="Fourth Paragraph"
                   name="fourthParagraph"
-                  value={state.fourthParagraph}
                   placeholder="Conclude your main content..."
                   type="textarea"
                   rows={5}
@@ -781,7 +833,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Quote or Proverb"
                   name="proverb"
-                  value={state.proverb}
                   placeholder="Share an inspiring quote or proverb..."
                   type="textarea"
                   rows={3}
@@ -789,7 +840,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Quote Author"
                   name="proverbWriter"
-                  value={state.proverbWriter}
                   placeholder="Who said this quote?"
                 />
               </FormSection>
@@ -798,7 +848,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Related Images Title"
                   name="title"
-                  value={state.title}
                   placeholder="Title for your image gallery"
                 />
                 <div className="grid gap-8 lg:grid-cols-2">
@@ -816,7 +865,6 @@ const BlogPostForm = () => {
                 <InputField
                   label="Images Description"
                   name="paragraph"
-                  value={state.paragraph}
                   placeholder="Describe the significance of these images..."
                   type="textarea"
                   rows={4}

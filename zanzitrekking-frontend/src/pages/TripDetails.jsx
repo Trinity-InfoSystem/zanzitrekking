@@ -22,6 +22,7 @@ import {
   get_wishlist_trips,
   remove_wishlist_trip,
 } from "../store/reducers/cardReducer";
+import { formatDateForAPI } from "../utils/dateUtils";
 import TripHero from "../components/tripDetails/TripHero";
 import TripTabs from "../components/tripDetails/TripTabs";
 import TripActions from "../components/tripDetails/TripActions";
@@ -111,7 +112,7 @@ const TripDetails = () => {
         add_to_cart({
           userId: userInfo.id,
           tripId,
-          startingDate: new Date().toISOString(),
+          startingDate: formatDateForAPI(new Date()),
           travelersNumber: 1,
           mainTitle: trip.mainTitle,
           mainImage: trip.mainImage,

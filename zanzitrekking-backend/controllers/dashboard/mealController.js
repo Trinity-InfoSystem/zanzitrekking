@@ -1,4 +1,5 @@
 const Meal = require("../../models/meal");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const StringSimilarity = require("../../utilities/stringSimilarity");
 
@@ -184,7 +185,7 @@ class MealControllers {
         message: "Meal deleted successfully",
       });
     } catch (err) {
-      console.error("Error deleting meal:", err);
+      logger.error("Error deleting meal:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -198,7 +199,7 @@ class MealControllers {
         deletedCount: deletedMeals.deletedCount,
       });
     } catch (err) {
-      console.error("Error deleting meals:", err);
+      logger.error("Error deleting meals:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

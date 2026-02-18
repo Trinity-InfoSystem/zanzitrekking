@@ -1,4 +1,5 @@
 const UrgentBookingRequest = require("../../models/urgentBookingRequest");
+const logger = require('./../../utilities/logger');
 const Trip = require("../../models/trip");
 const Customer = require("../../models/customer");
 const { responseReturn } = require("../../utilities/response");
@@ -45,7 +46,7 @@ class UrgentBookingRequestController {
       try {
         customerObjectId = new mongoose.Types.ObjectId(customerId);
       } catch (error) {
-        console.error("Invalid customerId format:", customerId, error);
+        logger.error("Invalid customerId format:", customerId, error);
         return responseReturn(res, 400, {
           message: "Invalid customer ID format",
         });
@@ -63,7 +64,7 @@ class UrgentBookingRequestController {
       try {
         tripObjectId = new mongoose.Types.ObjectId(tripId);
       } catch (error) {
-        console.error("Invalid tripId format:", tripId, error);
+        logger.error("Invalid tripId format:", tripId, error);
         return responseReturn(res, 400, {
           message: "Invalid trip ID format",
         });
@@ -224,7 +225,7 @@ class UrgentBookingRequestController {
           recipients: [request.personalInfo.email],
         });
       } catch (emailError) {
-        console.error("Error sending customer confirmation email:", emailError);
+        logger.error("Error sending customer confirmation email:", emailError);
         // Don't fail the request creation if email fails
       }
 
@@ -239,9 +240,9 @@ class UrgentBookingRequestController {
           content: adminEmailContent,
           recipients: ["notifications@zanzisafaris.com"],
         });
-        console.log(`[Email] Admin notification email queued for request ${request._id}`);
+        logger.info(`[Email] Admin notification email queued for request ${request._id}`);
       } catch (emailError) {
-        console.error("Error sending admin notification email:", emailError);
+        logger.error("Error sending admin notification email:", emailError);
         // Don't fail the request creation if email fails
       }
 
@@ -250,7 +251,7 @@ class UrgentBookingRequestController {
         request,
       });
     } catch (error) {
-      console.error("Error creating urgent booking request:", error);
+      logger.error("Error creating urgent booking request:", error);
       return responseReturn(res, 500, {
         message: "Internal server error",
         error: error.message,
@@ -275,7 +276,7 @@ class UrgentBookingRequestController {
       try {
         customerObjectId = new mongoose.Types.ObjectId(customerId);
       } catch (error) {
-        console.error("Invalid customerId format in checkBookingEligibility:", customerId, error);
+        logger.error("Invalid customerId format in checkBookingEligibility:", customerId, error);
         return responseReturn(res, 400, {
           message: "Invalid customer ID format",
         });
@@ -286,7 +287,7 @@ class UrgentBookingRequestController {
       try {
         tripObjectId = new mongoose.Types.ObjectId(tripId);
       } catch (error) {
-        console.error("Invalid tripId format in checkBookingEligibility:", tripId, error);
+        logger.error("Invalid tripId format in checkBookingEligibility:", tripId, error);
         return responseReturn(res, 400, {
           message: "Invalid trip ID format",
         });
@@ -324,7 +325,7 @@ class UrgentBookingRequestController {
         restrictionCheck,
       });
     } catch (error) {
-      console.error("Error checking booking eligibility:", error);
+      logger.error("Error checking booking eligibility:", error);
       return responseReturn(res, 500, {
         message: "Internal server error",
         error: error.message,
@@ -353,7 +354,7 @@ class UrgentBookingRequestController {
         total: requests.length,
       });
     } catch (error) {
-      console.error("Error fetching user requests:", error);
+      logger.error("Error fetching user requests:", error);
       return responseReturn(res, 500, {
         message: "Internal server error",
         error: error.message,
@@ -415,7 +416,7 @@ class UrgentBookingRequestController {
         message: "Request deleted successfully",
       });
     } catch (error) {
-      console.error("Error deleting request:", error);
+      logger.error("Error deleting request:", error);
       return responseReturn(res, 500, {
         message: "Internal server error",
         error: error.message,

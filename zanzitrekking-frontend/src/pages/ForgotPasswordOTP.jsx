@@ -16,6 +16,16 @@ import {
   RefreshCw,
   Shield,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+const otpSchema = yup.object({
+  otp: yup
+    .string()
+    .matches(/^\d{6}$/, "OTP must be 6 digits")
+    .required("OTP is required"),
+});
 
 const ForgotPasswordOTP = () => {
   const { loader, errorMessage, successMessage } = useSelector(
@@ -25,9 +35,16 @@ const ForgotPasswordOTP = () => {
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes in seconds
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(otpSchema),
+  });
 
   // Get email from location state
   useEffect(() => {
@@ -46,13 +63,8 @@ const ForgotPasswordOTP = () => {
     }
   }, [timeLeft]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!otp || otp.length !== 6) {
-      toast.error("Please enter a valid 6-digit OTP");
-      return;
-    }
-    dispatch(verify_otp({ email, otp }));
+  const onSubmit = async (data) => {
+    dispatch(verify_otp({ email, otp: data.otp }));
   };
 
   const handleResendOTP = () => {
@@ -150,22 +162,31 @@ const ForgotPasswordOTP = () => {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 <div>
                   <label className="mb-2 block text-center text-sm font-semibold text-text">
                     Verification Code
                   </label>
                   <input
                     type="text"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                    {...register("otp")}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      e.target.value = value;
+                    }}
+                    className={`w-full rounded-lg border bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest text-text transition-all focus:outline-none focus:ring-2 ${
+                      errors.otp
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                    }`}
                     placeholder="000000"
                     maxLength={6}
-                    required
                   />
+                  {errors.otp && (
+                    <p className="mt-1 text-center text-sm text-red-600">
+                      {errors.otp.message}
+                    </p>
+                  )}
                 </div>
 
                 <button

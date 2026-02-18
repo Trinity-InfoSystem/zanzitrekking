@@ -22,6 +22,9 @@ import toast from "react-hot-toast";
 import HeaderText from "./HeaderText";
 import { IMAGES_URL } from "../../utils/constants";
 import { isViewer } from "../../utils/roleVerification";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { whoWeAreSchema } from "../../utils/validationSchemas";
 
 const WhoWeAre = () => {
   const dispatch = useDispatch();
@@ -30,17 +33,29 @@ const WhoWeAre = () => {
   );
   const role = useSelector((state) => state.auth?.userInfo?.role);
 
-  const [formData, setFormData] = useState({
-    mainTitle: "",
-    paragraph: "",
-    image1: null,
-    image2: null,
-    image3: null,
-    previewUrls: {
-      image1: "",
-      image2: "",
-      image3: "",
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(whoWeAreSchema),
+    defaultValues: {
+      mainTitle: "",
+      paragraph: "",
+      image1: null,
+      image2: null,
+      image3: null,
     },
+  });
+
+  const [previewUrls, setPreviewUrls] = useState({
+    image1: "",
+    image2: "",
+    image3: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,14 +76,11 @@ const WhoWeAre = () => {
         return;
       }
 
-      // Update form data with new image
-      setFormData((prev) => ({
+      // Update form with new image
+      setValue(field, file, { shouldValidate: true });
+      setPreviewUrls((prev) => ({
         ...prev,
-        [field]: file,
-        previewUrls: {
-          ...prev.previewUrls,
-          [field]: URL.createObjectURL(file),
-        },
+        [field]: URL.createObjectURL(file),
       }));
 
       // Auto-save when image is uploaded
@@ -79,21 +91,19 @@ const WhoWeAre = () => {
   const autoSave = async (field, file) => {
     try {
       setAutoSaving(true);
+      const formValues = watch();
       const submitData = new FormData();
-      submitData.append("mainTitle", formData.mainTitle.trim());
-      submitData.append("paragraph", formData.paragraph.trim());
+      submitData.append("mainTitle", (formValues.mainTitle || "").trim());
+      submitData.append("paragraph", (formValues.paragraph || "").trim());
 
       // Include all existing images
       ["image1", "image2", "image3"].forEach((imgField) => {
         if (imgField === field) {
-          // For the field being updated, use the new file (or null if removing)
           if (file) {
             submitData.append(imgField, file);
           }
-          // If file is null, we don't append anything (effectively removing it)
-        } else if (formData[imgField]) {
-          // For other fields, include existing files
-          submitData.append(imgField, formData[imgField]);
+        } else if (formValues[imgField]) {
+          submitData.append(imgField, formValues[imgField]);
         }
       });
 
@@ -108,30 +118,26 @@ const WhoWeAre = () => {
   };
 
   const removeImage = async (field) => {
-    setFormData((prev) => ({
+    setValue(field, null, { shouldValidate: true });
+    setPreviewUrls((prev) => ({
       ...prev,
-      [field]: null,
-      previewUrls: {
-        ...prev.previewUrls,
-        [field]: "",
-      },
+      [field]: "",
     }));
 
     // Auto-save when image is removed
     await autoSave(field, null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setIsSubmitting(true);
 
     try {
       const submitData = new FormData();
-      submitData.append("mainTitle", formData.mainTitle.trim());
-      submitData.append("paragraph", formData.paragraph.trim());
+      submitData.append("mainTitle", data.mainTitle.trim());
+      submitData.append("paragraph", data.paragraph.trim());
       ["image1", "image2", "image3"].forEach((field) => {
-        if (formData[field]) {
-          submitData.append(field, formData[field]);
+        if (data[field]) {
+          submitData.append(field, data[field]);
         }
       });
 
@@ -147,17 +153,20 @@ const WhoWeAre = () => {
 
   useEffect(() => {
     if (whoWeAre) {
-      setFormData({
+      reset({
         mainTitle: whoWeAre.mainTitle || "",
         paragraph: whoWeAre.paragraph || "",
-        previewUrls: {
-          image1: whoWeAre.image1 || "",
-          image2: whoWeAre.image2 || "",
-          image3: whoWeAre.image3 || "",
-        },
+        image1: null,
+        image2: null,
+        image3: null,
+      });
+      setPreviewUrls({
+        image1: whoWeAre.image1 || "",
+        image2: whoWeAre.image2 || "",
+        image3: whoWeAre.image3 || "",
       });
     }
-  }, [whoWeAre]);
+  }, [whoWeAre, reset]);
 
   useEffect(() => {
     if (errorMessage) {
@@ -194,7 +203,7 @@ const WhoWeAre = () => {
           {/* Form Section */}
           <div className="lg:col-span-2">
             <div className="overflow-hidden rounded-3xl bg-white shadow-nature-medium ring-1 ring-primary-100">
-              <form onSubmit={handleSubmit} className="p-7">
+              <form onSubmit={handleSubmit(onSubmit)} className="p-7">
                 <div className="space-y-10">
                   {/* Title Section */}
                   <div className="group">
@@ -204,7 +213,7 @@ const WhoWeAre = () => {
                       </div>
                       <div>
                         <label className="text-xl font-bold text-primary-800">
-                          Main Title
+                          Main Title *
                         </label>
                         <p className="text-sm text-text">
                           Create a compelling headline
@@ -214,20 +223,23 @@ const WhoWeAre = () => {
                     <div className="relative">
                       <input
                         type="text"
-                        value={formData.mainTitle}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            mainTitle: e.target.value,
-                          }))
-                        }
+                        {...register("mainTitle")}
                         onFocus={() => setFocusedField("title")}
                         onBlur={() => setFocusedField(null)}
                         placeholder="e.g., 'Innovating the Future, One Solution at a Time'"
                         className={`w-full rounded-2xl border-2 px-6 py-5 text-lg font-medium text-text-dark placeholder-text-light transition-all focus:outline-none ${
-                          focusedField === "title" ? "border-secondary bg-secondary-50 ring-2 ring-secondary-200" : "border-primary-200 bg-white"
+                          errors.mainTitle
+                            ? "border-red-500 bg-red-50 ring-2 ring-red-200"
+                            : focusedField === "title"
+                              ? "border-secondary bg-secondary-50 ring-2 ring-secondary-200"
+                              : "border-primary-200 bg-white"
                         }`}
                       />
+                      {errors.mainTitle && (
+                        <p className="mt-2 text-sm text-red-600">
+                          {errors.mainTitle.message}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -239,7 +251,7 @@ const WhoWeAre = () => {
                       </div>
                       <div>
                         <label className="text-xl font-bold text-primary-800">
-                          Story & Vision
+                          Story & Vision *
                         </label>
                         <p className="text-sm text-text">
                           Share your companys journey
@@ -248,21 +260,24 @@ const WhoWeAre = () => {
                     </div>
                     <div className="relative">
                       <textarea
-                        value={formData.paragraph}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            paragraph: e.target.value,
-                          }))
-                        }
+                        {...register("paragraph")}
                         onFocus={() => setFocusedField("content")}
                         onBlur={() => setFocusedField(null)}
                         rows={8}
                         placeholder="Tell your story... What drives your company? What makes you unique? Share your mission, values, and the passion behind what you do. This is where you connect with your audience on a deeper level."
                         className={`w-full resize-none rounded-2xl border-2 px-6 py-5 text-text-dark placeholder-text-light transition-all focus:outline-none ${
-                          focusedField === "content" ? "border-secondary bg-secondary-50 ring-2 ring-secondary-200" : "border-primary-200 bg-white"
+                          errors.paragraph
+                            ? "border-red-500 bg-red-50 ring-2 ring-red-200"
+                            : focusedField === "content"
+                              ? "border-secondary bg-secondary-50 ring-2 ring-secondary-200"
+                              : "border-primary-200 bg-white"
                         }`}
                       />
+                      {errors.paragraph && (
+                        <p className="mt-2 text-sm text-red-600">
+                          {errors.paragraph.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {!isViewer(role) && (
@@ -317,9 +332,9 @@ const WhoWeAre = () => {
                   <div className="space-y-6">
                     {["image1", "image2", "image3"].map((field, index) => {
                       const ImageIconComponent = imageLabels[index].icon;
-                      let imageName = formData.previewUrls[field]
+                      let imageName = previewUrls[field]
                         ? IMAGES_URL +
-                          formData.previewUrls[field].split("/").pop()
+                          previewUrls[field].split("/").pop()
                         : "/placeholder.svg";
 
                       return (
@@ -343,7 +358,7 @@ const WhoWeAre = () => {
                             <label
                               htmlFor={field}
                               className={`relative block aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-500 group-hover:scale-[1.02] ${
-                                formData.previewUrls[field]
+                                previewUrls[field]
                                   ? "border-transparent shadow-nature-medium ring-2 ring-primary-200"
                                   : draggedOver === field
                                     ? "border-secondary bg-secondary-50 shadow-lg"
@@ -361,7 +376,7 @@ const WhoWeAre = () => {
                                 if (file) handleImageUpload(field, file);
                               }}
                             >
-                              {formData.previewUrls[field] ? (
+                              {previewUrls[field] ? (
                                 <>
                                   <img
                                     src={imageName || "/placeholder.svg"}
@@ -408,15 +423,25 @@ const WhoWeAre = () => {
                                 </div>
                               )}
                             </label>
-                            <input
-                              id={field}
-                              type="file"
-                              className="hidden"
-                              accept="image/jpeg,image/png,image/webp"
-                              onChange={(e) =>
-                                handleImageUpload(field, e.target.files[0])
-                              }
-                              disabled={isViewer(role)}
+                            <Controller
+                              name={field}
+                              control={control}
+                              render={({ field: { onChange, value, ...fieldProps } }) => (
+                                <input
+                                  {...fieldProps}
+                                  id={field}
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handleImageUpload(field, file);
+                                    }
+                                  }}
+                                  disabled={isViewer(role)}
+                                />
+                              )}
                             />
                           </div>
                         </div>

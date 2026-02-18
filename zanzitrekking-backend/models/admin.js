@@ -37,9 +37,11 @@ const adminSchema = new Schema(
     },
     resetPasswordOTP: {
       type: String,
+      select: false,
     },
     resetPasswordExpires: {
       type: Date,
+      select: false,
     },
   },
   {

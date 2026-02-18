@@ -1,4 +1,5 @@
 const Admin = require("../models/admin");
+const logger = require('./logger');
 const Trip = require("../models/trip");
 
 /**
@@ -16,7 +17,7 @@ const getCompanyInfo = async () => {
       address: admin?.companyAddress || "Zanzibar, Tanzania",
     };
   } catch (error) {
-    console.error("Error fetching company info:", error);
+    logger.error("Error fetching company info:", error);
     return {
       email: "info@zanzisafaris.com",
       phone: "+255 752 777 701",

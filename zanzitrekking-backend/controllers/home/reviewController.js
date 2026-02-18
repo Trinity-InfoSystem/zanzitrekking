@@ -1,4 +1,5 @@
 const Review = require("../../models/review");
+const logger = require('./../../utilities/logger');
 const Trip = require("../../models/trip");
 const Order = require("../../models/order");
 const mongoose = require("mongoose");
@@ -56,7 +57,7 @@ class ReviewController {
         review,
       });
     } catch (error) {
-      console.error("Error creating review:", error);
+      logger.error("Error creating review:", error);
 
       if (error.statusCode === 400) {
         return responseReturn(res, 400, { message: error.message });
@@ -135,7 +136,7 @@ class ReviewController {
         ratingStats,
       });
     } catch (error) {
-      console.error("Error getting trip reviews:", error);
+      logger.error("Error getting trip reviews:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -174,7 +175,7 @@ class ReviewController {
         },
       });
     } catch (error) {
-      console.error("Error getting customer reviews:", error);
+      logger.error("Error getting customer reviews:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -237,7 +238,7 @@ class ReviewController {
         review: updatedReview,
       });
     } catch (error) {
-      console.error("Error updating review:", error);
+      logger.error("Error updating review:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -280,7 +281,7 @@ class ReviewController {
         message: "Review deleted successfully.",
       });
     } catch (error) {
-      console.error("Error deleting review:", error);
+      logger.error("Error deleting review:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -294,7 +295,7 @@ class ReviewController {
         rating: Math.round(ratingStats.averageRating * 10) / 10, // Round to 1 decimal place
       });
     } catch (error) {
-      console.error("Error updating trip rating:", error);
+      logger.error("Error updating trip rating:", error);
     }
   };
 
@@ -376,7 +377,7 @@ class ReviewController {
         },
       });
     } catch (error) {
-      console.error("Error getting reviewable trips:", error);
+      logger.error("Error getting reviewable trips:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };

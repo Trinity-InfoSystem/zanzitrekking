@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { createPortal } from "react-dom";
 import { Loader2, Send, Star, X } from "lucide-react";
@@ -6,6 +6,9 @@ import RatingReact from "react-rating";
 import { CiStar } from "react-icons/ci";
 import { FaStar } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { reviewSchema } from "../../utils/validationSchemas";
 import {
   clearMessage,
   createReview,
@@ -19,10 +22,6 @@ const ReviewModal = ({
   tripTitle,
   tripImage,
 }) => {
-  const [rate, setRate] = useState(0);
-  const [title, setTitle] = useState("");
-  const [comment, setComment] = useState("");
-
   const dispatch = useDispatch();
   const userInfo = useSelector((state) => state.auth?.userInfo);
   const {
@@ -31,14 +30,38 @@ const ReviewModal = ({
     errorMessage,
   } = useSelector((state) => state.review);
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(reviewSchema),
+    defaultValues: {
+      tripId,
+      orderId: orderId || undefined,
+      rating: 0,
+      title: "",
+      comment: "",
+    },
+  });
+
+  const rating = watch("rating");
+
   useEffect(() => {
     if (isOpen) {
-      setRate(0);
-      setTitle("");
-      setComment("");
+      reset({
+        tripId,
+        orderId: orderId || undefined,
+        rating: 0,
+        title: "",
+        comment: "",
+      });
       dispatch(clearMessage());
     }
-  }, [isOpen, dispatch]);
+  }, [isOpen, dispatch, tripId, orderId, reset]);
 
   useEffect(() => {
     if (successMessage) {
@@ -52,14 +75,7 @@ const ReviewModal = ({
     }
   }, [successMessage, errorMessage, dispatch, onClose]);
 
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-
-    if (!rate || !title.trim() || !comment.trim()) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
+  const onSubmit = async (data) => {
     if (!userInfo?.id) {
       toast.error("User information not available");
       return;
@@ -68,10 +84,11 @@ const ReviewModal = ({
     dispatch(
       createReview({
         customerId: userInfo.id,
-        tripId,
-        rating: rate,
-        title: title.trim(),
-        comment: comment.trim(),
+        tripId: data.tripId,
+        orderId: data.orderId,
+        rating: data.rating,
+        title: data.title.trim(),
+        comment: data.comment.trim(),
       }),
     );
   };
@@ -133,7 +150,7 @@ const ReviewModal = ({
 
           {/* Review Form */}
           <div className="px-6 py-6">
-            <form onSubmit={handleSubmitReview} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Rating */}
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-primary-800">
@@ -141,8 +158,8 @@ const ReviewModal = ({
                   </label>
                   <div className="flex gap-1">
                     <RatingReact
-                      onChange={(e) => setRate(e)}
-                      initialRating={rate}
+                      onChange={(e) => setValue("rating", e)}
+                      initialRating={rating}
                       emptySymbol={
                         <span className="text-4xl text-neutral-300">
                           <CiStar />
@@ -155,6 +172,9 @@ const ReviewModal = ({
                       }
                     />
                   </div>
+                  {errors.rating && (
+                    <p className="mt-1 text-sm text-red-600">{errors.rating.message}</p>
+                  )}
                 </div>
 
                 {/* Title */}
@@ -165,11 +185,16 @@ const ReviewModal = ({
                   <input
                     type="text"
                     placeholder="Give your review a title..."
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                    required
+                    {...register("title")}
+                    className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:outline-none focus:ring-2 ${
+                      errors.title
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                    }`}
                   />
+                  {errors.title && (
+                    <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+                  )}
                 </div>
 
                 {/* Comment */}
@@ -180,11 +205,16 @@ const ReviewModal = ({
                   <textarea
                     placeholder="Share your experience with other travelers..."
                     rows="5"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                    required
+                    {...register("comment")}
+                    className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-primary-800 placeholder-text-lighter transition-colors focus:outline-none focus:ring-2 ${
+                      errors.comment
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                    }`}
                   />
+                  {errors.comment && (
+                    <p className="mt-1 text-sm text-red-600">{errors.comment.message}</p>
+                  )}
                 </div>
 
                 {/* Submit Button */}

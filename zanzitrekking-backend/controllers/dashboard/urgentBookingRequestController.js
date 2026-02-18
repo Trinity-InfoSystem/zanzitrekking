@@ -1,4 +1,5 @@
 const UrgentBookingRequest = require("../../models/urgentBookingRequest");
+const logger = require('./../../utilities/logger');
 const Trip = require("../../models/trip");
 const { responseReturn } = require("../../utilities/response");
 const mongoose = require("mongoose");
@@ -105,7 +106,7 @@ class AdminUrgentBookingRequestController {
         stats,
       });
     } catch (error) {
-      console.error("Error getting all urgent booking requests:", error);
+      logger.error("Error getting all urgent booking requests:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -191,7 +192,7 @@ class AdminUrgentBookingRequestController {
               recipients: [customerEmail],
               attachment: emailData.attachment,
             });
-            console.log(
+            logger.info(
               `[Urgent Booking Request] Approval email queued for request ${requestId}`
             );
           } else if (status === "rejected") {
@@ -206,13 +207,13 @@ class AdminUrgentBookingRequestController {
               recipients: [customerEmail],
               attachment: emailData.attachment,
             });
-            console.log(
+            logger.info(
               `[Urgent Booking Request] Rejection email queued for request ${requestId}`
             );
           }
         }
       } catch (emailError) {
-        console.error(
+        logger.error(
           "[Urgent Booking Request] Error sending notification email:",
           emailError
         );
@@ -224,7 +225,7 @@ class AdminUrgentBookingRequestController {
         request: updatedRequest,
       });
     } catch (error) {
-      console.error("Error updating request status:", error);
+      logger.error("Error updating request status:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -277,7 +278,7 @@ class AdminUrgentBookingRequestController {
         },
       });
     } catch (error) {
-      console.error("Error getting request stats:", error);
+      logger.error("Error getting request stats:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -375,7 +376,7 @@ class AdminUrgentBookingRequestController {
               }
             }
           } catch (emailError) {
-            console.error(
+            logger.error(
               `[Urgent Booking Request] Error sending email for request ${request._id}:`,
               emailError
             );
@@ -389,7 +390,7 @@ class AdminUrgentBookingRequestController {
         modifiedCount: result.modifiedCount,
       });
     } catch (error) {
-      console.error("Error bulk updating requests:", error);
+      logger.error("Error bulk updating requests:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };
@@ -414,7 +415,7 @@ class AdminUrgentBookingRequestController {
         request,
       });
     } catch (error) {
-      console.error("Error getting request by ID:", error);
+      logger.error("Error getting request by ID:", error);
       return responseReturn(res, 500, { message: "Internal server error" });
     }
   };

@@ -1,78 +1,23 @@
 import { useState } from "react";
 import { FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
 import { PropagateLoader } from "react-spinners";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { createAdminSchema } from "../../utils/validationSchemas";
 
 const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "admin",
-    companyEmail: "",
-    companyPhoneNumber: "",
-    companyAddress: "",
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState({});
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    if (formData.companyEmail && !/\S+@\S+\.\S+/.test(formData.companyEmail)) {
-      newErrors.companyEmail = "Company email is invalid";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      const { confirmPassword, ...adminData } = formData;
-      onSubmit(adminData);
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const handleClose = () => {
-    setFormData({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(createAdminSchema),
+    defaultValues: {
       name: "",
       email: "",
       password: "",
@@ -81,8 +26,16 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
       companyEmail: "",
       companyPhoneNumber: "",
       companyAddress: "",
-    });
-    setErrors({});
+    },
+  });
+
+  const onFormSubmit = (data) => {
+    const { confirmPassword, ...adminData } = data;
+    onSubmit(adminData);
+  };
+
+  const handleClose = () => {
+    reset();
     onClose();
   };
 
@@ -105,7 +58,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Name */}
             <div>
@@ -114,16 +67,14 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               </label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
+                {...register("name")}
                 className={`w-full rounded-lg border-2 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200 ${
                   errors.name ? "border-accent" : "border-primary-200"
                 }`}
                 placeholder="Enter full name"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-accent">{errors.name}</p>
+                <p className="mt-1 text-sm text-accent">{errors.name.message}</p>
               )}
             </div>
 
@@ -134,16 +85,14 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               </label>
               <input
                 type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
+                {...register("email")}
                 className={`w-full rounded-lg border-2 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200 ${
                   errors.email ? "border-accent" : "border-primary-200"
                 }`}
                 placeholder="Enter email address"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-accent">{errors.email}</p>
+                <p className="mt-1 text-sm text-accent">{errors.email.message}</p>
               )}
             </div>
 
@@ -155,9 +104,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
+                  {...register("password")}
                   className={`w-full rounded-lg border-2 bg-white px-3 py-2 pr-10 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200 ${
                     errors.password ? "border-accent" : "border-primary-200"
                   }`}
@@ -172,7 +119,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-accent">{errors.password}</p>
+                <p className="mt-1 text-sm text-accent">{errors.password.message}</p>
               )}
             </div>
 
@@ -184,9 +131,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
+                  {...register("confirmPassword")}
                   className={`w-full rounded-lg border-2 bg-white px-3 py-2 pr-10 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200 ${
                     errors.confirmPassword
                       ? "border-accent"
@@ -204,7 +149,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               </div>
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-accent">
-                  {errors.confirmPassword}
+                  {errors.confirmPassword.message}
                 </p>
               )}
             </div>
@@ -215,9 +160,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
                 Role *
               </label>
               <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
+                {...register("role")}
                 className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
               >
                 <option value="admin">Admin - Full system access</option>
@@ -225,11 +168,11 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
                 <option value="viewer">Viewer - Read-only access</option>
               </select>
               <p className="mt-1 text-xs text-text-light">
-                {formData.role === "admin" &&
+                {watch("role") === "admin" &&
                   "Can manage all admins, content, and system settings"}
-                {formData.role === "editor" &&
+                {watch("role") === "editor" &&
                   "Can create and edit trips, categories, and other content"}
-                {formData.role === "viewer" &&
+                {watch("role") === "viewer" &&
                   "Can only view content and reports"}
               </p>
             </div>
@@ -241,9 +184,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               </label>
               <input
                 type="email"
-                name="companyEmail"
-                value={formData.companyEmail}
-                onChange={handleChange}
+                {...register("companyEmail")}
                 className={`w-full rounded-lg border-2 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200 ${
                   errors.companyEmail ? "border-accent" : "border-primary-200"
                 }`}
@@ -251,7 +192,7 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               />
               {errors.companyEmail && (
                 <p className="mt-1 text-sm text-accent">
-                  {errors.companyEmail}
+                  {errors.companyEmail.message}
                 </p>
               )}
             </div>
@@ -263,12 +204,15 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               </label>
               <input
                 type="tel"
-                name="companyPhoneNumber"
-                value={formData.companyPhoneNumber}
-                onChange={handleChange}
+                {...register("companyPhoneNumber")}
                 className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
                 placeholder="Enter company phone (optional)"
               />
+              {errors.companyPhoneNumber && (
+                <p className="mt-1 text-sm text-accent">
+                  {errors.companyPhoneNumber.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -278,13 +222,16 @@ const AddAdminModal = ({ showModal, onClose, onSubmit, loading }) => {
               Company Address
             </label>
             <textarea
-              name="companyAddress"
-              value={formData.companyAddress}
-              onChange={handleChange}
+              {...register("companyAddress")}
               rows={3}
               className="w-full rounded-lg border-2 border-primary-200 bg-white px-3 py-2 text-text-dark focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
               placeholder="Enter company address (optional)"
             />
+            {errors.companyAddress && (
+              <p className="mt-1 text-sm text-accent">
+                {errors.companyAddress.message}
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">

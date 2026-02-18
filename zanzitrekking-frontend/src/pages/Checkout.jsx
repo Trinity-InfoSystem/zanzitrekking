@@ -39,7 +39,7 @@ const Checkout = () => {
     currentOrder,
   } = useSelector((state) => state.order);
   const { trip: directTrip } = useSelector((state) => state.trip);
-  const { formData, errors, handleChange, validateStep } =
+  const { formData, errors, handleChange, validateStep, step1Form } =
     useCheckoutForm(userInfo);
 
   // State for managing category selections
@@ -716,6 +716,13 @@ const Checkout = () => {
         paymentAmount = depositAmount;
       }
 
+      // Validate form before submitting
+      const isStep1Valid = await validateStep(1);
+      if (!isStep1Valid) {
+        toast.error("Please fill in all required fields correctly");
+        return;
+      }
+
       // Validate required fields
       const requiredFields = {
         customerId: userInfo.id,
@@ -737,26 +744,6 @@ const Checkout = () => {
         },
         serviceFee: serviceFee, // Include service fee in order
       };
-
-      // Check for missing required fields
-      // Note: billingAddress is optional - only validate if provided
-      const missingFields = [];
-      if (!requiredFields.customerId) {missingFields.push("customerId");}
-      if (!requiredFields.cartItems || requiredFields.cartItems.length === 0)
-        {missingFields.push("cartItems");}
-      if (!requiredFields.personalInfo.firstName)
-        {missingFields.push("personalInfo.firstName");}
-      if (!requiredFields.personalInfo.lastName)
-        {missingFields.push("personalInfo.lastName");}
-      if (!requiredFields.personalInfo.email)
-        {missingFields.push("personalInfo.email");}
-      if (!requiredFields.personalInfo.phone)
-        {missingFields.push("personalInfo.phone");}
-      // Billing address is optional - no validation needed
-
-      if (missingFields.length > 0) {
-        return;
-      }
 
       // Create order
       const result = await dispatch(createOrder(requiredFields));
@@ -1095,17 +1082,19 @@ const Checkout = () => {
                           </label>
                           <input
                             type="text"
-                            value={formData.personalInfo.firstName}
-                            onChange={(e) =>
-                              handleChange(
-                                "personalInfo",
-                                "firstName",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                            {...step1Form.register("personalInfo.firstName")}
+                            className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-sm font-medium transition-all focus:outline-none focus:ring-4 ${
+                              errors.personalInfo?.firstName
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/10"
+                                : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/10"
+                            }`}
                             placeholder="John"
                           />
+                          {errors.personalInfo?.firstName && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {errors.personalInfo.firstName.message}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="mb-2 block text-sm font-semibold text-gray-700">
@@ -1113,17 +1102,19 @@ const Checkout = () => {
                           </label>
                           <input
                             type="text"
-                            value={formData.personalInfo.lastName}
-                            onChange={(e) =>
-                              handleChange(
-                                "personalInfo",
-                                "lastName",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                            {...step1Form.register("personalInfo.lastName")}
+                            className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-sm font-medium transition-all focus:outline-none focus:ring-4 ${
+                              errors.personalInfo?.lastName
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/10"
+                                : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/10"
+                            }`}
                             placeholder="Doe"
                           />
+                          {errors.personalInfo?.lastName && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {errors.personalInfo.lastName.message}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="mb-2 block text-sm font-semibold text-gray-700">
@@ -1131,17 +1122,19 @@ const Checkout = () => {
                           </label>
                           <input
                             type="email"
-                            value={formData.personalInfo.email}
-                            onChange={(e) =>
-                              handleChange(
-                                "personalInfo",
-                                "email",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                            {...step1Form.register("personalInfo.email")}
+                            className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-sm font-medium transition-all focus:outline-none focus:ring-4 ${
+                              errors.personalInfo?.email
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/10"
+                                : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/10"
+                            }`}
                             placeholder="john@example.com"
                           />
+                          {errors.personalInfo?.email && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {errors.personalInfo.email.message}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="mb-2 block text-sm font-semibold text-gray-700">
@@ -1149,17 +1142,19 @@ const Checkout = () => {
                           </label>
                           <input
                             type="tel"
-                            value={formData.personalInfo.phone}
-                            onChange={(e) =>
-                              handleChange(
-                                "personalInfo",
-                                "phone",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-sm font-medium transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+                            {...step1Form.register("personalInfo.phone")}
+                            className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-sm font-medium transition-all focus:outline-none focus:ring-4 ${
+                              errors.personalInfo?.phone
+                                ? "border-red-500 focus:border-red-500 focus:ring-red-500/10"
+                                : "border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/10"
+                            }`}
                             placeholder="+1234567890"
                           />
+                          {errors.personalInfo?.phone && (
+                            <p className="mt-1 text-sm text-red-600">
+                              {errors.personalInfo.phone.message}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

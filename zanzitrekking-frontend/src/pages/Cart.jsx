@@ -34,6 +34,8 @@ const Cart = () => {
   const [travelersCount, setTravelersCount] = useState(0);
   const serviceFee = 0;
   const updatingChildrenRef = useRef({}); // Track which trips are currently updating
+  const dateUpdateTimeoutRef = useRef({}); // Track debounce timeouts for date updates
+  const updatingDateRef = useRef({}); // Track which trips are currently updating dates
 
   // Helper function to get the applicable season for a given date
   const getApplicableSeason = (trip, date) => {
@@ -571,7 +573,23 @@ const Cart = () => {
     }
   }, [cart_trips, childrenCounts, childrenAges, selectedCategories, selectedDates, calculateTotalPrice]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all pending date update timeouts
+      Object.values(dateUpdateTimeoutRef.current).forEach((timeout) => {
+        if (timeout) clearTimeout(timeout);
+      });
+      dateUpdateTimeoutRef.current = {};
+    };
+  }, []);
+
   const handleDateChange = async (tripId, newDate) => {
+    // Prevent multiple simultaneous updates for the same trip
+    if (updatingDateRef.current[tripId]) {
+      return;
+    }
+
     const tomorrow = addDays(new Date(), 1);
     tomorrow.setHours(0, 0, 0, 0);
 
@@ -593,16 +611,28 @@ const Cart = () => {
       toast.error("Trip start date must be at least 1 day from today");
     }
 
-    // Update local state immediately
+    // Update local state immediately for responsive UI
     setSelectedDates((prev) => ({
       ...prev,
       [tripId]: dateValue,
     }));
 
-    // Update backend - format ONLY when sending to API
-    // Use LOCAL date components - backend stores YYYY-MM-DD as-is without timezone conversion
-    const trip = cart_trips.find((t) => t._id === tripId);
-    if (trip) {
+    // Clear any existing timeout for this trip
+    if (dateUpdateTimeoutRef.current[tripId]) {
+      clearTimeout(dateUpdateTimeoutRef.current[tripId]);
+    }
+
+    // Debounce the API call - wait 500ms after user stops changing the date
+    dateUpdateTimeoutRef.current[tripId] = setTimeout(async () => {
+      // Verify trip still exists in cart
+      const trip = cart_trips.find((t) => t._id === tripId);
+      if (!trip) {
+        return;
+      }
+
+      // Mark as updating
+      updatingDateRef.current[tripId] = true;
+
       const category = selectedCategories[tripId] || trip.selectedCategory || "standard";
       
       // Format date using LOCAL date components (what user selected)
@@ -612,24 +642,39 @@ const Cart = () => {
       const day = String(dateValue.getDate()).padStart(2, "0");
       const dateStringToSend = `${year}-${month}-${day}`;
 
+      const updatePayload = {
+        userId: userInfo.id,
+        cartId: tripId,
+        travelersNumber: trip.travelersNumber,
+        startingDate: dateStringToSend,
+        selectedCategory: category,
+        childrenCount: childrenCounts[tripId] || 0,
+        childrenAges: childrenAges[tripId] || [],
+      };
+
       try {
-        await dispatch(
-          update_cart_trip({
-            userId: userInfo.id,
-            cartId: tripId,
-            travelersNumber: trip.travelersNumber,
-            startingDate: dateStringToSend,
-            selectedCategory: category,
-            childrenCount: childrenCounts[tripId] || 0,
-            childrenAges: childrenAges[tripId] || [],
-          }),
+        const result = await dispatch(
+          update_cart_trip(updatePayload)
         );
-        dispatch(get_cart_trips(userInfo.id));
+
+        // Only refresh cart if update was successful
+        if (result.type === "wishlist/update_cart_trip/fulfilled") {
+          // Don't call get_cart_trips here - the update should return the updated data
+          // Only refresh if there was an error
+        } else if (result.type === "wishlist/update_cart_trip/rejected") {
+          // Refresh cart on error to get the correct state
+          dispatch(get_cart_trips(userInfo.id));
+        }
       } catch (error) {
-        console.error("Error updating date:", error);
         toast.error("Failed to update trip date");
+        // Refresh cart on error
+        dispatch(get_cart_trips(userInfo.id));
+      } finally {
+        // Clear the updating flag
+        updatingDateRef.current[tripId] = false;
+        delete dateUpdateTimeoutRef.current[tripId];
       }
-    }
+    }, 500); // 500ms debounce delay
   };
 
   const handleCategoryChange = async (tripId, newCategory) => {

@@ -1,4 +1,5 @@
 const Customer = require("../../models/customer");
+const logger = require('./../../utilities/logger');
 const Admin = require("../../models/admin");
 const { responseReturn } = require("../../utilities/response");
 const bcrypt = require("bcryptjs");
@@ -37,13 +38,9 @@ class CustomerController {
         assignedAdmin: admin._id,
       });
 
-      // Generate both tokens
+      // Generate both tokens with minimal payload (only user ID)
       const tokenData = {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        method: customer.method,
-        adminId: admin._id,
+        sub: customer.id, // Use 'sub' (subject) standard JWT claim
       };
 
       const accessToken = await createAccessToken(tokenData);
@@ -110,12 +107,9 @@ class CustomerController {
         return responseReturn(res, 400, { error: "Incorrect Password" });
       }
 
+      // Generate tokens with minimal payload (only user ID)
       const tokenData = {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        method: customer.method,
-        assignedAdmin: admin._id,
+        sub: customer.id, // Use 'sub' (subject) standard JWT claim
       };
 
       const accessToken = await createAccessToken(tokenData);
@@ -172,19 +166,21 @@ class CustomerController {
         return responseReturn(res, 403, { error });
       }
 
+      // Support both 'sub' and 'id' for backward compatibility
+      const userId = data.sub || data.id;
+      if (!userId) {
+        return responseReturn(res, 403, { error: "Invalid refresh token payload" });
+      }
+
       // Check if token exists in DB
-      const customer = await Customer.findById(data.id).select("+refreshToken");
+      const customer = await Customer.findById(userId).select("+refreshToken");
       if (!customer || customer.refreshToken !== token) {
         return responseReturn(res, 403, { error: "Invalid refresh token" });
       }
 
-      // Generate new access token
+      // Generate new access token with minimal payload
       const tokenData = {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        method: customer.method,
-        assignedAdmin: customer.assignedAdmin,
+        sub: customer.id,
       };
 
       const newAccessToken = await createAccessToken(tokenData);
@@ -278,13 +274,9 @@ class CustomerController {
         });
       }
 
-      // Token generation (existing logic)
+      // Token generation with minimal payload
       const tokenData = {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        method: customer.method,
-        assignedAdmin: admin._id,
+        sub: customer.id,
       };
 
       const accessToken = await createAccessToken(tokenData);
@@ -315,7 +307,7 @@ class CustomerController {
         message: "Google login successful",
       });
     } catch (error) {
-      console.error("Google login error:", error);
+      logger.error("Google login error:", error);
 
       // Improved error handling
       if (error.response?.status === 401) {
@@ -365,12 +357,9 @@ class CustomerController {
         });
       }
 
+      // Generate tokens with minimal payload
       const tokenData = {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        method: customer.method,
-        assignedAdmin: admin._id,
+        sub: customer.id,
       };
 
       const newAccessToken = await createAccessToken(tokenData);
@@ -422,7 +411,7 @@ class CustomerController {
 
       return responseReturn(res, 200, { customer });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -442,7 +431,7 @@ class CustomerController {
 
       return responseReturn(res, 200, { customers });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -501,7 +490,7 @@ class CustomerController {
         },
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
@@ -534,8 +523,11 @@ class CustomerController {
       const otp = generateOtpInsecure();
       const otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
 
-      // Save OTP and expiry to customer document
-      customer.resetPasswordOTP = otp;
+      // Hash OTP before storing in database
+      const hashedOtp = await bcrypt.hash(otp, 10);
+
+      // Save hashed OTP and expiry to customer document
+      customer.resetPasswordOTP = hashedOtp;
       customer.resetPasswordExpires = otpExpiry;
       await customer.save();
 
@@ -580,7 +572,7 @@ class CustomerController {
         email: email, // Return email for frontend state
       });
     } catch (error) {
-      console.error("Forgot password error:", error);
+      logger.error("Forgot password error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -590,14 +582,19 @@ class CustomerController {
     const { email, otp } = req.body;
 
     try {
-      // Find customer with matching email and valid OTP
+      // Find customer with matching email and valid expiry
       const customer = await Customer.findOne({
         email,
-        resetPasswordOTP: otp,
         resetPasswordExpires: { $gt: Date.now() },
-      });
+      }).select('+resetPasswordOTP');
 
-      if (!customer) {
+      if (!customer || !customer.resetPasswordOTP) {
+        return responseReturn(res, 400, { error: "Invalid or expired OTP" });
+      }
+
+      // Compare provided OTP with hashed OTP
+      const isOtpValid = await bcrypt.compare(otp, customer.resetPasswordOTP);
+      if (!isOtpValid) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
@@ -607,7 +604,7 @@ class CustomerController {
         verified: true,
       });
     } catch (error) {
-      console.error("Verify OTP error:", error);
+      logger.error("Verify OTP error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -634,8 +631,11 @@ class CustomerController {
       // Generate new OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Set OTP and expiry (15 minutes)
-      customer.resetPasswordOTP = otp;
+      // Hash OTP before storing
+      const hashedOtp = await bcrypt.hash(otp, 10);
+
+      // Set hashed OTP and expiry (15 minutes)
+      customer.resetPasswordOTP = hashedOtp;
       customer.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
 
       await customer.save();
@@ -657,7 +657,7 @@ class CustomerController {
         message: "New verification code sent to your email",
       });
     } catch (error) {
-      console.error("Resend OTP error:", error);
+      logger.error("Resend OTP error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -667,14 +667,19 @@ class CustomerController {
     const { email, otp, newPassword } = req.body;
 
     try {
-      // Find customer with matching email and valid OTP
+      // Find customer with matching email and valid expiry
       const customer = await Customer.findOne({
         email,
-        resetPasswordOTP: otp,
         resetPasswordExpires: { $gt: Date.now() },
-      });
+      }).select('+resetPasswordOTP');
 
-      if (!customer) {
+      if (!customer || !customer.resetPasswordOTP) {
+        return responseReturn(res, 400, { error: "Invalid or expired OTP" });
+      }
+
+      // Compare provided OTP with hashed OTP
+      const isOtpValid = await bcrypt.compare(otp, customer.resetPasswordOTP);
+      if (!isOtpValid) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
@@ -692,7 +697,7 @@ class CustomerController {
           "Password reset successfully. You can now login with your new password.",
       });
     } catch (error) {
-      console.error("Reset password error:", error);
+      logger.error("Reset password error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

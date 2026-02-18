@@ -1,10 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { clearMessage, forgot_password } from "../store/reducers/authReducer";
 import toast from "react-hot-toast";
 import { FadeLoader } from "react-spinners";
 import { useDispatch, useSelector } from "react-redux";
 import { ArrowLeft, ArrowRight, Info, Mail, Shield } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { forgotPasswordSchema } from "../utils/validationSchemas";
 
 const ForgotPasswordEmail = () => {
   const { loader, errorMessage, successMessage } = useSelector(
@@ -12,15 +15,20 @@ const ForgotPasswordEmail = () => {
   );
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [email, setEmail] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
-    }
-    dispatch(forgot_password({ email }));
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(forgotPasswordSchema),
+  });
+
+  const email = watch("email");
+
+  const onSubmit = async (data) => {
+    dispatch(forgot_password({ email: data.email }));
   };
 
   useEffect(() => {
@@ -89,7 +97,7 @@ const ForgotPasswordEmail = () => {
           <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft-lg">
             <div className="p-8">
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 <div>
                   <label
                     htmlFor="email"
@@ -104,13 +112,18 @@ const ForgotPasswordEmail = () => {
                     <input
                       type="email"
                       id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-3 pl-11 text-text transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+                      {...register("email")}
+                      className={`w-full rounded-lg border bg-white px-4 py-3 pl-11 text-text transition-all focus:outline-none focus:ring-2 ${
+                        errors.email
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                          : "border-neutral-300 focus:border-primary-500 focus:ring-primary-200"
+                      }`}
                       placeholder="your@email.com"
-                      required
                     />
                   </div>
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  )}
                 </div>
 
                 <button

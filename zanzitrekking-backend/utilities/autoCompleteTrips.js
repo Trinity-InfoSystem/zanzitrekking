@@ -1,5 +1,6 @@
 const Order = require("../models/order");
 
+const logger = require('./logger');
 /**
  * Automatically update trip item status to "completed" when trip end date has passed
  * This should be called periodically (e.g., via cron job or manually)
@@ -7,7 +8,7 @@ const Order = require("../models/order");
 const autoCompleteTrips = async () => {
   try {
     const now = new Date();
-    console.log(
+    logger.info(
       `[Auto-Complete] Checking for trips to complete at ${now.toISOString()}`
     );
 
@@ -52,10 +53,10 @@ const autoCompleteTrips = async () => {
 
         // Check if trip has ended
         if (tripEndDate < now) {
-          console.log(
+          logger.info(
             `[Auto-Complete] Completing trip: Order ${order.orderNumber}, Item ${i}, Trip ID: ${item.tripId}`
           );
-          console.log(
+          logger.info(
             `  - Start: ${tripStartDate.toISOString()}, Duration: ${tripDuration} days, End: ${tripEndDate.toISOString()}`
           );
 
@@ -77,7 +78,7 @@ const autoCompleteTrips = async () => {
         if (allCompleted && order.orderStatus !== "completed") {
           order.orderStatus = "completed";
           order.completedAt = now;
-          console.log(
+          logger.info(
             `[Auto-Complete] Order ${order.orderNumber} fully completed`
           );
         }
@@ -93,7 +94,7 @@ const autoCompleteTrips = async () => {
     // Wait for all updates to complete
     await Promise.all(updatePromises);
 
-    console.log(
+    logger.info(
       `[Auto-Complete] Successfully completed ${totalUpdated} trips across ${updatePromises.length} orders`
     );
 
@@ -104,7 +105,7 @@ const autoCompleteTrips = async () => {
       checkedAt: now,
     };
   } catch (error) {
-    console.error("[Auto-Complete] Error auto-completing trips:", error);
+    logger.error("[Auto-Complete] Error auto-completing trips:", error);
     return {
       success: false,
       error: error.message,
@@ -172,7 +173,7 @@ const checkOrderTripsCompletion = async (orderId) => {
       order,
     };
   } catch (error) {
-    console.error("[Auto-Complete] Error checking order trips:", error);
+    logger.error("[Auto-Complete] Error checking order trips:", error);
     throw error;
   }
 };

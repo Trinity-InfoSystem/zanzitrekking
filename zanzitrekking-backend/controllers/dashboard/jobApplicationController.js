@@ -1,4 +1,5 @@
 const JobApplication = require("../../models/jobApplication");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const emailQueue = require("../../workers/emailQueue");
 const {
@@ -81,7 +82,7 @@ class JobApplicationControllers {
         });
       }
     } catch (error) {
-      console.error("Error fetching applications:", error);
+      logger.error("Error fetching applications:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -102,7 +103,7 @@ class JobApplicationControllers {
         application,
       });
     } catch (error) {
-      console.error("Error fetching application:", error);
+      logger.error("Error fetching application:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -181,7 +182,7 @@ class JobApplicationControllers {
             });
           }
         } catch (emailError) {
-          console.error("Error sending email notification:", emailError);
+          logger.error("Error sending email notification:", emailError);
           // Don't fail the request if email fails, just log the error
         }
       }
@@ -191,7 +192,7 @@ class JobApplicationControllers {
         application,
       });
     } catch (err) {
-      console.error("Error updating application status:", err);
+      logger.error("Error updating application status:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -267,7 +268,7 @@ class JobApplicationControllers {
         message: "Email sent successfully to applicant",
       });
     } catch (err) {
-      console.error("Error sending email:", err);
+      logger.error("Error sending email:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

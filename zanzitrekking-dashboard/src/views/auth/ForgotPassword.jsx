@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   forgot_password,
@@ -8,6 +8,9 @@ import { PropagateLoader } from "react-spinners";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { MailIcon, ArrowLeftIcon } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { forgotPasswordSchema } from "../../utils/validationSchemas";
 
 const ForgotPassword = () => {
   const dispatch = useDispatch();
@@ -16,21 +19,19 @@ const ForgotPassword = () => {
     (state) => state.auth,
   );
 
-  const [state, setState] = useState({
-    email: "",
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(forgotPasswordSchema),
   });
 
-  const inputHandle = (e) => {
-    const { name, value } = e.target;
-    setState((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const email = watch("email");
 
-  const submit = (e) => {
-    e.preventDefault();
-    dispatch(forgot_password(state));
+  const onSubmit = (data) => {
+    dispatch(forgot_password({ email: data.email }));
   };
 
   useEffect(() => {
@@ -41,7 +42,7 @@ const ForgotPassword = () => {
     if (successMessage) {
       toast.success(successMessage);
       dispatch(clearMessage());
-      navigate("/verify-otp", { state: { email: state.email } });
+      navigate("/verify-otp", { state: { email } });
     }
   }, [errorMessage, successMessage, navigate, dispatch, state.email]);
 
@@ -77,7 +78,7 @@ const ForgotPassword = () => {
             </div>
 
             {/* Form Section */}
-            <form className="mt-8 space-y-6" onSubmit={submit}>
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-5">
                 {/* Email Field */}
                 <div className="group relative">
@@ -85,10 +86,12 @@ const ForgotPassword = () => {
                     id="email"
                     name="email"
                     type="email"
-                    required
-                    value={state.email}
-                    onChange={inputHandle}
-                    className="peer h-14 w-full rounded-lg border-2 border-primary-200 bg-white px-4 pt-4 outline-none transition-all duration-200 focus:border-secondary focus:ring-2 focus:ring-secondary-200"
+                    {...register("email")}
+                    className={`peer h-14 w-full rounded-lg border-2 bg-white px-4 pt-4 outline-none transition-all duration-200 focus:ring-2 ${
+                      errors.email
+                        ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                        : "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                    }`}
                     placeholder=" "
                   />
                   <label
@@ -98,6 +101,9 @@ const ForgotPassword = () => {
                     Email address
                   </label>
                   <MailIcon className="absolute right-4 top-4 h-5 w-5 text-text-light" />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  )}
                 </div>
               </div>
 

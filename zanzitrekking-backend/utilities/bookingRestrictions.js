@@ -1,5 +1,6 @@
 const Trip = require("../models/trip");
 
+const logger = require('./logger');
 /**
  * Check if a booking is allowed based on category, package type, and trip start date
  * @param {Object} orderItem - Order cart item with tripId, selectedCategory, startingDate
@@ -14,8 +15,8 @@ const checkBookingRestriction = async (
 ) => {
   try {
     if (isTestOrder) {
-      console.log("[Booking Restriction] Starting check...");
-      console.log("[Booking Restriction] Order Item:", {
+      logger.info("[Booking Restriction] Starting check...");
+      logger.info("[Booking Restriction] Order Item:", {
         tripId: orderItem.tripId,
         selectedCategory: orderItem.selectedCategory,
         startingDate: orderItem.startingDate,
@@ -67,16 +68,16 @@ const checkBookingRestriction = async (
     const daysUntilTrip = Math.ceil((tripStart - nowUTC) / (1000 * 60 * 60 * 24));
     
     if (isTestOrder) {
-      console.log("[Booking Restriction] Days until trip:", daysUntilTrip);
-      console.log(
+      logger.info("[Booking Restriction] Days until trip:", daysUntilTrip);
+      logger.info(
         "[Booking Restriction] Trip start date (UTC):",
         tripStart.toISOString().split("T")[0]
       );
-      console.log(
+      logger.info(
         "[Booking Restriction] Today's date (UTC):",
         nowUTC.toISOString().split("T")[0]
       );
-      console.log(
+      logger.info(
         "[Booking Restriction] Original startDate input:",
         startDate instanceof Date ? startDate.toISOString() : startDate
       );
@@ -89,7 +90,7 @@ const checkBookingRestriction = async (
     if (orderItem.categoryName) {
       tripCategory = orderItem.categoryName;
       if (isTestOrder) {
-        console.log(
+        logger.info(
           "[Booking Restriction] Using saved category from order item:",
           tripCategory
         );
@@ -101,7 +102,7 @@ const checkBookingRestriction = async (
       if (category) {
         tripCategory = category.name;
         if (isTestOrder) {
-          console.log(
+          logger.info(
             "[Booking Restriction] Fetched category by ID:",
             tripCategory
           );
@@ -111,12 +112,12 @@ const checkBookingRestriction = async (
       // Fallback: fetch category from trip if not saved in order item
       const trip = await Trip.findById(orderItem.tripId).populate("category");
       if (isTestOrder) {
-        console.log("[Booking Restriction] Trip:", trip);
+        logger.info("[Booking Restriction] Trip:", trip);
       }
       if (trip && trip.category) {
         tripCategory = trip.category.name || trip.category;
         if (isTestOrder) {
-          console.log(
+          logger.info(
             "[Booking Restriction] Fetched category from trip:",
             tripCategory
           );
@@ -125,19 +126,19 @@ const checkBookingRestriction = async (
     }
 
     if (isTestOrder) {
-      console.log("[Booking Restriction] Trip Category:", tripCategory);
+      logger.info("[Booking Restriction] Trip Category:", tripCategory);
     }
 
     // Get package type (selectedCategory)
     const packageType = orderItem.selectedCategory || "standard";
     if (isTestOrder) {
-      console.log("[Booking Restriction] Package Type:", packageType);
+      logger.info("[Booking Restriction] Package Type:", packageType);
     }
 
     // Normalize category name for comparison
     const categoryName = tripCategory ? tripCategory.toLowerCase() : "";
     if (isTestOrder) {
-      console.log(
+      logger.info(
         "[Booking Restriction] Normalized Category Name:",
         categoryName
       );
@@ -158,20 +159,20 @@ const checkBookingRestriction = async (
       packageType === "midRange" || packageType === "luxury";
 
     if (isTestOrder) {
-      console.log("[Booking Restriction] Rule Check - Category:", categoryName);
-      console.log(
+      logger.info("[Booking Restriction] Rule Check - Category:", categoryName);
+      logger.info(
         "[Booking Restriction] Rule Check - Safari Category:",
         isSafariCategory
       );
-      console.log(
+      logger.info(
         "[Booking Restriction] Rule Check - Cultural/Trekking/Zanzibar:",
         isCulturalCategory || isTrekkingCategory || isZanzibarCategory
       );
-      console.log(
+      logger.info(
         "[Booking Restriction] Rule Check - Budget Package:",
         isBudgetPackage
       );
-      console.log(
+      logger.info(
         "[Booking Restriction] Rule Check - Midrange/Luxury Package:",
         isMidrangeOrLuxuryPackage
       );
@@ -264,7 +265,7 @@ const checkBookingRestriction = async (
 
     // Default: categories not covered by the matrix → no extra restrictions
     if (isTestOrder) {
-      console.log(
+      logger.info(
         "[Booking Restriction] ⚠️ No specific rule matched, allowing booking"
       );
     }
@@ -276,7 +277,7 @@ const checkBookingRestriction = async (
       daysUntilTrip,
     };
   } catch (error) {
-    console.error(
+    logger.error(
       "[Booking Restriction] ❌ Error checking booking restriction:",
       error
     );

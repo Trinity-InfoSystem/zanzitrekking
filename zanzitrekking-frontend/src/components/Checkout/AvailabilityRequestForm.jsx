@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearMessage, createUrgentBookingRequest } from "../../store/reducers/urgentBookingRequestReducer";
 import toast from "react-hot-toast";
 import { IMAGES_URL } from "../../utils/constants";
 import { AlertCircle, Calendar, Package, Send, Users } from "lucide-react";
 import { parse } from "date-fns";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { urgentBookingRequestSchema } from "../../utils/validationSchemas";
 
 const AvailabilityRequestForm = ({
   blockedTrips,
@@ -15,32 +18,39 @@ const AvailabilityRequestForm = ({
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);
 
-  // Create separate state for availability request form to avoid conflicts with checkout form
-  const [formData, setFormData] = useState({
-    personalInfo: {
-      firstName: parentFormData?.personalInfo?.firstName || userInfo?.name?.split(" ")[0] || "",
-      lastName: parentFormData?.personalInfo?.lastName || userInfo?.name?.split(" ").slice(1).join(" ") || "",
-      email: parentFormData?.personalInfo?.email || userInfo?.email || "",
-      phone: parentFormData?.personalInfo?.phone || userInfo?.phone || "",
-    },
-    billingAddress: {
-      street: parentFormData?.billingAddress?.street || "",
-      city: parentFormData?.billingAddress?.city || "",
-      state: parentFormData?.billingAddress?.state || "",
-      zip: parentFormData?.billingAddress?.zip || "",
-      country: parentFormData?.billingAddress?.country || "United States",
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(urgentBookingRequestSchema),
+    defaultValues: {
+      personalInfo: {
+        firstName: parentFormData?.personalInfo?.firstName || userInfo?.name?.split(" ")[0] || "",
+        lastName: parentFormData?.personalInfo?.lastName || userInfo?.name?.split(" ").slice(1).join(" ") || "",
+        email: parentFormData?.personalInfo?.email || userInfo?.email || "",
+        phone: parentFormData?.personalInfo?.phone || userInfo?.phone || "",
+      },
+      billingAddress: {
+        street: parentFormData?.billingAddress?.street || "",
+        city: parentFormData?.billingAddress?.city || "",
+        state: parentFormData?.billingAddress?.state || "",
+        zipCode: parentFormData?.billingAddress?.zip || "",
+        country: parentFormData?.billingAddress?.country || "United States",
+      },
     },
   });
 
-  // Separate handleChange for availability request form
+  const formData = {
+    personalInfo: watch("personalInfo") || {},
+    billingAddress: watch("billingAddress") || {},
+  };
+
+  // Handle input changes
   const handleChange = (section, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value,
-      },
-    }));
+    setValue(`${section}.${field}`, value);
   };
   const { loader, successMessage, errorMessage, request } = useSelector(
     (state) => state.urgentBookingRequest,
@@ -63,29 +73,9 @@ const AvailabilityRequestForm = ({
     }
   }, [submittedRequests.length]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const onSubmit = async (data) => {
     if (!userInfo) {
       toast.error("Please login to submit an availability request");
-      return;
-    }
-
-    // Validate required fields (billing address not required for availability requests)
-    const { personalInfo } = formData;
-    if (
-      !personalInfo.firstName ||
-      !personalInfo.lastName ||
-      !personalInfo.email ||
-      !personalInfo.phone
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    // Validate email format
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)) {
-      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -194,10 +184,10 @@ const AvailabilityRequestForm = ({
             selectedCategory: blockedTrip.selectedCategory,
             travelersNumber: blockedTrip.trip?.travelersNumber || 1,
             personalInfo: {
-              firstName: personalInfo.firstName.trim(),
-              lastName: personalInfo.lastName.trim(),
-              email: personalInfo.email.trim(),
-              phone: personalInfo.phone.trim(),
+              firstName: data.personalInfo.firstName.trim(),
+              lastName: data.personalInfo.lastName.trim(),
+              email: data.personalInfo.email.trim(),
+              phone: data.personalInfo.phone.trim(),
             },
             // Billing address not required for availability requests
             billingAddress: null,
@@ -406,7 +396,7 @@ const AvailabilityRequestForm = ({
       </div>
 
       {/* Request Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="rounded-lg border border-orange-200 bg-white/70 p-6">
           <h4 className="mb-4 text-lg font-semibold text-orange-900">
             Contact Information
@@ -418,14 +408,19 @@ const AvailabilityRequestForm = ({
               </label>
               <input
                 type="text"
-                value={formData.personalInfo.firstName}
-                onChange={(e) =>
-                  handleChange("personalInfo", "firstName", e.target.value)
-                }
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                {...register("personalInfo.firstName")}
+                className={`w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 ${
+                  errors.personalInfo?.firstName
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
+                }`}
                 placeholder="John"
-                required
               />
+              {errors.personalInfo?.firstName && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.personalInfo.firstName.message}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -433,14 +428,19 @@ const AvailabilityRequestForm = ({
               </label>
               <input
                 type="text"
-                value={formData.personalInfo.lastName}
-                onChange={(e) =>
-                  handleChange("personalInfo", "lastName", e.target.value)
-                }
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                {...register("personalInfo.lastName")}
+                className={`w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 ${
+                  errors.personalInfo?.lastName
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
+                }`}
                 placeholder="Doe"
-                required
               />
+              {errors.personalInfo?.lastName && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.personalInfo.lastName.message}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -448,14 +448,19 @@ const AvailabilityRequestForm = ({
               </label>
               <input
                 type="email"
-                value={formData.personalInfo.email}
-                onChange={(e) =>
-                  handleChange("personalInfo", "email", e.target.value)
-                }
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                {...register("personalInfo.email")}
+                className={`w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 ${
+                  errors.personalInfo?.email
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
+                }`}
                 placeholder="john@example.com"
-                required
               />
+              {errors.personalInfo?.email && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.personalInfo.email.message}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -463,14 +468,19 @@ const AvailabilityRequestForm = ({
               </label>
               <input
                 type="tel"
-                value={formData.personalInfo.phone}
-                onChange={(e) =>
-                  handleChange("personalInfo", "phone", e.target.value)
-                }
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                {...register("personalInfo.phone")}
+                className={`w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 ${
+                  errors.personalInfo?.phone
+                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-gray-300 focus:border-orange-500 focus:ring-orange-500/20"
+                }`}
                 placeholder="+1234567890"
-                required
               />
+              {errors.personalInfo?.phone && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.personalInfo.phone.message}
+                </p>
+              )}
             </div>
           </div>
         </div>

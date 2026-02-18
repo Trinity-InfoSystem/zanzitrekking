@@ -1,4 +1,5 @@
 const JobApplication = require("../../models/jobApplication");
+const logger = require('./../../utilities/logger');
 const Job = require("../../models/job");
 const { responseReturn } = require("../../utilities/response");
 const emailQueue = require("../../workers/emailQueue");
@@ -104,7 +105,7 @@ class JobApplicationControllers {
           recipients: [email],
         });
       } catch (emailError) {
-        console.error("Error generating confirmation email:", emailError);
+        logger.error("Error generating confirmation email:", emailError);
         // Don't fail the request if email generation fails
       }
 
@@ -113,7 +114,7 @@ class JobApplicationControllers {
         application,
       });
     } catch (err) {
-      console.error("Error submitting application:", err);
+      logger.error("Error submitting application:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -155,7 +156,7 @@ class JobApplicationControllers {
         totalApplications,
       });
     } catch (err) {
-      console.error("Error fetching user applications:", err);
+      logger.error("Error fetching user applications:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

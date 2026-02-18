@@ -1,4 +1,5 @@
 const PartnerModel = require("../../models/partner");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
@@ -44,7 +45,7 @@ class PartnerController {
         partner: createdPartner,
       });
     } catch (error) {
-      console.error("Error adding partner:", error);
+      logger.error("Error adding partner:", error);
       res.status(500).json({
         message: error.message || "Internal server error",
         error: error.message,
@@ -103,10 +104,10 @@ class PartnerController {
             oldLogoFileName
           );
           try {
-            fs.unlinkSync(oldLogoPath);
-            console.log("Deleted old logo:", oldLogoPath);
+            await fs.promises.unlink(oldLogoPath);
+            logger.info("Deleted old logo:", oldLogoPath);
           } catch (err) {
-            console.error(`Error deleting old logo: ${err.message}`);
+            logger.error(`Error deleting old logo: ${err.message}`);
           }
         }
         updateFields.logo = `${basePath}${logoFile.filename}`;
@@ -124,7 +125,7 @@ class PartnerController {
         partner: updatedPartner,
       });
     } catch (error) {
-      console.error("Error updating partner:", error);
+      logger.error("Error updating partner:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,
@@ -220,9 +221,9 @@ class PartnerController {
 
         fs.unlink(oldLogoPath, (err) => {
           if (err) {
-            console.error(`Error deleting old logo: ${err.message}`);
+            logger.error(`Error deleting old logo: ${err.message}`);
           } else {
-            console.log(`Successfully deleted old logo: ${oldLogoPath}`);
+            logger.info(`Successfully deleted old logo: ${oldLogoPath}`);
           }
         });
       }
@@ -231,9 +232,9 @@ class PartnerController {
       await PartnerModel.findByIdAndDelete(partnerId);
 
       responseReturn(res, 200, { message: "Partner deleted successfully" });
-      console.log("Partner Deleted:", partnerId);
+      logger.info("Partner Deleted:", partnerId);
     } catch (error) {
-      console.error("Error deleting partner:", error);
+      logger.error("Error deleting partner:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };
@@ -257,7 +258,7 @@ class PartnerController {
         partner,
       });
     } catch (error) {
-      console.error("Error toggling partner status:", error);
+      logger.error("Error toggling partner status:", error);
       responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -274,7 +275,7 @@ class PartnerController {
         deletedCount: deletedPartners.deletedCount,
       });
     } catch (err) {
-      console.error("Error deleting partners:", err);
+      logger.error("Error deleting partners:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

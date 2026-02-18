@@ -1,4 +1,5 @@
 const Category = require("../../models/category");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const StringSimilarity = require("../../utilities/stringSimilarity");
 const fs = require("fs");
@@ -67,7 +68,7 @@ class CategoryControllers {
       }
     } catch (err) {
       // Catch any server errors
-      console.error(err);
+      logger.error(err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -195,15 +196,15 @@ class CategoryControllers {
           );
 
           // Log the old image path for debugging
-          console.log(`Attempting to delete file at: ${oldImagePath}`);
+          logger.info(`Attempting to delete file at: ${oldImagePath}`);
 
           // Try to delete the old image
           fs.unlink(oldImagePath, (err) => {
             if (err) {
-              console.error(`Error deleting old image: ${err.message}`);
+              logger.error(`Error deleting old image: ${err.message}`);
               // Handle the error or continue
             } else {
-              console.log(`Successfully deleted old image: ${oldImagePath}`);
+              logger.info(`Successfully deleted old image: ${oldImagePath}`);
             }
           });
         }
@@ -230,7 +231,7 @@ class CategoryControllers {
         data: updatedCategory,
       });
     } catch (err) {
-      console.error("Error updating category:", err);
+      logger.error("Error updating category:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -267,15 +268,15 @@ class CategoryControllers {
         );
 
         // Log the old image path for debugging
-        console.log(`Attempting to delete file at: ${oldImagePath}`);
+        logger.info(`Attempting to delete file at: ${oldImagePath}`);
 
         // Try to delete the old image
         fs.unlink(oldImagePath, (err) => {
           if (err) {
-            console.error(`Error deleting old image: ${err.message}`);
+            logger.error(`Error deleting old image: ${err.message}`);
             // Handle the error or continue
           } else {
-            console.log(`Successfully deleted old image: ${oldImagePath}`);
+            logger.info(`Successfully deleted old image: ${oldImagePath}`);
           }
         });
       }
@@ -298,7 +299,7 @@ class CategoryControllers {
         data: updatedCategory,
       });
     } catch (err) {
-      console.error("Error updating category image:", err);
+      logger.error("Error updating category image:", err);
       responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -329,15 +330,15 @@ class CategoryControllers {
         );
 
         // Log the old image path for debugging
-        console.log(`Attempting to delete file at: ${oldImagePath}`);
+        logger.info(`Attempting to delete file at: ${oldImagePath}`);
 
         // Try to delete the old image
         fs.unlink(oldImagePath, (err) => {
           if (err) {
-            console.error(`Error deleting old image: ${err.message}`);
+            logger.error(`Error deleting old image: ${err.message}`);
             // Handle the error or continue
           } else {
-            console.log(`Successfully deleted old image: ${oldImagePath}`);
+            logger.info(`Successfully deleted old image: ${oldImagePath}`);
           }
         });
       }
@@ -353,7 +354,7 @@ class CategoryControllers {
         message: "Category deleted successfully",
       });
     } catch (err) {
-      console.error("Error deleting category:", err);
+      logger.error("Error deleting category:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -369,7 +370,7 @@ class CategoryControllers {
         deletedCount: deletedCategories.deletedCount,
       });
     } catch (err) {
-      console.error("Error deleting categories:", err);
+      logger.error("Error deleting categories:", err);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

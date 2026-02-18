@@ -1,4 +1,5 @@
 const ImpactStatModel = require("../../models/impactStat");
+const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const mongoose = require("mongoose");
 
@@ -25,7 +26,7 @@ class ImpactStatController {
         impactStat: createdImpactStat,
       });
     } catch (error) {
-      console.error("Error adding impact stat:", error);
+      logger.error("Error adding impact stat:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,
@@ -66,7 +67,7 @@ class ImpactStatController {
         impactStat: updatedImpactStat,
       });
     } catch (error) {
-      console.error("Error updating impact stat:", error);
+      logger.error("Error updating impact stat:", error);
       responseReturn(res, 500, {
         error: "Internal server error",
         details: error.message,

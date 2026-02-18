@@ -1,5 +1,4 @@
 import axios from "axios";
-import { safeRedirect } from "../utils/urlValidation";
 
 /**
  * Base URL for API requests.
@@ -7,10 +6,11 @@ import { safeRedirect } from "../utils/urlValidation";
  * - Production: https://api.zanzisafaris.com/api
  * - Development: http://localhost:5000/api
  */
-const baseURL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD 
-    ? "https://api.zanzisafaris.com/api" 
-    : "http://localhost:5000/api");
+const baseURL = "http://localhost:5000/api";
+//  import.meta.env.VITE_API_URL ||
+//   (import.meta.env.PROD
+//     ? "https://api.zanzisafaris.com/api"
+//     : "http://localhost:5000/api");
 
 
 /**

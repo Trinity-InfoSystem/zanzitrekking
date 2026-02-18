@@ -1,4 +1,5 @@
 const QRCode = require("qrcode");
+const logger = require('./logger');
 const Admin = require("../models/admin");
 const Trip = require("../models/trip");
 
@@ -19,10 +20,10 @@ const generateQRCodeBuffer = async (text) => {
       },
       width: 300,
     });
-    console.log(`[QR Code] Generated QR code for: ${text}`);
+    logger.info(`[QR Code] Generated QR code for: ${text}`);
     return qrBuffer;
   } catch (error) {
-    console.error("[QR Code] Error generating QR code:", error);
+    logger.error("[QR Code] Error generating QR code:", error);
     return null;
   }
 };
@@ -42,7 +43,7 @@ const getCompanyInfo = async () => {
       address: admin?.companyAddress || "Zanzibar, Tanzania",
     };
   } catch (error) {
-    console.error("Error fetching company info:", error);
+    logger.error("Error fetching company info:", error);
     return {
       email: "info@zanzisafaris.com",
       phone: "+255 752 777 701",
@@ -123,7 +124,7 @@ const generatePaymentConfirmationEmail = async (order) => {
       );
 
       if (missingTripIds.length > 0) {
-        console.warn(
+        logger.warn(
           `[Email Templates] Cannot generate confirmation email for order ${order.orderNumber}: Some trips no longer exist (tripIds: ${missingTripIds.map(id => id.toString()).join(", ")})`
         );
         throw new Error(
@@ -134,7 +135,7 @@ const generatePaymentConfirmationEmail = async (order) => {
     
     // If we have populated trips, they're already verified to exist
     if (populatedTripIds.length > 0) {
-      console.log(
+      logger.info(
         `[Email Templates] Skipping DB check for ${populatedTripIds.length} populated trip(s) in order ${order.orderNumber}`
       );
     }
@@ -358,7 +359,7 @@ const generatePaymentRejectionEmail = async (order) => {
       );
 
       if (missingTripIds.length > 0) {
-        console.warn(
+        logger.warn(
           `[Email Templates] Cannot generate rejection email for order ${order.orderNumber}: Some trips no longer exist (tripIds: ${missingTripIds.join(", ")})`
         );
         throw new Error(

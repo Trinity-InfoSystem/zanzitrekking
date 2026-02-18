@@ -1,4 +1,5 @@
 const blogPostModel = require("../../models/blogPost");
+const logger = require('./../../utilities/logger');
 const Customer = require("../../models/customer");
 
 const { responseReturn } = require("../../utilities/response");
@@ -89,7 +90,7 @@ class blogPostController {
         blogPost,
       });
     } catch (error) {
-      console.error("Error creating blog post:", error);
+      logger.error("Error creating blog post:", error);
       return res.status(500).json({
         error: "Internal server error",
         details:
@@ -204,7 +205,7 @@ class blogPostController {
         blogPosts,
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       responseReturn(res, 500, { error: "internal server error" });
     }
   };
@@ -224,7 +225,7 @@ class blogPostController {
         message: "Blog categories fetched successfully",
       });
     } catch (error) {
-      console.error("Error fetching blog categories:", error);
+      logger.error("Error fetching blog categories:", error);
       responseReturn(res, 500, { error: "internal server error" });
     }
   };
@@ -280,7 +281,7 @@ class blogPostController {
         blogPost: updatedBlogPost,
       });
     } catch (error) {
-      console.error("Error updating category:", error);
+      logger.error("Error updating category:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -411,7 +412,7 @@ class blogPostController {
         updatedBlogPost,
       });
     } catch (error) {
-      console.error("Update error:", error);
+      logger.error("Update error:", error);
       responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -497,7 +498,7 @@ class blogPostController {
         message: "Blog post and all associated images deleted successfully",
       });
     } catch (error) {
-      console.error("Error deleting blogPost:", error);
+      logger.error("Error deleting blogPost:", error);
       responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -535,7 +536,7 @@ class blogPostController {
         blogPost: updatedBlogPost,
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -581,7 +582,7 @@ class blogPostController {
         updatedBlogPost: blogPost,
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -605,7 +606,7 @@ class blogPostController {
         blogPostTitle: blogPost.mainTitle,
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
@@ -654,7 +655,7 @@ class blogPostController {
         updatedBlogPost: blogPost,
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

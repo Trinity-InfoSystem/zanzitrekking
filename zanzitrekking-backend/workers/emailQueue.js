@@ -1,5 +1,6 @@
 // workers/emailQueue.js
 const EventEmitter = require("events");
+const logger = require('./../utilities/logger');
 const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
@@ -40,7 +41,7 @@ class EmailQueue extends EventEmitter {
       try {
         await this.processJob(job);
       } catch (error) {
-        console.error(
+        logger.error(
           `[Email Queue] ❌ Error processing email job - Subject: "${job?.subject}":`,
           error
         );
@@ -70,7 +71,7 @@ class EmailQueue extends EventEmitter {
         try {
           attachmentData.path = attachment.path;
         } catch (error) {
-          console.error(
+          logger.error(
             `[Email Queue] Error reading attachment file ${attachment.path}:`,
             error
           );
@@ -104,13 +105,13 @@ class EmailQueue extends EventEmitter {
         // Add slight delay between emails to avoid rate limiting
         await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
-        console.error(
+        logger.error(
           `[Email Queue] ❌ Failed to send email to ${email} - Subject: "${subject}"`
         );
-        console.error(`[Email Queue] Error Code: ${error.code || 'N/A'}`);
-        console.error(`[Email Queue] Error Message: ${error.message}`);
+        logger.error(`[Email Queue] Error Code: ${error.code || 'N/A'}`);
+        logger.error(`[Email Queue] Error Message: ${error.message}`);
         if (error.response) {
-          console.error(`[Email Queue] SMTP Response:`, error.response);
+          logger.error(`[Email Queue] SMTP Response:`, error.response);
         }
         failureCount++;
         // Continue with next email even if one fails
@@ -120,9 +121,9 @@ class EmailQueue extends EventEmitter {
     // Clean up attachment file after sending (only if it's a file path)
     if (attachment && attachment.path) {
       try {
-        fs.unlinkSync(attachment.path);
+        await fs.promises.unlink(attachment.path);
       } catch (err) {
-        console.error(
+        logger.error(
           `[Email Queue] Error deleting attachment ${attachment.path}:`,
           err
         );

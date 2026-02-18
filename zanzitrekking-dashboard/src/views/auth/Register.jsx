@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
@@ -9,6 +9,9 @@ import {
   seller_register,
 } from "../../store/Reducers/authReducer";
 import toast from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { adminRegisterSchema } from "../../utils/validationSchemas";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -16,25 +19,17 @@ const Register = () => {
   const { loader, errorMessage, successMessage } = useSelector(
     (state) => state.auth,
   );
-  const [state, setState] = useState({
-    name: "",
-    email: "",
-    password: "",
-    // agreed: false,
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(adminRegisterSchema),
   });
 
-  const inputHandle = (e) => {
-    const { name, value } = e.target;
-    setState((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const submit = (e) => {
-    e.preventDefault();
-
-    dispatch(seller_register(state));
+  const onSubmit = (data) => {
+    dispatch(seller_register({ name: data.name, email: data.email, password: data.password }));
   };
 
   useEffect(() => {
@@ -55,46 +50,55 @@ const Register = () => {
           <p className="text-md mb-3 font-medium">
             Please Register to your account
           </p>
-          <form onSubmit={submit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <div className="mb-3 flex w-full flex-col gap-1">
               <label htmlFor="name">Name</label>
               <input
-                className="rounded-md border border-slate-400 bg-transparent px-3 py-2 outline-none"
+                className={`rounded-md border bg-transparent px-3 py-2 outline-none ${
+                  errors.name ? "border-red-500" : "border-slate-400"
+                }`}
                 type="text"
                 name="name"
                 placeholder="Name"
                 id="name"
-                required
-                value={state.name}
-                onChange={inputHandle}
+                {...register("name")}
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+              )}
             </div>
             <div className="mb-3 flex w-full flex-col gap-1">
               <label htmlFor="email">Email</label>
               <input
-                className="rounded-md border border-slate-400 bg-transparent px-3 py-2 outline-none"
-                type="text"
+                className={`rounded-md border bg-transparent px-3 py-2 outline-none ${
+                  errors.email ? "border-red-500" : "border-slate-400"
+                }`}
+                type="email"
                 name="email"
                 placeholder="Email"
                 id="email"
-                required
-                value={state.email}
-                onChange={inputHandle}
+                {...register("email")}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+              )}
             </div>
             <div className="mb-3 flex w-full flex-col gap-1">
               <label htmlFor="password">Password</label>
               <input
-                className="rounded-md border border-slate-400 bg-transparent px-3 py-2 outline-none"
+                className={`rounded-md border bg-transparent px-3 py-2 outline-none ${
+                  errors.password ? "border-red-500" : "border-slate-400"
+                }`}
                 type="password"
                 name="password"
                 placeholder="Password"
                 id="password"
-                required
                 autoComplete="new-password"
-                value={state.password}
-                onChange={inputHandle}
+                {...register("password")}
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+              )}
             </div>
             <div className="mb-5 flex w-full items-center gap-3">
               <input

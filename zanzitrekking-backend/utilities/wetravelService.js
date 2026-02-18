@@ -1,4 +1,5 @@
 const axios = require("axios");
+const logger = require('./logger');
 const { isTripDateInPast } = require("./bookingRestrictions");
 
 class WeTravelService {
@@ -34,12 +35,12 @@ class WeTravelService {
       this.accessToken = response.data.access_token;
       return this.accessToken;
     } catch (error) {
-      console.error(
+      logger.error(
         "❌ Error getting WeTravel access token:",
         error.response?.data || error.message
       );
-      console.error("Status Code:", error.response?.status);
-      console.error("Full error:", error);
+      logger.error("Status Code:", error.response?.status);
+      logger.error("Full error:", error);
       throw new Error("Failed to obtain WeTravel access token");
     }
   }
@@ -88,17 +89,17 @@ class WeTravelService {
       const currentPaymentOption = paymentOption;
 
       // Log payment option details for debugging
-      console.log("🔍 [WeTravel] Payment Link Creation Debug:");
-      console.log("  - Payment Option:", paymentOption);
-      console.log("  - Total Amount:", totalAmount);
-      console.log("  - Deposit Amount:", depositAmount);
-      console.log("  - Deposit Percentage:", paymentOption === "deposit" ? ((depositAmount / totalAmount) * 100).toFixed(2) + "%" : "N/A");
-      console.log("  - Days Before Departure:", daysBeforeDeparture);
+      logger.info("🔍 [WeTravel] Payment Link Creation Debug:");
+      logger.info("  - Payment Option:", paymentOption);
+      logger.info("  - Total Amount:", totalAmount);
+      logger.info("  - Deposit Amount:", depositAmount);
+      logger.info("  - Deposit Percentage:", paymentOption === "deposit" ? ((depositAmount / totalAmount) * 100).toFixed(2) + "%" : "N/A");
+      logger.info("  - Days Before Departure:", daysBeforeDeparture);
 
       // Validate that trip dates are not in the past
       if (this.isTripDateInPast(startDate, endDate)) {
         const errorMessage = `Cannot create payment link: Trip start date (${startDate}) is in the past`;
-        console.error(`❌ ${errorMessage}`);
+        logger.error(`❌ ${errorMessage}`);
         throw new Error(errorMessage);
       }
 
@@ -113,10 +114,10 @@ class WeTravelService {
         // Ensure deposit is reasonable (at least 10% and not more than 50%)
         const depositPercentage = (depositAmount / totalAmount) * 100;
         if (depositPercentage < 10) {
-          console.warn(`Deposit percentage (${depositPercentage.toFixed(2)}%) is less than 10%`);
+          logger.warn(`Deposit percentage (${depositPercentage.toFixed(2)}%) is less than 10%`);
         }
         if (depositPercentage > 50) {
-          console.warn(`Deposit percentage (${depositPercentage.toFixed(2)}%) is more than 50%`);
+          logger.warn(`Deposit percentage (${depositPercentage.toFixed(2)}%) is more than 50%`);
         }
       }
 
@@ -184,10 +185,10 @@ class WeTravelService {
       };
       
       if (process.env.NODE_ENV === 'development') {
-        console.log("🔍 [WeTravel] Base Data Structure:");
-        console.log("  - Base data keys:", Object.keys(baseData));
-        console.log("  - Has trip_options in baseData?", !!baseData.trip_options);
-        console.log("  - Has pricing in baseData?", !!baseData.pricing);
+        logger.info("🔍 [WeTravel] Base Data Structure:");
+        logger.info("  - Base data keys:", Object.keys(baseData));
+        logger.info("  - Has trip_options in baseData?", !!baseData.trip_options);
+        logger.info("  - Has pricing in baseData?", !!baseData.pricing);
       }
 
       // For deposits, use Trips Builder API instead of payment_links endpoint
@@ -196,12 +197,12 @@ class WeTravelService {
       if (paymentOption === "deposit") {
         const remainingAmount = totalAmount - depositAmount;
         
-        console.log("🔍 [WeTravel] DEPOSIT PAYMENT - Using Trips Builder API:");
-        console.log("  - paymentOption:", paymentOption);
-        console.log("  - totalAmount:", totalAmount);
-        console.log("  - depositAmount:", depositAmount);
-        console.log("  - remainingAmount:", remainingAmount);
-        console.log("  - daysBeforeDeparture:", daysBeforeDeparture);
+        logger.info("🔍 [WeTravel] DEPOSIT PAYMENT - Using Trips Builder API:");
+        logger.info("  - paymentOption:", paymentOption);
+        logger.info("  - totalAmount:", totalAmount);
+        logger.info("  - depositAmount:", depositAmount);
+        logger.info("  - remainingAmount:", remainingAmount);
+        logger.info("  - daysBeforeDeparture:", daysBeforeDeparture);
         
         // Use Trips Builder API for deposits to properly set payment plan
         return await this.createDepositPaymentLinkViaTripsBuilder({
@@ -210,8 +211,8 @@ class WeTravelService {
         });
       } else {
         // Full payment - use pricing structure
-        console.log("💰 [WeTravel] Creating FULL PAYMENT link:");
-        console.log("  - Total Amount:", totalAmount);
+        logger.info("💰 [WeTravel] Creating FULL PAYMENT link:");
+        logger.info("  - Total Amount:", totalAmount);
         
         paymentLinkData = {
           data: {
@@ -235,10 +236,10 @@ class WeTravelService {
         };
       }
 
-      console.log("🚀 [WeTravel] Sending request to WeTravel API:");
-      console.log("  - URL:", `${this.apiUrl}/payment_links`);
-      console.log("  - Payment Option:", paymentOption);
-      console.log("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
+      logger.info("🚀 [WeTravel] Sending request to WeTravel API:");
+      logger.info("  - URL:", `${this.apiUrl}/payment_links`);
+      logger.info("  - Payment Option:", paymentOption);
+      logger.info("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
       
       // #region agent log
       if (process.env.NODE_ENV === 'development') {
@@ -247,12 +248,12 @@ class WeTravelService {
       // #endregion
 
       if (process.env.NODE_ENV === 'development') {
-        console.log("🚀 [WeTravel] About to send API request:");
-        console.log("  - Endpoint:", `${this.apiUrl}/payment_links`);
-        console.log("  - Method: POST");
-        console.log("  - Payment Option:", paymentOption);
-        console.log("  - Has Access Token:", !!this.accessToken);
-        console.log("  - Request payload size:", JSON.stringify(paymentLinkData).length, "bytes");
+        logger.info("🚀 [WeTravel] About to send API request:");
+        logger.info("  - Endpoint:", `${this.apiUrl}/payment_links`);
+        logger.info("  - Method: POST");
+        logger.info("  - Payment Option:", paymentOption);
+        logger.info("  - Has Access Token:", !!this.accessToken);
+        logger.info("  - Request payload size:", JSON.stringify(paymentLinkData).length, "bytes");
       }
       
       const response = await axios.post(
@@ -269,26 +270,26 @@ class WeTravelService {
         }
       );
 
-      console.log("✅ [WeTravel] Payment link created successfully!");
-      console.log("  - Response status:", response.status);
-      console.log("  - Payment link URL:", response.data.data.trip.url);
-      console.log("  - Trip UUID:", response.data.data.trip.uuid);
+      logger.info("✅ [WeTravel] Payment link created successfully!");
+      logger.info("  - Response status:", response.status);
+      logger.info("  - Payment link URL:", response.data.data.trip.url);
+      logger.info("  - Trip UUID:", response.data.data.trip.uuid);
       
       // Log the full response to debug deposit options
-      console.log("📥 [WeTravel] Response Data:");
-      console.log("  - Payment Link URL:", response.data.data.trip.url);
-      console.log("  - Trip UUID:", response.data.data.trip.uuid);
+      logger.info("📥 [WeTravel] Response Data:");
+      logger.info("  - Payment Link URL:", response.data.data.trip.url);
+      logger.info("  - Trip UUID:", response.data.data.trip.uuid);
       if (response.data.data.trip_options) {
-        console.log("  - Trip Options:", JSON.stringify(response.data.data.trip_options, null, 2));
+        logger.info("  - Trip Options:", JSON.stringify(response.data.data.trip_options, null, 2));
       }
       if (response.data.data.pricing) {
-        console.log("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
+        logger.info("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
       }
       if (response.data.data.packages && response.data.data.packages.length > 0) {
-        console.log("  - Packages:", JSON.stringify(response.data.data.packages, null, 2));
-        console.log("  - First Package ID:", response.data.data.packages[0].id);
+        logger.info("  - Packages:", JSON.stringify(response.data.data.packages, null, 2));
+        logger.info("  - First Package ID:", response.data.data.packages[0].id);
       }
-      console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
+      logger.info("  - Full Response:", JSON.stringify(response.data.data, null, 2));
       
       // For deposit payments, we MUST update the payment plan via dedicated endpoint
       // trip_options payment plan might not work correctly - we need to set it on the package
@@ -297,11 +298,11 @@ class WeTravelService {
         
         // Check if payment plan was set in trip_options from response
         const tripOptionsPaymentPlan = response.data.data.trip_options?.[0]?.payment_plan;
-        console.log("🔍 [WeTravel] Checking payment plan in response:");
-        console.log("  - Has trip_options?", !!response.data.data.trip_options);
-        console.log("  - Has trip_options[0].payment_plan?", !!tripOptionsPaymentPlan);
+        logger.info("🔍 [WeTravel] Checking payment plan in response:");
+        logger.info("  - Has trip_options?", !!response.data.data.trip_options);
+        logger.info("  - Has trip_options[0].payment_plan?", !!tripOptionsPaymentPlan);
         if (tripOptionsPaymentPlan) {
-          console.log("  - Trip Options Payment Plan:", JSON.stringify(tripOptionsPaymentPlan, null, 2));
+          logger.info("  - Trip Options Payment Plan:", JSON.stringify(tripOptionsPaymentPlan, null, 2));
         }
         
         // Try to get package_id from different possible locations in response
@@ -319,7 +320,7 @@ class WeTravelService {
         // If still not found, wait a bit and try to fetch packages from the trip
         // Packages might not be immediately available after payment link creation
         if (!packageId) {
-          console.log("🔍 [WeTravel] Package ID not in response, waiting and fetching packages from trip...");
+          logger.info("🔍 [WeTravel] Package ID not in response, waiting and fetching packages from trip...");
           // Wait for packages to be created
           await new Promise(resolve => setTimeout(resolve, 3000));
           
@@ -334,32 +335,32 @@ class WeTravelService {
               }
             );
             
-            console.log("  - Packages response:", JSON.stringify(packagesResponse.data, null, 2));
+            logger.info("  - Packages response:", JSON.stringify(packagesResponse.data, null, 2));
             
             if (packagesResponse.data?.data && packagesResponse.data.data.length > 0) {
               packageId = packagesResponse.data.data[0].id;
-              console.log("✅ [WeTravel] Found package ID:", packageId);
+              logger.info("✅ [WeTravel] Found package ID:", packageId);
             } else {
               // Try to get package from trip_options if packages array is empty
               if (response.data.data.trip_options && response.data.data.trip_options.length > 0) {
                 packageId = response.data.data.trip_options[0].id;
-                console.log("✅ [WeTravel] Using package ID from trip_options:", packageId);
+                logger.info("✅ [WeTravel] Using package ID from trip_options:", packageId);
               }
             }
           } catch (packagesError) {
-            console.warn("⚠️ [WeTravel] Could not fetch packages:", packagesError.response?.data || packagesError.message);
+            logger.warn("⚠️ [WeTravel] Could not fetch packages:", packagesError.response?.data || packagesError.message);
             // Last resort: try to use trip_options ID
             if (response.data.data.trip_options && response.data.data.trip_options.length > 0) {
               packageId = response.data.data.trip_options[0].id;
-              console.log("⚠️ [WeTravel] Using trip_options[0].id as package ID (fallback):", packageId);
+              logger.info("⚠️ [WeTravel] Using trip_options[0].id as package ID (fallback):", packageId);
             }
           }
         }
         
         if (packageId) {
-          console.log("🔧 [WeTravel] Updating payment plan for deposit via dedicated endpoint:");
-          console.log("  - Trip UUID:", tripUuid);
-          console.log("  - Package ID:", packageId);
+          logger.info("🔧 [WeTravel] Updating payment plan for deposit via dedicated endpoint:");
+          logger.info("  - Trip UUID:", tripUuid);
+          logger.info("  - Package ID:", packageId);
           
           try {
             // Add a delay to ensure WeTravel has finished processing the payment link and created packages
@@ -379,20 +380,20 @@ class WeTravelService {
                 }
               );
               currentPlan = currentPlanResponse.data?.data;
-              console.log("  - Current Payment Plan:", JSON.stringify(currentPlan, null, 2));
+              logger.info("  - Current Payment Plan:", JSON.stringify(currentPlan, null, 2));
               
               // Check if payment plan already has deposit configured
               if (currentPlan?.deposit && currentPlan?.allow_partial_payment) {
-                console.log("✅ [WeTravel] Payment plan already has deposit configured!");
+                logger.info("✅ [WeTravel] Payment plan already has deposit configured!");
                 return response.data.data;
               }
             } catch (getError) {
               if (getError.response?.status === 404) {
-                console.log("  - Payment plan endpoint returned 404 - package might not be ready yet");
-                console.log("  - Will try to create payment plan anyway");
+                logger.info("  - Payment plan endpoint returned 404 - package might not be ready yet");
+                logger.info("  - Will try to create payment plan anyway");
               } else {
-                console.log("  - Error getting current payment plan:", getError.message);
-                console.log("  - Will try to create payment plan anyway");
+                logger.info("  - Error getting current payment plan:", getError.message);
+                logger.info("  - Will try to create payment plan anyway");
               }
             }
             
@@ -415,7 +416,7 @@ class WeTravelService {
               },
             };
             
-            console.log("  - Payment Plan Data:", JSON.stringify(paymentPlanData, null, 2));
+            logger.info("  - Payment Plan Data:", JSON.stringify(paymentPlanData, null, 2));
             
             // Try to update payment plan - this is REQUIRED for deposits to work
             // According to WeTravel API docs, the structure should match the example
@@ -434,15 +435,15 @@ class WeTravelService {
                 }
               );
               
-              console.log("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
-              console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+              logger.info("✅ [WeTravel] Payment plan updated successfully via dedicated endpoint");
+              logger.info("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
               paymentPlanSet = true;
             } catch (updateError) {
               // If we get trip_options error, check if payment plan was actually set despite the error
               // Sometimes WeTravel returns an error but still sets the payment plan
               if (updateError.response?.data?.error?.includes('trip_options')) {
-                console.warn("⚠️ [WeTravel] Payment plan update returned trip_options error");
-                console.warn("  - Checking if payment plan was actually set despite the error...");
+                logger.warn("⚠️ [WeTravel] Payment plan update returned trip_options error");
+                logger.warn("  - Checking if payment plan was actually set despite the error...");
                 
                 // Wait a moment for WeTravel to process
                 await new Promise(resolve => setTimeout(resolve, 2000));
@@ -460,35 +461,35 @@ class WeTravelService {
                   );
                   
                   const verifiedPlan = verifyResponse.data?.data;
-                  console.log("  - Verified Payment Plan:", JSON.stringify(verifiedPlan, null, 2));
+                  logger.info("  - Verified Payment Plan:", JSON.stringify(verifiedPlan, null, 2));
                   
                   // Check if payment plan has the required fields for deposits
                   if (verifiedPlan?.allow_partial_payment && verifiedPlan?.deposit) {
-                    console.log("✅ [WeTravel] Payment plan WAS set correctly despite trip_options error!");
-                    console.log("  - allow_partial_payment:", verifiedPlan.allow_partial_payment);
-                    console.log("  - deposit:", verifiedPlan.deposit);
-                    console.log("  - installments:", JSON.stringify(verifiedPlan.installments, null, 2));
+                    logger.info("✅ [WeTravel] Payment plan WAS set correctly despite trip_options error!");
+                    logger.info("  - allow_partial_payment:", verifiedPlan.allow_partial_payment);
+                    logger.info("  - deposit:", verifiedPlan.deposit);
+                    logger.info("  - installments:", JSON.stringify(verifiedPlan.installments, null, 2));
                     paymentPlanSet = true;
                     // Payment plan is set correctly, we can continue
                     return response.data.data;
                   } else {
-                    console.warn("  - Payment plan not set correctly, deposit or allow_partial_payment missing");
-                    console.warn("  - allow_partial_payment:", verifiedPlan?.allow_partial_payment);
-                    console.warn("  - deposit:", verifiedPlan?.deposit);
+                    logger.warn("  - Payment plan not set correctly, deposit or allow_partial_payment missing");
+                    logger.warn("  - allow_partial_payment:", verifiedPlan?.allow_partial_payment);
+                    logger.warn("  - deposit:", verifiedPlan?.deposit);
                     // Continue to retry logic below
                   }
                 } catch (verifyError) {
                   if (verifyError.response?.status === 404) {
-                    console.warn("  - Payment plan verification returned 404 - package might not exist yet");
-                    console.warn("  - This is OK, we'll try to create the payment plan");
+                    logger.warn("  - Payment plan verification returned 404 - package might not exist yet");
+                    logger.warn("  - This is OK, we'll try to create the payment plan");
                   } else {
-                    console.warn("  - Could not verify payment plan:", verifyError.message);
+                    logger.warn("  - Could not verify payment plan:", verifyError.message);
                   }
                   // Continue to retry logic below
                 }
                 
                 // If verification failed, try to fix trip_options
-                console.warn("  - Attempting to fix trip_options issue...");
+                logger.warn("  - Attempting to fix trip_options issue...");
                 
                 try {
                   // Get the trip to see trip_options structure
@@ -506,14 +507,14 @@ class WeTravelService {
                   const tripOptions = tripData?.trip_options || [];
                   
                   if (tripOptions.length > 0) {
-                    console.log("  - Found trip_options, structure:", JSON.stringify(tripOptions, null, 2));
-                    console.log("  - trip_options[0] has payment_plan?", !!tripOptions[0]?.payment_plan);
+                    logger.info("  - Found trip_options, structure:", JSON.stringify(tripOptions, null, 2));
+                    logger.info("  - trip_options[0] has payment_plan?", !!tripOptions[0]?.payment_plan);
                     
                     // Try multiple retries with increasing delays
                     let retrySuccess = false;
                     for (let retryAttempt = 1; retryAttempt <= 3; retryAttempt++) {
                       const delay = retryAttempt * 3; // 3, 6, 9 seconds
-                      console.log(`  - Retry attempt ${retryAttempt}/3: Waiting ${delay} seconds...`);
+                      logger.info(`  - Retry attempt ${retryAttempt}/3: Waiting ${delay} seconds...`);
                       await new Promise(resolve => setTimeout(resolve, delay * 1000));
                       
                       try {
@@ -529,13 +530,13 @@ class WeTravelService {
                           }
                         );
                         
-                        console.log(`✅ [WeTravel] Payment plan updated successfully on retry attempt ${retryAttempt}`);
-                        console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+                        logger.info(`✅ [WeTravel] Payment plan updated successfully on retry attempt ${retryAttempt}`);
+                        logger.info("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
                         paymentPlanSet = true;
                         retrySuccess = true;
                         break; // Success, exit retry loop
                       } catch (retryError) {
-                        console.warn(`  - Retry attempt ${retryAttempt} failed:`, retryError.response?.data?.error || retryError.message);
+                        logger.warn(`  - Retry attempt ${retryAttempt} failed:`, retryError.response?.data?.error || retryError.message);
                         if (retryAttempt === 3) {
                           // Last attempt failed
                           throw updateError;
@@ -548,7 +549,7 @@ class WeTravelService {
                     }
                   } else {
                     // No trip_options found - this might be OK, try to create payment plan anyway
-                    console.log("  - No trip_options found, trying to create payment plan directly...");
+                    logger.info("  - No trip_options found, trying to create payment plan directly...");
                     await new Promise(resolve => setTimeout(resolve, 5000));
                     
                     try {
@@ -563,15 +564,15 @@ class WeTravelService {
                         }
                       );
                       
-                      console.log("✅ [WeTravel] Payment plan created successfully");
-                      console.log("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
+                      logger.info("✅ [WeTravel] Payment plan created successfully");
+                      logger.info("  - Plan Response:", JSON.stringify(planResponse.data, null, 2));
                       paymentPlanSet = true;
                     } catch (noTripOptionsError) {
                       throw updateError; // Throw original error
                     }
                   }
                 } catch (retryError) {
-                  console.error("  - Retry failed:", retryError.response?.data || retryError.message);
+                  logger.error("  - Retry failed:", retryError.response?.data || retryError.message);
                   throw updateError; // Throw original error
                 }
               } else {
@@ -592,59 +593,59 @@ class WeTravelService {
               );
               
               const verifiedPlan = verifyResponse.data?.data;
-              console.log("✅ [WeTravel] Final verification of payment plan:", JSON.stringify(verifiedPlan, null, 2));
+              logger.info("✅ [WeTravel] Final verification of payment plan:", JSON.stringify(verifiedPlan, null, 2));
               
               if (!verifiedPlan?.allow_partial_payment || !verifiedPlan?.deposit) {
                 throw new Error("Payment plan verification failed: deposit or allow_partial_payment not set correctly");
               }
               
-              console.log("✅ [WeTravel] Payment plan verified successfully!");
-              console.log("  - allow_partial_payment:", verifiedPlan.allow_partial_payment);
-              console.log("  - deposit:", verifiedPlan.deposit);
-              console.log("  - installments count:", verifiedPlan.installments?.length || 0);
+              logger.info("✅ [WeTravel] Payment plan verified successfully!");
+              logger.info("  - allow_partial_payment:", verifiedPlan.allow_partial_payment);
+              logger.info("  - deposit:", verifiedPlan.deposit);
+              logger.info("  - installments count:", verifiedPlan.installments?.length || 0);
             }
             
           } catch (planError) {
-            console.error("❌ [WeTravel] CRITICAL: Failed to update payment plan via dedicated endpoint:");
-            console.error("  - Error:", planError.response?.data || planError.message);
-            console.error("  - Status:", planError.response?.status);
-            console.error("  - Trip UUID:", tripUuid);
-            console.error("  - Package ID:", packageId);
-            console.error("  - This means deposit payment will NOT work correctly!");
+            logger.error("❌ [WeTravel] CRITICAL: Failed to update payment plan via dedicated endpoint:");
+            logger.error("  - Error:", planError.response?.data || planError.message);
+            logger.error("  - Status:", planError.response?.status);
+            logger.error("  - Trip UUID:", tripUuid);
+            logger.error("  - Package ID:", packageId);
+            logger.error("  - This means deposit payment will NOT work correctly!");
             // Throw error - we cannot proceed without a proper payment plan for deposits
             throw new Error(`CRITICAL: Failed to set deposit payment plan. Deposit payments will not work. Error: ${planError.response?.data?.error || planError.message}`);
           }
         } else {
-          console.error("❌ [WeTravel] CRITICAL: Cannot update payment plan: Package ID not found");
-          console.error("  - Response structure:", JSON.stringify(response.data.data, null, 2));
+          logger.error("❌ [WeTravel] CRITICAL: Cannot update payment plan: Package ID not found");
+          logger.error("  - Response structure:", JSON.stringify(response.data.data, null, 2));
           throw new Error("CRITICAL: Failed to set deposit payment plan: Package ID not found in payment link response. Deposit payments will not work.");
         }
       }
       
       return response.data.data;
     } catch (error) {
-      console.error("❌ [WeTravel] ERROR creating payment link:");
-      console.error("  - Error Message:", error.message);
-      console.error("  - Status Code:", error.response?.status);
+      logger.error("❌ [WeTravel] ERROR creating payment link:");
+      logger.error("  - Error Message:", error.message);
+      logger.error("  - Status Code:", error.response?.status);
       if (process.env.NODE_ENV === 'development') {
-        console.error("  - Error Response:", JSON.stringify(error.response?.data, null, 2));
-        console.error("  - Payment Option:", orderData?.paymentOption || 'unknown');
+        logger.error("  - Error Response:", JSON.stringify(error.response?.data, null, 2));
+        logger.error("  - Payment Option:", orderData?.paymentOption || 'unknown');
         
         if (paymentLinkData) {
-          console.error("  - Request Payload Sent:");
-          console.error(JSON.stringify(paymentLinkData, null, 2));
-          console.error("  - Request Payload Keys:", Object.keys(paymentLinkData.data || {}));
-          console.error("  - Has trip_options?", !!paymentLinkData.data.trip_options);
-          console.error("  - Has pricing?", !!paymentLinkData.data.pricing);
-          console.error("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
+          logger.error("  - Request Payload Sent:");
+          logger.error(JSON.stringify(paymentLinkData, null, 2));
+          logger.error("  - Request Payload Keys:", Object.keys(paymentLinkData.data || {}));
+          logger.error("  - Has trip_options?", !!paymentLinkData.data.trip_options);
+          logger.error("  - Has pricing?", !!paymentLinkData.data.pricing);
+          logger.error("  - Has pricing.payment_plan?", !!paymentLinkData.data.pricing?.payment_plan);
           if (paymentLinkData.data.pricing?.payment_plan) {
-            console.error("  - Payment Plan Structure:", JSON.stringify(paymentLinkData.data.pricing.payment_plan, null, 2));
+            logger.error("  - Payment Plan Structure:", JSON.stringify(paymentLinkData.data.pricing.payment_plan, null, 2));
           }
         }
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.error("  - Full Error Stack:", error.stack);
+        logger.error("  - Full Error Stack:", error.stack);
       }
       
       // #region agent log
@@ -658,7 +659,7 @@ class WeTravelService {
       // If token expired, try to refresh and retry once
       if (error.response?.status === 401 || error.response?.status === 403) {
         if (process.env.NODE_ENV === 'development') {
-          console.log("Access token may be expired, refreshing...");
+          logger.info("Access token may be expired, refreshing...");
         }
         await this.getAccessToken();
 
@@ -718,9 +719,9 @@ class WeTravelService {
         if (paymentOption === "deposit") {
           // For deposits, create payment link WITHOUT payment_plan in trip_options
           // WeTravel's payment_links endpoint rejects payment_plan in trip_options
-          console.log("🔄 [WeTravel] Retry - Creating DEPOSIT payment link:");
-          console.log("  - Deposit Amount:", depositAmount);
-          console.log("  - Total Amount:", totalAmount);
+          logger.info("🔄 [WeTravel] Retry - Creating DEPOSIT payment link:");
+          logger.info("  - Deposit Amount:", depositAmount);
+          logger.info("  - Total Amount:", totalAmount);
 
           // For deposits, do NOT include trip_options with payment_plan
           // Payment plan will be set via dedicated endpoint after payment link creation
@@ -760,9 +761,9 @@ class WeTravelService {
 
         // Retry the request once
         try {
-          console.log("🔄 [WeTravel] Retry Request:");
-          console.log("  - Payment Option:", paymentOption);
-          console.log("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
+          logger.info("🔄 [WeTravel] Retry Request:");
+          logger.info("  - Payment Option:", paymentOption);
+          logger.info("  - Request Payload:", JSON.stringify(paymentLinkData, null, 2));
           
           const response = await axios.post(
             `${this.apiUrl}/payment_links`,
@@ -778,15 +779,15 @@ class WeTravelService {
             }
           );
           
-          console.log("✅ [WeTravel] Retry Response:");
-          console.log("  - Payment Link URL:", response.data.data.trip.url);
+          logger.info("✅ [WeTravel] Retry Response:");
+          logger.info("  - Payment Link URL:", response.data.data.trip.url);
           if (response.data.data.trip_options) {
-            console.log("  - Trip Options:", JSON.stringify(response.data.data.trip_options, null, 2));
+            logger.info("  - Trip Options:", JSON.stringify(response.data.data.trip_options, null, 2));
           }
           if (response.data.data.pricing) {
-            console.log("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
+            logger.info("  - Pricing:", JSON.stringify(response.data.data.pricing, null, 2));
           }
-          console.log("  - Full Response:", JSON.stringify(response.data.data, null, 2));
+          logger.info("  - Full Response:", JSON.stringify(response.data.data, null, 2));
           
           // For deposit payments, update payment plan via dedicated endpoint
           if (paymentOption === "deposit" && response.data.data.trip?.uuid) {
@@ -801,7 +802,7 @@ class WeTravelService {
             
             // If still not found, try to fetch packages from the trip
             if (!packageId) {
-              console.log("🔍 [WeTravel] Retry - Package ID not in response, fetching packages from trip...");
+              logger.info("🔍 [WeTravel] Retry - Package ID not in response, fetching packages from trip...");
               try {
                 const packagesResponse = await axios.get(
                   `${this.apiUrl}/draft_trips/${tripUuid}/packages`,
@@ -815,17 +816,17 @@ class WeTravelService {
                 
                 if (packagesResponse.data?.data && packagesResponse.data.data.length > 0) {
                   packageId = packagesResponse.data.data[0].id;
-                  console.log("✅ [WeTravel] Retry - Found package ID:", packageId);
+                  logger.info("✅ [WeTravel] Retry - Found package ID:", packageId);
                 }
               } catch (packagesError) {
-                console.warn("⚠️ [WeTravel] Retry - Could not fetch packages:", packagesError.response?.data || packagesError.message);
+                logger.warn("⚠️ [WeTravel] Retry - Could not fetch packages:", packagesError.response?.data || packagesError.message);
               }
             }
             
             if (packageId) {
-              console.log("🔧 [WeTravel] Retry - Updating payment plan for deposit:");
-              console.log("  - Trip UUID:", tripUuid);
-              console.log("  - Package ID:", packageId);
+              logger.info("🔧 [WeTravel] Retry - Updating payment plan for deposit:");
+              logger.info("  - Trip UUID:", tripUuid);
+              logger.info("  - Package ID:", packageId);
               
               try {
                 // Add a small delay to ensure WeTravel has finished processing
@@ -867,7 +868,7 @@ class WeTravelService {
                   throw postError;
                 }
                 
-                console.log("✅ [WeTravel] Retry - Payment plan updated successfully");
+                logger.info("✅ [WeTravel] Retry - Payment plan updated successfully");
                 
                 // Verify the payment plan was set correctly
                 const verifyResponse = await axios.get(
@@ -881,31 +882,31 @@ class WeTravelService {
                 );
                 
                 const verifiedPlan = verifyResponse.data?.data;
-                console.log("✅ [WeTravel] Retry - Verified payment plan:", JSON.stringify(verifiedPlan, null, 2));
+                logger.info("✅ [WeTravel] Retry - Verified payment plan:", JSON.stringify(verifiedPlan, null, 2));
                 
                 if (!verifiedPlan?.allow_partial_payment || !verifiedPlan?.deposit) {
                   throw new Error("Payment plan verification failed: deposit or allow_partial_payment not set correctly");
                 }
                 
               } catch (planError) {
-                console.error("❌ [WeTravel] Retry - CRITICAL: Failed to update payment plan:");
-                console.error("  - Error:", planError.response?.data || planError.message);
-                console.error("  - Status:", planError.response?.status);
+                logger.error("❌ [WeTravel] Retry - CRITICAL: Failed to update payment plan:");
+                logger.error("  - Error:", planError.response?.data || planError.message);
+                logger.error("  - Status:", planError.response?.status);
                 throw new Error(`CRITICAL: Failed to set deposit payment plan. Deposit payments will not work. Error: ${planError.response?.data?.error || planError.message}`);
               }
             } else {
-              console.error("❌ [WeTravel] Retry - CRITICAL: Cannot update payment plan: Package ID not found");
+              logger.error("❌ [WeTravel] Retry - CRITICAL: Cannot update payment plan: Package ID not found");
               throw new Error("CRITICAL: Failed to set deposit payment plan: Package ID not found in payment link response. Deposit payments will not work.");
             }
           }
           
           return response.data.data;
         } catch (retryError) {
-          console.error(
+          logger.error(
             "❌ Retry failed:",
             retryError.response?.data || retryError.message
           );
-          console.error("Status Code:", retryError.response?.status);
+          logger.error("Status Code:", retryError.response?.status);
           throw new Error("Failed to create WeTravel payment link after retry");
         }
       }
@@ -1153,14 +1154,17 @@ class WeTravelService {
       groupMax, // From formatOrderForPaymentLink
     } = orderData;
 
+    // Initialize paymentLinkUrl early so it's accessible throughout
+    let paymentLinkUrl = null;
+
     try {
-      console.log("🏗️ [WeTravel] Creating deposit payment link via Trips Builder API...");
-      console.log("  - Destination:", destination);
-      console.log("  - Group Min:", groupMin);
-      console.log("  - Group Max:", groupMax);
+      logger.info("🏗️ [WeTravel] Creating deposit payment link via Trips Builder API...");
+      logger.info("  - Destination:", destination);
+      logger.info("  - Group Min:", groupMin);
+      logger.info("  - Group Max:", groupMax);
       
       // Step 1: Create draft trip
-      console.log("  Step 1: Creating draft trip...");
+      logger.info("  Step 1: Creating draft trip...");
       // WeTravel API expects fields directly under data, not nested under data.trip
       // Convert dates to ISO format with time (YYYY-MM-DDTHH:mm:ss.sssZ) as per WeTravel API example
       const startDateISO = new Date(`${startDate}T00:00:00.000Z`).toISOString();
@@ -1189,7 +1193,9 @@ class WeTravelService {
             enabled: false,
             percentage: 1, // Default to 1 as per docs
             paid_by_participant: false
-          }
+          },
+          // Images will be added via separate endpoint after trip creation
+          // WeTravel may require images to be uploaded via POST /draft_trips/{trip_uuid}/images
         },
       };
       
@@ -1200,12 +1206,12 @@ class WeTravelService {
 
       // Log the exact request we're sending for debugging
       if (process.env.NODE_ENV === 'development') {
-        console.log("  📤 [WeTravel] Exact request payload being sent:");
-        console.log("  - Full tripData:", JSON.stringify(tripData, null, 2));
-        console.log("  - All field names:", Object.keys(tripData.data));
+        logger.info("  📤 [WeTravel] Exact request payload being sent:");
+        logger.info("  - Full tripData:", JSON.stringify(tripData, null, 2));
+        logger.info("  - All field names:", Object.keys(tripData.data));
       }
-      console.log("  - Has visibility field?", 'visibility' in tripData.data);
-      console.log("  - Has participants_visibility field?", 'participants_visibility' in tripData.data);
+      logger.info("  - Has visibility field?", 'visibility' in tripData.data);
+      logger.info("  - Has participants_visibility field?", 'participants_visibility' in tripData.data);
 
       const tripResponse = await axios.post(
         `${this.apiUrl}/draft_trips`,
@@ -1221,23 +1227,71 @@ class WeTravelService {
       // Response structure may vary - check both data.trip.uuid and data.uuid
       const tripUuid = tripResponse.data.data.trip?.uuid || tripResponse.data.data.uuid;
       if (!tripUuid) {
-        console.error("  ❌ Trip UUID not found in response:", JSON.stringify(tripResponse.data, null, 2));
+        logger.error("  ❌ Trip UUID not found in response:", JSON.stringify(tripResponse.data, null, 2));
         throw new Error("Failed to get trip UUID from WeTravel API response");
       }
-      console.log("  ✅ Draft trip created, UUID:", tripUuid);
+      logger.info("  ✅ Draft trip created, UUID:", tripUuid);
+      
+      // Step 1.5: Try to add image via POST /images endpoint (if it exists)
+      logger.info("  Step 1.5: Attempting to add image...");
+      try {
+        const imageData = {
+          data: {
+            url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop",
+            is_primary: true
+          }
+        };
+        
+        // Try POST to images endpoint
+        try {
+          await axios.post(
+            `${this.apiUrl}/draft_trips/${tripUuid}/images`,
+            imageData,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          logger.info("  ✅ Image added via POST /images endpoint");
+        } catch (postError) {
+          // If POST fails, try PATCH
+          logger.info("  ⚠️ POST /images failed, trying PATCH...");
+          const patchImageData = {
+            data: {
+              images: [imageData.data]
+            }
+          };
+          await axios.patch(
+            `${this.apiUrl}/draft_trips/${tripUuid}`,
+            patchImageData,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          logger.info("  ✅ Image added via PATCH");
+        }
+      } catch (imageError) {
+        logger.warn("  ⚠️ Could not add image (will try to publish anyway):", imageError.response?.data?.error || imageError.message);
+      }
 
       // Step 2: Create package for the trip
-      console.log("  Step 2: Creating package...");
+      logger.info("  Step 2: Creating package...");
       // WeTravel API expects name and price directly under data, not nested under data.package
-      // Package price should also be in minor currency units (cents)
-      const packagePriceCents = Math.round(totalAmount * 100);
-      console.log("  - Package price (dollars):", totalAmount);
-      console.log("  - Package price (cents):", packagePriceCents);
+      // Package price should be in dollars (not cents) - WeTravel displays it as-is
+      // Payment plan amounts will still be in cents
+      logger.info("  - Package price (dollars):", totalAmount);
+      logger.info("  - Package price (cents):", Math.round(totalAmount * 100));
+      logger.info("  - Note: Package price sent in dollars, payment plan amounts in cents");
       
       const packageData = {
         data: {
           name: "Standard Package",
-          price: packagePriceCents, // Must be in minor units (cents)
+          price: totalAmount, // Send in dollars (not cents) - WeTravel displays this directly
           days_before_departure: daysBeforeDeparture,
           currency: currency,
         },
@@ -1257,31 +1311,130 @@ class WeTravelService {
       // Response structure may vary - check both data.package.id and data.id
       const packageId = packageResponse.data.data.package?.id || packageResponse.data.data.id;
       if (!packageId) {
-        console.error("  ❌ Package ID not found in response:", JSON.stringify(packageResponse.data, null, 2));
+        logger.error("  ❌ Package ID not found in response:", JSON.stringify(packageResponse.data, null, 2));
         throw new Error("Failed to get package ID from WeTravel API response");
       }
-      console.log("  ✅ Package created, ID:", packageId);
+      logger.info("  ✅ Package created, ID:", packageId);
 
-      // Step 3: Calculate amounts (payment plan will be set on trip_options only, not on package)
-      console.log("  Step 3: Calculating payment amounts...");
+      // Step 3: Wait for trip_options to be auto-created, then fetch them
+      logger.info("  Step 3: Waiting for trip_options to be auto-created...");
+      // Wait longer for WeTravel to auto-create trip_options after package creation
+      // trip_options are created asynchronously, so we need to wait and retry
+      let tripOptionUuid = null;
+      let tripOptions = [];
+      
+      // Retry up to 3 times with increasing delays
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000)); // 1s, 2s, 3s
+        
+        try {
+          const tripDetailsResponse = await axios.get(
+            `${this.apiUrl}/draft_trips/${tripUuid}`,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          
+          // Handle different possible response structures
+          const tripDetails = tripDetailsResponse.data?.data?.trip || tripDetailsResponse.data?.data || tripDetailsResponse.data?.trip;
+          tripOptions = tripDetails?.trip_options || [];
+          
+          if (tripOptions.length > 0 && tripOptions[0].uuid) {
+            tripOptionUuid = tripOptions[0].uuid;
+            logger.info(`  ✅ Found trip_option UUID on attempt ${attempt}:`, tripOptionUuid);
+            break;
+          } else {
+            logger.info(`  ⚠️ Attempt ${attempt}: No trip_options found yet, waiting...`);
+          }
+        } catch (getError) {
+          logger.warn(`  ⚠️ Attempt ${attempt}: Could not get trip details:`, getError.message);
+        }
+      }
+      
+      if (!tripOptionUuid) {
+        logger.warn("  ⚠️ Trip option UUID not found after retries");
+        logger.warn("    - Attempting to create trip_option explicitly via POST...");
+        
+        // Try to create trip_option explicitly
+        try {
+          const createTripOptionData = {
+            data: {
+              package_id: packageId,
+            }
+          };
+          
+          const createTripOptionResponse = await axios.post(
+            `${this.apiUrl}/draft_trips/${tripUuid}/trip_options`,
+            createTripOptionData,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          
+          // Extract UUID from response
+          const createdTripOption = createTripOptionResponse.data?.data?.trip_option || createTripOptionResponse.data?.data || createTripOptionResponse.data?.trip_option;
+          if (createdTripOption?.uuid) {
+            tripOptionUuid = createdTripOption.uuid;
+            logger.info("  ✅ Created trip_option explicitly, UUID:", tripOptionUuid);
+          } else {
+            logger.warn("  ⚠️ Created trip_option but UUID not found in response");
+            logger.warn("    - Response:", JSON.stringify(createTripOptionResponse.data, null, 2));
+          }
+        } catch (createError) {
+          logger.warn("  ⚠️ Could not create trip_option explicitly:");
+          logger.warn("    - Error:", createError.response?.data || createError.message);
+          logger.warn("    - Status:", createError.response?.status);
+          logger.warn("    - Will try to update trip_options directly with package_id");
+        }
+      }
+
+      // Step 4: Calculate amounts and set payment plan on package (primary method)
+      logger.info("  Step 4: Calculating payment amounts...");
       // WeTravel API requires amounts in minor currency units (cents)
       // For USD: $1.00 = 100 cents, so multiply by 100
       const depositAmountCents = Math.round(depositAmount * 100);
       const remainingAmountCents = Math.round(remainingAmount * 100);
+      const packagePriceCents = Math.round(totalAmount * 100);
       
-      console.log("  - Deposit (dollars):", depositAmount);
-      console.log("  - Deposit (cents):", depositAmountCents);
-      console.log("  - Remaining (dollars):", remainingAmount);
-      console.log("  - Remaining (cents):", remainingAmountCents);
-      console.log("  - Note: Payment plan will be set on trip_options only (not on package)");
-
-      // Step 4: Update trip_options with payment plan (per WeTravel API team recommendation)
-      // WeTravel requires explicit update of trip_options[0][payment_plan] with correct schema
-      console.log("  Step 4: Updating trip_options with payment plan schema...");
+      logger.info("  - Deposit (dollars):", depositAmount);
+      logger.info("  - Deposit (cents):", depositAmountCents);
+      logger.info("  - Remaining (dollars):", remainingAmount);
+      logger.info("  - Remaining (cents):", remainingAmountCents);
+      
+      // Step 4a: Try setting payment plan directly on package first
+      logger.info("  Step 4a: Setting payment plan directly on package...");
       try {
-        // GET the draft trip to capture the auto-generated trip_option_uuid
-        const tripDetailsResponse = await axios.get(
-          `${this.apiUrl}/draft_trips/${tripUuid}`,
+        const packagePaymentPlanData = {
+          data: {
+            enabled: true,
+            type: "custom",
+            currency: currency,
+            deposit_amount_in_cents: depositAmountCents,
+            allow_partial_payment: false,
+            payment_schedule: [
+              {
+                amount_in_cents: depositAmountCents,
+                days_before_departure: 0,
+                description: "Initial Deposit"
+              },
+              {
+                amount_in_cents: remainingAmountCents,
+                days_before_departure: daysBeforeDeparture,
+                description: "Remaining Balance"
+              }
+            ]
+          }
+        };
+        
+        await axios.patch(
+          `${this.apiUrl}/draft_trips/${tripUuid}/packages/${packageId}/payment_plan`,
+          packagePaymentPlanData,
           {
             headers: {
               Authorization: `Bearer ${this.accessToken}`,
@@ -1289,101 +1442,111 @@ class WeTravelService {
             },
           }
         );
+        logger.info("  ✅ Payment plan set directly on package");
+        logger.info("    - This should enable deposit option on WeTravel page");
+      } catch (packagePlanError) {
+        logger.warn("  ⚠️ Could not set payment plan on package:");
+        logger.warn("    - Error:", packagePlanError.response?.data || packagePlanError.message);
+        logger.warn("    - Status:", packagePlanError.response?.status);
+        logger.warn("    - Will continue with trip_options approach as fallback");
+      }
+      
+      logger.info("  - Note: Payment plan also set on trip_options as fallback");
 
-        const tripDetails = tripDetailsResponse.data.data.trip;
-        const tripOptions = tripDetails.trip_options || [];
+      // Step 5: Update trip_options with payment plan (per WeTravel API team recommendation)
+      // WeTravel requires explicit update of trip_options[0][payment_plan] with correct schema
+      logger.info("  Step 5: Updating trip_options with payment plan schema...");
+      try {
+        // We already have the tripOptionUuid from creation, so we can directly update it
+        logger.info("  - Using trip_option UUID:", tripOptionUuid);
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log("  - Current trip_options count:", tripOptions.length);
+        // Build payment_schedule array using Golden Sample structure
+        // Must use 'amount_in_cents' (not 'price') and include 'description' fields
+        const paymentSchedule = [
+          {
+            amount_in_cents: depositAmountCents,
+            days_before_departure: 0,
+            description: "Initial Deposit",
+          },
+          {
+            amount_in_cents: remainingAmountCents,
+            days_before_departure: daysBeforeDeparture,
+            description: "Remaining Balance",
+          },
+        ];
+        
+        // Validate payment schedule math: sum must equal package total price
+        const scheduleTotal = depositAmountCents + remainingAmountCents;
+        
+        if (scheduleTotal !== packagePriceCents) {
+          logger.error("  ❌ Payment schedule validation failed:");
+          logger.error(`    - Schedule total: ${scheduleTotal} cents`);
+          logger.error(`    - Package total: ${packagePriceCents} cents`);
+          logger.error(`    - Difference: ${Math.abs(scheduleTotal - packagePriceCents)} cents`);
+          throw new Error(`Payment schedule sum (${scheduleTotal}) does not match package total (${packagePriceCents}). This will cause publish validation to fail.`);
         }
         
-        if (tripOptions.length > 0) {
-          // Step 3: Capture the auto-generated trip_option_uuid (per Nik's instructions)
-          const tripOptionUuid = tripOptions[0].uuid;
-          if (process.env.NODE_ENV === 'development') {
-            console.log("  ✅ Step 3: Captured trip_option_uuid:", tripOptionUuid);
-            console.log("  - Current trip_options[0] FULL structure:", JSON.stringify(tripOptions[0], null, 2));
-            console.log("  - trip_options[0] keys:", Object.keys(tripOptions[0]));
-            
-            // Log what fields exist in the original trip_option
-            const originalOption = tripOptions[0];
-            console.log("  - Original trip_option fields:");
-            Object.keys(originalOption).forEach(key => {
-              console.log(`    - ${key}:`, typeof originalOption[key], Array.isArray(originalOption[key]) ? `[array]` : typeof originalOption[key] === 'object' ? `{object}` : originalOption[key]);
-            });
-          }
-          
-          // Build payment_schedule array using Golden Sample structure
-          // Must use 'amount_in_cents' (not 'price') and include 'description' fields
-          const paymentSchedule = [
-            {
-              amount_in_cents: depositAmountCents,
-              days_before_departure: 0,
-              description: "Initial Deposit",
-            },
-            {
-              amount_in_cents: remainingAmountCents,
-              days_before_departure: daysBeforeDeparture,
-              description: "Remaining Balance",
-            },
-          ];
-          
-          // Validate payment schedule math: sum must equal package total price
-          const scheduleTotal = depositAmountCents + remainingAmountCents;
-          const packagePriceCents = Math.round(totalAmount * 100);
-          
-          if (scheduleTotal !== packagePriceCents) {
-            console.error("  ❌ Payment schedule validation failed:");
-            console.error(`    - Schedule total: ${scheduleTotal} cents`);
-            console.error(`    - Package total: ${packagePriceCents} cents`);
-            console.error(`    - Difference: ${Math.abs(scheduleTotal - packagePriceCents)} cents`);
-            throw new Error(`Payment schedule sum (${scheduleTotal}) does not match package total (${packagePriceCents}). This will cause publish validation to fail.`);
-          }
-          
-          console.log("  ✅ Payment schedule validation passed:");
-          console.log(`    - Deposit: ${depositAmountCents} cents`);
-          console.log(`    - Remaining: ${remainingAmountCents} cents`);
-          console.log(`    - Total: ${scheduleTotal} cents (matches package total)`);
-          
-          // Step 4: Update trip_options with payment plan using Golden Sample structure
-          // Must include: enabled, type: "custom", deposit_amount_in_cents, currency, payment_schedule, allow_partial_payment
-          const paymentPlanStructure = {
-            enabled: true,
-            type: "custom",
-            currency: currency,
-            deposit_amount_in_cents: depositAmountCents,
-            allow_partial_payment: false,
-            payment_schedule: paymentSchedule,
-          };
-          
-          console.log("  - Using Golden Sample payment plan structure:");
-          console.log("    - Structure:", JSON.stringify(paymentPlanStructure, null, 2));
-          
-          // IMPORTANT: Preserve ALL original fields from trip_option, only add/update payment_plan
-          const updatedTripOptions = tripOptions.map((option, index) => {
-            if (index === 0 && option.uuid === tripOptionUuid) {
-              const updatedOption = {
-                ...option, // Preserve all original fields (uuid, package_id, etc.)
-                payment_plan: paymentPlanStructure, // Use Golden Sample structure
-              };
-              
-              if (process.env.NODE_ENV === 'development') {
-                console.log("  - Updated trip_option structure:");
-                console.log("    - Preserved fields:", Object.keys(option));
-                console.log("    - Added payment_plan with fields:", Object.keys(updatedOption.payment_plan));
-                console.log("    - Full updated option:", JSON.stringify(updatedOption, null, 2));
-              }
-              
-              return updatedOption;
-            }
-            return option;
+        logger.info("  ✅ Payment schedule validation passed:");
+        logger.info(`    - Deposit: ${depositAmountCents} cents`);
+        logger.info(`    - Remaining: ${remainingAmountCents} cents`);
+        logger.info(`    - Total: ${scheduleTotal} cents (matches package total)`);
+        
+        // Build payment plan structure using Golden Sample format
+        // Must include: enabled, type: "custom", deposit_amount_in_cents, currency, payment_schedule, allow_partial_payment
+        const paymentPlanStructure = {
+          enabled: true,
+          type: "custom",
+          currency: currency,
+          deposit_amount_in_cents: depositAmountCents,
+          allow_partial_payment: false,
+          payment_schedule: paymentSchedule,
+        };
+        
+        logger.info("  - Using Golden Sample payment plan structure:");
+        logger.info("    - Structure:", JSON.stringify(paymentPlanStructure, null, 2));
+        
+        // Build trip_options array with the payment plan
+        // Include package_id as it may be required for trip_options
+        const updatedTripOptions = [];
+        
+        // If we found existing trip_options, use the first one's UUID
+        // Otherwise, create a new trip_option structure
+        if (tripOptionUuid) {
+          updatedTripOptions.push({
+            uuid: tripOptionUuid,
+            package_id: packageId,
+            payment_plan: paymentPlanStructure,
           });
+          logger.info("  - Building trip_option with UUID and package_id");
+        } else if (tripOptions.length > 0) {
+          // Use existing trip_option structure even without UUID
+          updatedTripOptions.push({
+            ...tripOptions[0], // Include all existing fields
+            package_id: packageId,
+            payment_plan: paymentPlanStructure,
+          });
+          logger.info("  - Building trip_option from existing structure");
+        } else {
+          // Create new trip_option structure
+          logger.info("  ⚠️ No trip_option UUID found, creating new trip_option structure...");
+          updatedTripOptions.push({
+            package_id: packageId,
+            payment_plan: paymentPlanStructure,
+          });
+        }
+        
+        if (process.env.NODE_ENV === 'development') {
+          logger.info("  - Updated trip_option structure:");
+          logger.info("    - UUID:", tripOptionUuid || "not provided");
+          logger.info("    - Payment plan fields:", Object.keys(paymentPlanStructure));
+          logger.info("    - Full updated option:", JSON.stringify(updatedTripOptions[0], null, 2));
+        }
 
           // Update trip with trip_options that include payment plan
           // Try both structures: with and without 'trip' wrapper
-          console.log("  - Updating trip_options with Golden Sample structure:");
-          console.log("  - Full updatedTripOptions:", JSON.stringify(updatedTripOptions, null, 2));
-          console.log("  - Payment plan being sent:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
+          logger.info("  - Updating trip_options with Golden Sample structure:");
+          logger.info("  - Full updatedTripOptions:", JSON.stringify(updatedTripOptions, null, 2));
+          logger.info("  - Payment plan being sent:", JSON.stringify(updatedTripOptions[0].payment_plan, null, 2));
           
           // Try structure without 'trip' wrapper first (more consistent with other PATCH requests)
           let updateResponse;
@@ -1402,13 +1565,17 @@ class WeTravelService {
                 },
               }
             );
-            console.log("  ✅ PATCH succeeded with trip_options directly");
+            logger.info("  ✅ PATCH succeeded with trip_options directly");
+            
+            // Wait briefly and verify trip_options were created/updated
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
           } catch (patchError) {
             // If that fails, try with 'trip' wrapper
-            console.log("  ⚠️ PATCH failed without 'trip' wrapper:");
-            console.log("    - Error:", patchError.response?.data || patchError.message);
-            console.log("    - Status:", patchError.response?.status);
-            console.log("    - Trying with 'trip' wrapper...");
+            logger.info("  ⚠️ PATCH failed without 'trip' wrapper:");
+            logger.info("    - Error:", patchError.response?.data || patchError.message);
+            logger.info("    - Status:", patchError.response?.status);
+            logger.info("    - Trying with 'trip' wrapper...");
             try {
               updateResponse = await axios.patch(
                 `${this.apiUrl}/draft_trips/${tripUuid}`,
@@ -1426,52 +1593,86 @@ class WeTravelService {
                   },
                 }
               );
-              console.log("  ✅ PATCH succeeded with 'trip' wrapper");
+              logger.info("  ✅ PATCH succeeded with 'trip' wrapper");
+              
+              // Wait briefly and verify trip_options were created/updated
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
             } catch (tripWrapperError) {
-              console.error("  ❌ PATCH also failed with 'trip' wrapper:");
-              console.error("    - Error:", tripWrapperError.response?.data || tripWrapperError.message);
-              console.error("    - Status:", tripWrapperError.response?.status);
+              logger.error("  ❌ PATCH also failed with 'trip' wrapper:");
+              logger.error("    - Error:", tripWrapperError.response?.data || tripWrapperError.message);
+              logger.error("    - Status:", tripWrapperError.response?.status);
               throw tripWrapperError;
             }
           }
 
-          console.log("  ✅ Updated trip_options[0] with payment plan schema");
-          console.log("  - Update response:", JSON.stringify(updateResponse.data, null, 2));
+          logger.info("  ✅ Updated trip_options[0] with payment plan schema");
+          logger.info("  - Update response:", JSON.stringify(updateResponse.data, null, 2));
+          
+          // Check if URL is available in update response
+          const updateResponseData = updateResponse.data?.data || updateResponse.data;
+          if (updateResponseData?.url) {
+            logger.info("  ✅ Payment link URL found in update response:", updateResponseData.url);
+            paymentLinkUrl = updateResponseData.url;
+          }
           
           // Verify the update by getting the trip again
-          console.log("  - Verifying trip_options update...");
-          const verifyTripResponse = await axios.get(
-            `${this.apiUrl}/draft_trips/${tripUuid}`,
-            {
-              headers: {
-                Authorization: `Bearer ${this.accessToken}`,
-                "Content-Type": "application/json",
-              },
+          logger.info("  - Verifying trip_options update...");
+          try {
+            const verifyTripResponse = await axios.get(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            
+            // Handle different possible response structures
+            const verifiedTrip = verifyTripResponse.data?.data?.trip || verifyTripResponse.data?.data || verifyTripResponse.data?.trip;
+            const verifiedTripOptions = verifiedTrip?.trip_options || [];
+            
+            logger.info("  - Verification response structure:");
+            logger.info("    - Response keys:", Object.keys(verifyTripResponse.data || {}));
+            logger.info("    - Has trip_options?", !!verifiedTrip?.trip_options);
+            logger.info("    - trip_options count:", verifiedTripOptions.length);
+            
+            if (verifiedTripOptions.length > 0) {
+              logger.info("  - trip_options[0] structure:", JSON.stringify(verifiedTripOptions[0], null, 2));
+              if (verifiedTripOptions[0].payment_plan) {
+                logger.info("  ✅ Verified trip_options[0].payment_plan:", JSON.stringify(verifiedTripOptions[0].payment_plan, null, 2));
+              } else {
+                logger.warn("  ⚠️ Payment plan not found in verified trip_options[0]");
+                logger.warn("    - trip_options[0] keys:", Object.keys(verifiedTripOptions[0]));
+              }
+            } else {
+              logger.warn("  ⚠️ No trip_options found in verification response");
             }
-          );
-          
-          const verifiedTripOptions = verifyTripResponse.data.data.trip.trip_options || [];
-          if (verifiedTripOptions.length > 0 && verifiedTripOptions[0].payment_plan) {
-            console.log("  - Verified trip_options[0].payment_plan:", JSON.stringify(verifiedTripOptions[0].payment_plan, null, 2));
-          } else {
-            console.warn("  ⚠️ Payment plan not found in verified trip_options");
+            
+            // Also check for URL in verification response
+            if (!paymentLinkUrl && verifiedTrip?.url) {
+              logger.info("  ✅ Payment link URL found in verification response:", verifiedTrip.url);
+              paymentLinkUrl = verifiedTrip.url;
+            }
+          } catch (verifyError) {
+            logger.warn("  ⚠️ Could not verify trip_options update:", verifyError.message);
           }
-        } else {
-          console.warn("  ⚠️ No trip_options found - WeTravel should have auto-created them");
-          console.warn("  - Will try publishing anyway");
-        }
       } catch (updateError) {
-        console.error("  ❌ Could not update trip_options:", updateError.response?.data || updateError.message);
-        console.error("  - Error status:", updateError.response?.status);
+        logger.error("  ❌ Could not update trip_options:", updateError.response?.data || updateError.message);
+        logger.error("  - Error status:", updateError.response?.status);
         throw new Error(`Failed to update trip_options with payment plan: ${updateError.response?.data?.error || updateError.message}`);
       }
 
-      // Step 5: Check if draft trip has URL before publishing
-      console.log("  Step 5: Checking if draft trip has payment link URL...");
-      let paymentLinkUrl = null;
+      // Step 6: Always publish the trip to make it publicly accessible
+      // Draft trips have URLs but are not publicly accessible - they must be published
+      logger.info("  Step 6: Publishing trip to make it publicly accessible...");
+      logger.info("  - Note: Draft trips are not publicly accessible, publishing is required");
       
+      // Before publishing, verify the trip structure
       try {
-        const draftCheckResponse = await axios.get(
+        logger.info("  - Pre-publish verification...");
+        const prePublishCheck = await axios.get(
           `${this.apiUrl}/draft_trips/${tripUuid}`,
           {
             headers: {
@@ -1481,106 +1682,140 @@ class WeTravelService {
           }
         );
         
-        const draftTrip = draftCheckResponse.data.data.trip;
-        paymentLinkUrl = draftTrip.url;
+        const prePublishTrip = prePublishCheck.data?.data?.trip || prePublishCheck.data?.data || prePublishCheck.data?.trip;
+        const prePublishTripOptions = prePublishTrip?.trip_options || [];
         
-        if (paymentLinkUrl) {
-          console.log("  ✅ Payment link available from draft trip (no publish needed)");
-          console.log("  - Payment Link URL:", paymentLinkUrl);
+        logger.info("  - Pre-publish trip structure:");
+        logger.info("    - Has trip_options?", !!prePublishTrip?.trip_options);
+        logger.info("    - trip_options count:", prePublishTripOptions.length);
+        logger.info("    - Has images?", !!prePublishTrip?.images);
+        logger.info("    - Images count:", prePublishTrip?.images?.length || 0);
+        logger.info("    - Published status:", prePublishTrip?.published);
+        
+        if (prePublishTripOptions.length > 0) {
+          logger.info("    - trip_options[0] structure:", JSON.stringify(prePublishTripOptions[0], null, 2));
+          if (prePublishTripOptions[0].payment_plan) {
+            logger.info("  ✅ Payment plan found in trip_options before publish");
+            logger.info("    - Payment plan:", JSON.stringify(prePublishTripOptions[0].payment_plan, null, 2));
+          } else {
+            logger.warn("  ⚠️ Payment plan not found in trip_options before publish!");
+            logger.warn("    - trip_options[0] keys:", Object.keys(prePublishTripOptions[0]));
+          }
+        } else {
+          logger.warn("  ⚠️ No trip_options found before publish!");
+          logger.warn("    - This may cause publish to fail, but we'll try anyway");
         }
-      } catch (draftError) {
-        console.warn("  ⚠️ Could not get draft trip URL:", draftError.message);
+        
+        // Check if images exist - if not, try one final time
+        if (!prePublishTrip?.images || prePublishTrip.images.length === 0) {
+          logger.warn("  ⚠️ No images found - attempting final image add...");
+          try {
+            const finalImageData = {
+              data: {
+                images: [
+                  {
+                    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop",
+                    is_primary: true
+                  }
+                ]
+              }
+            };
+            await axios.patch(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              finalImageData,
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            logger.info("  ✅ Final image add succeeded");
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (finalImageError) {
+            logger.warn("  ⚠️ Final image add failed - will attempt publish anyway");
+          }
+        } else {
+          logger.info("  ✅ Images found:", prePublishTrip.images.length, "image(s)");
+        }
+      } catch (prePublishError) {
+        logger.error("  ❌ Could not verify trip before publish:");
+        logger.error("    - Error:", prePublishError.response?.data || prePublishError.message);
+        logger.warn("    - Will attempt to publish anyway");
       }
       
-      // Step 6: Publish the trip if no URL found
-      if (!paymentLinkUrl) {
-        console.log("  Step 6: Publishing trip to create payment link...");
-        
-        // Before publishing, verify the trip_options structure one more time
-        try {
-          const prePublishCheck = await axios.get(
-            `${this.apiUrl}/draft_trips/${tripUuid}`,
-            {
-              headers: {
-                Authorization: `Bearer ${this.accessToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-          const prePublishTripOptions = prePublishCheck.data.data.trip?.trip_options || [];
-          if (prePublishTripOptions.length > 0 && prePublishTripOptions[0].payment_plan) {
-            console.log("  - Pre-publish trip_options[0].payment_plan structure:");
-            console.log("    ", JSON.stringify(prePublishTripOptions[0].payment_plan, null, 2));
-            console.log("  - Pre-publish trip_options[0] keys:", Object.keys(prePublishTripOptions[0]));
-          } else {
-            console.warn("  ⚠️ Payment plan not found in trip_options before publish!");
+      // Always publish the trip - draft trips are not publicly accessible
+      try {
+        logger.info("  - Attempting to publish trip...");
+        const publishResponse = await axios.post(
+          `${this.apiUrl}/draft_trips/${tripUuid}/publish`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${this.accessToken}`,
+              "Content-Type": "application/json",
+            },
           }
-        } catch (prePublishError) {
-          console.warn("  ⚠️ Could not verify trip_options before publish:", prePublishError.message);
-        }
-        
-        try {
-          const publishResponse = await axios.post(
-            `${this.apiUrl}/draft_trips/${tripUuid}/publish`,
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${this.accessToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
+        );
 
-          console.log("  ✅ Trip published");
-          const publishedTrip = publishResponse.data.data.trip;
-          paymentLinkUrl = publishedTrip.url;
-        } catch (publishError) {
+        logger.info("  ✅ Trip published successfully");
+        const publishedTrip = publishResponse.data?.data?.trip || publishResponse.data?.data || publishResponse.data?.trip;
+        paymentLinkUrl = publishedTrip?.url;
+        
+        if (paymentLinkUrl) {
+          logger.info("  - Published trip URL:", paymentLinkUrl);
+          logger.info("  - Published status:", publishedTrip?.published);
+        } else {
+          logger.warn("  ⚠️ No URL in publish response");
+          logger.warn("    - Publish response:", JSON.stringify(publishResponse.data, null, 2));
+        }
+      } catch (publishError) {
           // Log detailed error information
-          console.error("  ❌ Publishing failed:");
-          console.error("  - Error:", publishError.response?.data || publishError.message);
-          console.error("  - Status:", publishError.response?.status);
-          console.error("  - Full error response:", JSON.stringify(publishError.response?.data, null, 2));
+          logger.error("  ❌ Publishing failed:");
+          logger.error("  - Error:", publishError.response?.data || publishError.message);
+          logger.error("  - Status:", publishError.response?.status);
+          logger.error("  - Full error response:", JSON.stringify(publishError.response?.data, null, 2));
           
-          // If publish fails, check if we can still get URL from draft
-          if (publishError.response?.data?.error?.includes('trip_options')) {
-            console.warn("  ⚠️ Publishing failed with trip_options error");
-            console.warn("  - Error:", publishError.response.data.error);
-            console.warn("  - Trying to get payment link from draft trip anyway...");
-            
-            // Try one more time to get URL from draft
-            try {
-              const finalDraftResponse = await axios.get(
-                `${this.apiUrl}/draft_trips/${tripUuid}`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${this.accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-              
-              paymentLinkUrl = finalDraftResponse.data.data.trip?.url;
-              if (paymentLinkUrl) {
-                console.log("  ✅ Got payment link from draft despite publish error");
-              } else {
-                throw publishError; // Re-throw if we still don't have a URL
+          // If publish fails, try to use draft URL anyway
+          // Draft trips have URLs that might work even if not published
+          logger.warn("  ⚠️ Publishing failed, trying to use draft trip URL...");
+          
+          try {
+            const finalDraftResponse = await axios.get(
+              `${this.apiUrl}/draft_trips/${tripUuid}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${this.accessToken}`,
+                  "Content-Type": "application/json",
+                },
               }
-            } catch (finalError) {
-              throw publishError; // Re-throw original publish error
+            );
+            
+            const draftTrip = finalDraftResponse.data?.data?.trip || finalDraftResponse.data?.data || finalDraftResponse.data?.trip;
+            paymentLinkUrl = draftTrip?.url;
+            
+            if (paymentLinkUrl) {
+              logger.info("  ✅ Using draft trip URL despite publish failure");
+              logger.info("  - Draft URL:", paymentLinkUrl);
+              logger.warn("  ⚠️ NOTE: Draft trips may not be publicly accessible - user may see 404");
+              logger.warn("  - Publish error:", publishError.response?.data?.error || publishError.message);
+            } else {
+              // If we don't have a URL, throw the original publish error
+              throw publishError;
             }
-          } else {
+          } catch (finalError) {
+            // If we can't get draft URL either, throw original publish error
             throw publishError;
           }
-        }
       }
       
       if (!paymentLinkUrl) {
         throw new Error("Failed to get payment link URL from draft trip or published trip");
       }
 
-      console.log("✅ [WeTravel] Deposit payment link created via Trips Builder API");
-      console.log("  - Payment Link URL:", paymentLinkUrl);
-      console.log("  - Trip UUID:", tripUuid);
+      logger.info("✅ [WeTravel] Deposit payment link created via Trips Builder API");
+      logger.info("  - Payment Link URL:", paymentLinkUrl);
+      logger.info("  - Trip UUID:", tripUuid);
 
       // Return in the same format as payment_links endpoint
       return {
@@ -1596,9 +1831,9 @@ class WeTravelService {
         ],
       };
     } catch (error) {
-      console.error("❌ [WeTravel] Error creating deposit payment link via Trips Builder API:");
-      console.error("  - Error:", error.response?.data || error.message);
-      console.error("  - Status:", error.response?.status);
+      logger.error("❌ [WeTravel] Error creating deposit payment link via Trips Builder API:");
+      logger.error("  - Error:", error.response?.data || error.message);
+      logger.error("  - Status:", error.response?.status);
       throw new Error(`Failed to create deposit payment link via Trips Builder: ${error.response?.data?.error || error.message}`);
     }
   }

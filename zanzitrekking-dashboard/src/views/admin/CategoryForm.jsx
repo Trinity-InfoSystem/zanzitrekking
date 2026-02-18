@@ -1,10 +1,11 @@
 import { FaImage, FaTimes } from "react-icons/fa";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
+import { Controller } from "react-hook-form";
 
 const CategoryForm = ({
-  state,
-  setState,
+  register,
+  control,
   errors,
   loader,
   imageShow,
@@ -19,15 +20,12 @@ const CategoryForm = ({
         Category Name
       </label>
       <input
-        value={state.name}
-        onChange={(e) =>
-          setState((prev) => ({ ...prev, name: e.target.value }))
-        }
+        {...register("name")}
         type="text"
         className={`w-full rounded-lg border-2 ${errors.name ? "border-accent" : "border-primary-200"} bg-white px-4 py-2.5 text-text-dark transition-colors focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200`}
         placeholder="Enter category name"
       />
-      {errors.name && <p className="mt-1 text-sm text-accent">{errors.name}</p>}
+      {errors.name && <p className="mt-1 text-sm text-accent">{errors.name.message}</p>}
     </div>
     <div className="mb-6 flex-1">
       <label className="mb-2 block text-sm font-medium text-primary-800">
@@ -64,9 +62,26 @@ const CategoryForm = ({
           </div>
         )}
       </label>
-      <input type="file" id="image" onChange={handleImage} className="hidden" />
+      <Controller
+        name="image"
+        control={control}
+        rules={{ required: !categoryId ? "Category image is required" : false }}
+        render={({ field: { onChange, value, ...field } }) => (
+          <input
+            {...field}
+            type="file"
+            id="image"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              onChange(file);
+              handleImage(e);
+            }}
+            className="hidden"
+          />
+        )}
+      />
       {errors.image && (
-        <p className="mt-1 text-sm text-accent">{errors.image}</p>
+        <p className="mt-1 text-sm text-accent">{errors.image.message}</p>
       )}
     </div>
     <div className="mt-auto">

@@ -228,7 +228,7 @@ const AdminToCustomer = () => {
       formData.append("attachment", selectedFile);
     }
 
-    formData.append("sender", userInfo?._id);
+    // Sender is now derived from JWT token on backend - removed for security
     formData.append("senderModel", "Admin");
     formData.append("receiver", currentCustomer._id);
     formData.append("receiverModel", "Customer");
@@ -281,7 +281,7 @@ const AdminToCustomer = () => {
     } else {
       // Send just IDs to backend API, not objects
       const baseMessage = {
-        sender: userInfo?._id, // Backend expects just the ID string
+        // Sender is now derived from JWT token on backend - removed for security
         senderModel: "Admin",
         receiver: currentCustomer._id, // Backend expects just the ID string
         receiverModel: "Customer",

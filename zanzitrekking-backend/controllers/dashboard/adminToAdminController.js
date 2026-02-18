@@ -1,4 +1,5 @@
 const Message = require("../../models/chat/chat");
+const logger = require('./../../utilities/logger');
 const Admin = require("../../models/admin");
 const createError = require("http-errors");
 const { path } = require("express/lib/application");
@@ -79,14 +80,20 @@ class adminToAdminController {
   // Send a new admin message
   send_admin_message = async (req, res, next) => {
     try {
-      const { sender, senderModel, receiver, receiverModel, content } =
-        req.body;
+      // Derive sender from authenticated JWT token (set by jwtMiddleware)
+      const sender = req.id;
+      if (!sender || !req.role) {
+        return res.status(401).json({ error: "Unauthorized - admin authentication required" });
+      }
 
-      console.log("Admin message data:", req.body);
+      const senderModel = "Admin"; // Always Admin for admin-to-admin messages
+      const { receiver, receiverModel, content } = req.body;
 
-      // Verify both sender and receiver are admins
-      if (senderModel !== "Admin" || receiverModel !== "Admin") {
-        throw createError(400, "Both sender and receiver must be admins");
+      logger.info("Admin message data:", { sender, senderModel, receiver, receiverModel, content });
+
+      // Verify receiver is also an admin
+      if (receiverModel !== "Admin") {
+        throw createError(400, "Receiver must be an admin");
       }
 
       const conversationContext = buildAdminConversation(sender, receiver);
@@ -113,7 +120,7 @@ class adminToAdminController {
         message: populatedMessage,
       });
     } catch (error) {
-      console.log(error);
+      logger.info(error);
       next(createError(500, "Internal server error"));
     }
   };
@@ -121,18 +128,24 @@ class adminToAdminController {
   // Send admin file
   send_admin_file = async (req, res, next) => {
     try {
-      const { sender, senderModel, receiver, receiverModel, content } =
-        req.body;
+      // Derive sender from authenticated JWT token (set by jwtMiddleware)
+      const sender = req.id;
+      if (!sender || !req.role) {
+        return res.status(401).json({ error: "Unauthorized - admin authentication required" });
+      }
 
-      console.log("Admin file data:", req.body);
+      const senderModel = "Admin"; // Always Admin for admin-to-admin messages
+      const { receiver, receiverModel, content } = req.body;
+
+      logger.info("Admin file data:", { sender, senderModel, receiver, receiverModel, content });
 
       if (!req.file) {
         throw createError(400, "No file uploaded");
       }
 
-      // Verify both sender and receiver are admins
-      if (senderModel !== "Admin" || receiverModel !== "Admin") {
-        throw createError(400, "Both sender and receiver must be admins");
+      // Verify receiver is also an admin
+      if (receiverModel !== "Admin") {
+        throw createError(400, "Receiver must be an admin");
       }
 
       const file = req.file;
@@ -349,7 +362,7 @@ class adminToAdminController {
           ...adminsCurrentUserMessaged.map((id) => id.toString()),
         ]),
       ];
-      console.log("Combined admin IDs:", allRelevantAdminIds);
+      logger.info("Combined admin IDs:", allRelevantAdminIds);
 
       const admins = await Admin.find({
         _id: { $in: allRelevantAdminIds },
@@ -422,7 +435,7 @@ class adminToAdminController {
         })
       );
 
-      console.log("Admins with unread:", adminsWithUnread);
+      logger.info("Admins with unread:", adminsWithUnread);
 
       // Sort by online status and last activity
       adminsWithUnread.sort((a, b) => {
@@ -449,7 +462,7 @@ class adminToAdminController {
       const { adminId } = req.params;
       const currentUserId = req.user?.id; // Get current user ID from auth middleware
 
-      console.log("Getting active admins with new admin:", adminId);
+      logger.info("Getting active admins with new admin:", adminId);
 
       // Get admins who have sent messages in the last 24 hours (excluding current admin)
       const recentActiveAdminIds = await Message.distinct("sender", {
@@ -602,9 +615,13 @@ class adminToAdminController {
           "../../public",
           message.attachment
         );
-        console.log("Deleting admin file at:", filePath);
+        logger.info("Deleting admin file at:", filePath);
         if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+          try {
+            await fs.promises.unlink(filePath);
+          } catch (error) {
+            logger.error("Error deleting admin file:", error);
+          }
         }
       }
 

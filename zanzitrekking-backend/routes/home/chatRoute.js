@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const messageController = require("../../controllers/home/messageController");
 const { chatFileUpload } = require("../../utilities/multerUpload");
+const { customerJwtMiddleware, jwtMiddleware } = require("../../middlewares/authJwtMiddleware");
 
 // Chat routes
 router.get(
@@ -13,12 +14,14 @@ router.get(
 router.post(
   "/message-send-file",
   chatFileUpload.single("attachment"),
+  customerJwtMiddleware,
   messageController.send_file
 );
 
 router.delete("/message/:messageId", messageController.delete_message);
 
-router.post("/message-send", messageController.send_message);
+// Customer routes use customerJwtMiddleware, admin routes can use jwtMiddleware
+router.post("/message-send", customerJwtMiddleware, messageController.send_message);
 router.put(
   "/messages-mark-read/:senderId/:receiverId",
   messageController.mark_messages_read
@@ -35,15 +38,17 @@ router.get(
   messageController.get_unread_count
 );
 
-// Admin dashboard routes
-router.get("/dashboard-stats", messageController.get_dashboard_stats);
-router.get("/dashboard-recent-messages", messageController.get_recent_messages);
+// Admin dashboard routes - require admin authentication
+router.get("/dashboard-stats", jwtMiddleware, messageController.get_dashboard_stats);
+router.get("/dashboard-recent-messages", jwtMiddleware, messageController.get_recent_messages);
 router.get(
   "/dashboard-active-customers",
+  jwtMiddleware,
   messageController.get_active_customers
 );
 router.get(
   "/dashboard-active-customers-with-new-customer/:customerId",
+  jwtMiddleware,
   messageController.get_active_customers_with_new_customer
 );
 
