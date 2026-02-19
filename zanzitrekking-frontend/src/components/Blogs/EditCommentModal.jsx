@@ -29,11 +29,17 @@ const EditCommentModal = ({
 
     try {
       setIsUpdating(true);
+      
+      // Debug logging
+      console.log("EditCommentModal - commentId:", commentId);
+      console.log("EditCommentModal - blogPostId:", blogPostId);
+      console.log("EditCommentModal - userInfo.email:", userInfo?.email);
+      
       await dispatch(
         update_comment({
           commentId,
           blogPostId,
-          updatedComment: { comment: commentText, email: userInfo.email },
+          updatedComment: { comment: commentText, email: userInfo?.email },
         }),
       ).unwrap();
       toast.success("Comment updated successfully");

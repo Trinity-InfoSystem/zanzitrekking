@@ -1,6 +1,7 @@
 const blogPostModel = require("../../models/blogPost");
 const logger = require('./../../utilities/logger');
 const Customer = require("../../models/customer");
+const Admin = require("../../models/admin");
 
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
@@ -507,11 +508,20 @@ class blogPostController {
     const { name, email, comment } = req.body;
 
     try {
-      // First find if customer exists by email
-      const customer = await Customer.findOne({ email });
+      // Find or create customer by email
+      let customer = await Customer.findOne({ email });
 
       if (!customer) {
-        return responseReturn(res, 404, { error: "Customer not found" });
+        // Find an admin to assign
+        const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
+        
+        // Create customer if they don't exist
+        customer = await Customer.create({
+          name: name.trim(),
+          email: email.trim(),
+          method: "manual",
+          assignedAdmin: admin ? admin._id : undefined,
+        });
       }
 
       const commentObject = {
@@ -544,45 +554,124 @@ class blogPostController {
     const { blogPostId } = req.params;
     const { email, comment: newCommentText, commentId } = req.body;
 
-    try {
-      // 1. Find the customer by email
-      const customer = await Customer.findOne({ email });
-      if (!customer) {
-        return responseReturn(res, 404, { error: "Customer not found" });
-      }
+    logger.info("=== UPDATE COMMENT START ===");
+    logger.info("Request params:", { blogPostId });
+    logger.info("Request body:", { email, comment: newCommentText, commentId });
 
-      // 2. Find the blog post
+    try {
+      // 1. Find the blog post first
+      logger.info("Step 1: Finding blog post with ID:", blogPostId);
       const blogPost = await blogPostModel.findById(blogPostId);
+      
       if (!blogPost) {
+        logger.warn("Blog post not found:", blogPostId);
         return responseReturn(res, 404, { error: "Blog post not found" });
       }
+      logger.info("Blog post found:", { id: blogPost._id.toString(), commentsCount: blogPost.comments?.length || 0 });
 
-      // 3. Find the comment in the blog post's comments array
-      const commentToUpdate = blogPost.comments.find((comment) => {
-        return (
-          comment._id.toString() === commentId &&
-          comment.customerId.toString() === customer._id.toString()
-        );
+      // 2. Find the existing comment first to get customer info
+      logger.info("Step 2: Finding comment with ID:", commentId);
+      logger.info("Available comment IDs:", blogPost.comments?.map(c => c._id.toString()) || []);
+      
+      const existingComment = blogPost.comments.find(
+        (c) => c._id.toString() === commentId
+      );
+
+      if (!existingComment) {
+        logger.warn("Comment not found:", { 
+          requestedCommentId: commentId, 
+          availableComments: blogPost.comments?.length || 0,
+          availableCommentIds: blogPost.comments?.map(c => c._id.toString()) || []
+        });
+        return responseReturn(res, 404, { error: "Comment not found" });
+      }
+      logger.info("Comment found:", { 
+        commentId: existingComment._id.toString(), 
+        customerId: existingComment.customerId?.toString(),
+        customerName: existingComment.customerName 
       });
 
-      if (!commentToUpdate) {
+      // 3. Find customer - first try by customerId from comment (most reliable)
+      logger.info("Step 3: Finding customer");
+      let customer = null;
+      
+      if (existingComment.customerId) {
+        logger.info("Looking up customer by customerId:", existingComment.customerId.toString());
+        customer = await Customer.findById(existingComment.customerId);
+        if (customer) {
+          logger.info("Customer found by customerId:", { id: customer._id.toString(), email: customer.email });
+        } else {
+          logger.warn("Customer not found by customerId:", existingComment.customerId.toString());
+        }
+      }
+      
+      // If not found by customerId, try by email if provided
+      if (!customer && email && email.trim()) {
+        logger.info("Looking up customer by email:", email.trim());
+        customer = await Customer.findOne({ email: email.trim() });
+        if (customer) {
+          logger.info("Customer found by email:", { id: customer._id.toString(), email: customer.email });
+        } else {
+          logger.warn("Customer not found by email:", email.trim());
+        }
+      }
+      
+      // If still not found, create a new customer (shouldn't normally happen)
+      if (!customer) {
+        logger.warn("Customer not found, creating new customer");
+        // Find an admin to assign
+        const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
+        
+        const customerName = existingComment?.customerName || "Customer";
+        const customerEmail = (email && email.trim()) || `customer_${Date.now()}@example.com`;
+        
+        logger.info("Creating customer with:", { name: customerName, email: customerEmail });
+        customer = await Customer.create({
+          name: customerName,
+          email: customerEmail,
+          method: "manual",
+          assignedAdmin: admin ? admin._id : undefined,
+        });
+        logger.info("Customer created:", { id: customer._id.toString(), email: customer.email });
+      }
+
+      // 4. Verify the comment belongs to this customer
+      logger.info("Step 4: Verifying comment ownership");
+      logger.info("Comment customerId:", existingComment.customerId?.toString());
+      logger.info("Found customerId:", customer._id.toString());
+      
+      if (existingComment.customerId.toString() !== customer._id.toString()) {
+        logger.warn("Comment ownership mismatch:", {
+          commentCustomerId: existingComment.customerId.toString(),
+          requestCustomerId: customer._id.toString()
+        });
         return responseReturn(res, 403, {
           error: "Comment not found or unauthorized",
         });
       }
+      logger.info("Comment ownership verified");
 
-      // 4. Update the comment text
-      commentToUpdate.commentText = newCommentText;
-      commentToUpdate.commentDate = new Date(); // Update timestamp
+      // 5. Update the comment text
+      logger.info("Step 5: Updating comment text");
+      logger.info("Old comment text:", existingComment.commentText);
+      logger.info("New comment text:", newCommentText);
+      
+      existingComment.commentText = newCommentText;
+      existingComment.commentDate = new Date(); // Update timestamp
 
       await blogPost.save();
+      logger.info("Blog post saved successfully");
 
+      logger.info("=== UPDATE COMMENT SUCCESS ===");
       return responseReturn(res, 200, {
         message: "Comment updated successfully",
         updatedBlogPost: blogPost,
       });
     } catch (error) {
-      logger.error(error);
+      logger.error("=== UPDATE COMMENT ERROR ===");
+      logger.error("Error details:", error);
+      logger.error("Error message:", error.message);
+      logger.error("Error stack:", error.stack);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };

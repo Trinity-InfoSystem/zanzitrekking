@@ -141,9 +141,23 @@ export const update_comment = createAsyncThunk(
     { fulfillWithValue, rejectWithValue },
   ) => {
     try {
+      // Ensure commentId is always included in the request body
+      const requestBody = {
+        commentId: commentId || null, // Explicitly set to null if undefined to ensure it's included
+        ...updatedComment,
+      };
+      
+      // Override with commentId if it was provided (in case updatedComment also has commentId)
+      if (commentId) {
+        requestBody.commentId = commentId;
+      }
+      
+      console.log("Update comment - commentId:", commentId);
+      console.log("Update comment - requestBody:", requestBody);
+      
       const { data } = await api.put(
         `/add-comment-blogPost/${blogPostId}`,
-        { commentId, ...updatedComment },
+        requestBody,
         { withCredentials: true },
       );
       return fulfillWithValue(data);

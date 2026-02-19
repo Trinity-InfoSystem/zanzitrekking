@@ -86,8 +86,14 @@ const updateBlogPostCategorySchema = Joi.object({
 
 // Add comment validation
 const addCommentSchema = Joi.object({
-  customerId: Joi.string().required().messages({
-    "any.required": "Customer ID is required",
+  name: Joi.string().trim().min(1).max(100).required().messages({
+    "string.min": "Name is required",
+    "string.max": "Name must not exceed 100 characters",
+    "any.required": "Name is required",
+  }),
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
   }),
   comment: Joi.string().trim().min(3).max(1000).required().messages({
     "string.min": "Comment must be at least 3 characters",
@@ -98,6 +104,13 @@ const addCommentSchema = Joi.object({
 
 // Update comment validation
 const updateCommentSchema = Joi.object({
+  commentId: Joi.string().required().messages({
+    "any.required": "Comment ID is required",
+  }),
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required",
+  }),
   comment: Joi.string().trim().min(3).max(1000).required().messages({
     "string.min": "Comment must be at least 3 characters",
     "string.max": "Comment must not exceed 1000 characters",

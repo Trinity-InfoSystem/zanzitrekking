@@ -26,7 +26,7 @@ const contactSchema = Joi.object({
     "string.max": "Message must not exceed 5000 characters",
     "any.required": "Message is required",
   }),
-  subject: Joi.string().trim().max(200).optional(),
+  subject: Joi.string().trim().max(200).allow("").optional(),
 });
 
 module.exports = {
