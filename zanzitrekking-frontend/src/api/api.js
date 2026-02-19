@@ -7,9 +7,11 @@ import axios from "axios";
  * - Development: http://localhost:5000/api
  */
 const baseURL=import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD
-    ? "https://api.zanzisafaris.com/api"
-    : "http://localhost:5000/api");
+(import.meta.env.PROD
+  ? "https://api.zanzisafaris.com/api"
+  : "http://localhost:5000/api");
+
+
 
 
 /**

@@ -346,7 +346,7 @@ const WhoWeAre = () => {
                                 {imageLabels[index].title}
                               </span>
                             </div>
-                            {formData.previewUrls[field] && (
+                            {previewUrls[field] && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-success-100 px-2 py-1 text-xs font-semibold text-success-700">
                                 <div className="h-2 w-2 animate-pulse rounded-full bg-success-600" />
                                 {autoSaving ? "Saving..." : "Uploaded"}

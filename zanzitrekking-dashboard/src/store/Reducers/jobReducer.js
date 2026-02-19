@@ -63,6 +63,9 @@ export const get_jobs = createAsyncThunk(
 export const get_one_job = createAsyncThunk(
   "job/get_one_job",
   async (jobId, { fulfillWithValue, rejectWithValue }) => {
+    if (!jobId || jobId === "undefined") {
+      return rejectWithValue({ errorMessage: "Job ID is required" });
+    }
     try {
       const { data } = await api.get(`/job-one-get/${jobId}`, {
         withCredentials: true,

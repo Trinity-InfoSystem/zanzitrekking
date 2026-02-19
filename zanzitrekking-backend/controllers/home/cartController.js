@@ -862,25 +862,60 @@ class WishlistController {
           return responseReturn(res, 404, { error: "Trip not found" });
         }
 
+        // Use values from request body, fallback to trip object if not provided
+        // This ensures required fields are always present
+        const wishlistMainTitle = mainTitle || trip.mainTitle;
+        const wishlistMainImage = mainImage || trip.mainImage;
+        const wishlistDays = days !== undefined ? days : (trip.days ? trip.days.length : 0);
+        
+        // Validate required fields
+        if (!wishlistMainTitle) {
+          return responseReturn(res, 400, { error: "Main title is required" });
+        }
+        if (!wishlistMainImage) {
+          return responseReturn(res, 400, { error: "Main image is required" });
+        }
+        if (!wishlistDays || wishlistDays === 0) {
+          return responseReturn(res, 400, { error: "Days is required and must be greater than 0" });
+        }
+
         // Use first destination if mainDestination is an array
-        const destinationForWishlist = Array.isArray(mainDestination)
-          ? mainDestination[0]
-          : mainDestination;
+        // Handle mainDestination - it should be an object with name and location, or undefined
+        let destinationForWishlist = null;
+        if (mainDestination) {
+          destinationForWishlist = Array.isArray(mainDestination)
+            ? mainDestination[0]
+            : mainDestination;
+          // Ensure it has the correct structure
+          if (typeof destinationForWishlist === 'object' && destinationForWishlist !== null) {
+            // Valid structure
+          } else {
+            destinationForWishlist = null;
+          }
+        } else if (trip.days && trip.days.length > 0 && trip.days[0].mainDestination) {
+          // Fallback to trip's first day destination if not provided
+          destinationForWishlist = trip.days[0].mainDestination;
+        }
+
+        // Ensure pricingType is valid (required field, must be "yearRound" or "seasonal")
+        const pricingType = (trip.pricingType && ["yearRound", "seasonal"].includes(trip.pricingType))
+          ? trip.pricingType
+          : "yearRound";
 
         await Wishlist.create({
           userId,
           tripId,
-          mainTitle,
-          discount,
-          rating,
-          mainImage,
-          days,
+          mainTitle: wishlistMainTitle,
+          discount: discount !== undefined ? discount : (trip.discount || 0),
+          rating: rating !== undefined ? rating : (trip.rating || 0),
+          mainImage: wishlistMainImage,
+          days: wishlistDays,
           mainDestination: destinationForWishlist,
-          pricingType: trip.pricingType,
-          regularPrices: trip.regularPrices,
-          seasons: trip.seasons,
-          inclusions: trip.inclusions,
-          exclusions: trip.exclusions,
+          pricingType: pricingType,
+          regularPrices: trip.regularPrices || undefined,
+          seasons: trip.seasons || undefined,
+          inclusions: trip.inclusions || undefined,
+          exclusions: trip.exclusions || undefined,
           selectedCategory: "standard", // Default to standard category
         });
 
@@ -895,7 +930,6 @@ class WishlistController {
         });
       }
     } catch (error) {
-      
       responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };

@@ -57,6 +57,9 @@ export const get_category = createAsyncThunk(
 export const get_one_category = createAsyncThunk(
   "category/get_one_category",
   async (categoryId, { fulfillWithValue, rejectWithValue }) => {
+    if (!categoryId || categoryId === "undefined") {
+      return rejectWithValue({ errorMessage: "Category ID is required" });
+    }
     try {
       const { data } = await api.get(`/category-one-get/${categoryId}`, {
         withCredentials: true,

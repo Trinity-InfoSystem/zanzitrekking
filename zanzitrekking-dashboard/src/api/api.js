@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// const local = "http://localhost:5000";
+const local = "http://localhost:5000";
 const production = "https://api.zanzisafaris.com"; // Uncomment when deploying to production
 const api = axios.create({
   baseURL: `${production}/api`,
