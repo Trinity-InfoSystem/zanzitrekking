@@ -91,4 +91,6 @@ coverage/
 .secrets
 
 # Docker
+
+# Local Development Data
 .docker
