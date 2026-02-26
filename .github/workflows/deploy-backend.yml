@@ -19,55 +19,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Prepare files for deployment
-        working-directory: ./zanzitrekking-backend
+      - name: Install SSH client
         run: |
-          # Remove node_modules to reduce size (dependencies installed manually on server)
-          rm -rf node_modules
-          echo "✅ Files prepared for deployment"
+          apt-get update
+          apt-get install -y openssh-client rsync
 
-      - name: Check FTP Secrets
+      - name: Setup SSH
         run: |
-          if [ -z "${{ secrets.CPANEL_FTP_HOST }}" ] || [ -z "${{ secrets.CPANEL_FTP_USERNAME }}" ] || [ -z "${{ secrets.CPANEL_FTP_PASSWORD }}" ]; then
-            echo "❌ ERROR: FTP secrets are missing!"
-            echo "Please configure these secrets in GitHub:"
-            echo "  - CPANEL_FTP_HOST"
-            echo "  - CPANEL_FTP_USERNAME"
-            echo "  - CPANEL_FTP_PASSWORD"
-            echo ""
-            echo "Go to: Settings → Secrets and variables → Actions"
-            exit 1
-          else
-            echo "✅ FTP secrets are configured"
-          fi
+          mkdir -p ~/.ssh
+          echo "${{ secrets.CPANEL_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.CPANEL_SSH_PORT || 22 }} ${{ secrets.CPANEL_SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.CPANEL_FTP_HOST }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          local-dir: ./zanzitrekking-backend/
-          server-dir: ./api.zanzisafaris.com/
-          dry-run: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/*.log
-            **/dist
-            **/.DS_Store
-            **/public/**
-            **/public/uploads/**
-            **/public/pdfs/**
-            **/public/newsletter/**
-
-      - name: Deployment Notification
-        if: success()
+      - name: Rsync files
         run: |
-          echo "✅ Backend deployed successfully to cPanel"
+          rsync -avz --delete \
+            --exclude ".git" \
+            --exclude ".env" \
+            --exclude "public" \
+            --exclude "node_modules" \
+            -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
+            ./ ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_BACKEND_DEPLOYMENT_DIR }}

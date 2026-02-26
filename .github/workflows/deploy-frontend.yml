@@ -14,57 +14,61 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./zanzitrekking-frontend
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify dist folder exists
-        working-directory: ./zanzitrekking-frontend
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: zanzitrekking-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Verify artifact
         run: |
           if [ ! -d "dist" ]; then
-            echo "❌ ERROR: dist folder not found!"
-            echo "Please build the frontend locally and commit the dist folder."
+            echo "❌ ERROR: Missing build artifact!"
+            echo "Dashboard build failed. Please check the build logs."
             exit 1
           fi
-          echo "✅ Dist folder found"
-          echo "📁 Contents of dist folder:"
-          ls -la dist | head -20
+          echo "✅ App artifact built successfully"
+          echo "📁 Contents of artifact:"
+          ls -a dist | head -20
           echo ""
           echo "📊 Total files: $(find dist -type f | wc -l)"
 
-      - name: Check FTP Secrets
+      - name: Install SSH client
         run: |
-          if [ -z "${{ secrets.CPANEL_FTP_HOST }}" ] || [ -z "${{ secrets.CPANEL_FTP_USERNAME }}" ] || [ -z "${{ secrets.CPANEL_FTP_PASSWORD }}" ]; then
-            echo "❌ ERROR: FTP secrets are missing!"
-            echo "Please configure these secrets in GitHub:"
-            echo "  - CPANEL_FTP_HOST"
-            echo "  - CPANEL_FTP_USERNAME"
-            echo "  - CPANEL_FTP_PASSWORD"
-            echo ""
-            echo "Go to: Settings → Secrets and variables → Actions"
-            exit 1
-          else
-            echo "✅ FTP secrets are configured"
-          fi
+          apt-get update
+          apt-get install -y openssh-client rsync
 
-      - name: Deploy to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.CPANEL_FTP_HOST }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          local-dir: ./zanzitrekking-frontend/dist/
-          server-dir: ./booking.zanzisafaris.com/
-          dry-run: false
-          dangerous-clean-slate: true
-          log-level: verbose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.DS_Store
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.CPANEL_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.CPANEL_SSH_PORT || 22 }} ${{ secrets.CPANEL_SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rsync files
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
+            dist/ \
+            ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_FRONTEND_DEPLOYMENT_DIR }}
 
       - name: Deployment Notification
         if: success()
         run: |
-          echo "✅ Frontend deployed successfully to cPanel"
+          echo "✅ Frontend deployed successfully"
