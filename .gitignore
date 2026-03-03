@@ -56,11 +56,6 @@ desktop.ini
 *.cache
 .cache/
 
-# Package manager files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
 # Deployment files
 *.zip
 *.tar.gz
@@ -93,3 +88,7 @@ coverage/
 *.njsproj
 *.sln
 *.sw?
+.secrets
+
+# Docker
+.docker

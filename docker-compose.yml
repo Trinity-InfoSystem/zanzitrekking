@@ -1,0 +1,39 @@
+version: '3'
+services:
+  mongo:
+    image: mongo:5.0.21
+    container_name: zanzitrekking-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: toor
+      MONGO_INITDB_DATABASE: admin
+    ports:
+      - 27031:27017
+    volumes:
+      - ./.docker/mongo:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: zanzitrekking-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./.docker/redis:/data
+      - ./zanzitrekking-backend/config/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+  remote:
+    image: linuxserver/openssh-server
+    container_name: zanzitrekking-remote
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - PUBLIC_KEY=${PUBLIC_KEY}
+      - USER_NAME=remote
+    ports:
+      - "2222:2222"
+    volumes:
+      - ./.docker/remote:/home/remote
+    restart: unless-stopped
