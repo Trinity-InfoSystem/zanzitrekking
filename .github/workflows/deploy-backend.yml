@@ -34,4 +34,4 @@ jobs:
             --exclude "public" \
             --exclude "node_modules" \
             -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
-            ./zanzitrekking-backend ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_BACKEND_DEPLOYMENT_DIR }}
+            ./zanzitrekking-backend/ ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_BACKEND_DEPLOYMENT_DIR }}
