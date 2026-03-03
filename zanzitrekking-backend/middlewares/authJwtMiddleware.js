@@ -1,107 +1,98 @@
-const secret = process.env.SECRET;
-const jwt = require("jsonwebtoken");
-const { responseReturn } = require("../utilities/response");
-const Admin = require("../models/admin");
-const Customer = require("../models/customer");
+const secret = process.env.SECRET
+const jwt = require('jsonwebtoken')
+const { responseReturn } = require('../utilities/response')
+const redis = require('../redis')
+const Admin = require('../models/admin')
 
 // Admin JWT Middleware - checks for adminAccessToken
 module.exports.jwtMiddleware = async (req, res, next) => {
-  const { adminAccessToken } = req.cookies;
+  const { adminAccessToken } = req.cookies
   if (!adminAccessToken) {
     return responseReturn(res, 401, {
-      error: "Admin access token missing or expired",
-    });
+      error: 'Admin access token missing or expired'
+    })
   }
   try {
-    const decodedToken = jwt.verify(adminAccessToken, secret);
-    // Support both 'sub' and 'id' for backward compatibility
-    const userId = decodedToken.sub || decodedToken.id;
-    
-    if (!userId || !decodedToken.role) {
-      return responseReturn(res, 401, {
-        error: "Invalid token payload",
-      });
+    const decodedToken = jwt.verify(adminAccessToken, secret)
+
+    const cached = await redis.get(`admin:${decodedToken.sub}`)
+    if (cached) {
+      req.admin = JSON.parse(cached)
+    } else {
+      const admin = await Admin.findById(decodedToken.sub)
+
+      if (!admin) {
+        return responseReturn(res, 401, {
+          error: 'Admin not found'
+        })
+      }
+      await redis.set(`admin:${decodedToken.sub}`, JSON.stringify(admin), 'EX', 3600)
+      req.admin = admin
     }
 
-    // Fetch admin data from database (minimal query)
-    const admin = await Admin.findById(userId).select('_id role accessRoutes');
-    if (!admin) {
-      return responseReturn(res, 401, {
-        error: "Admin not found",
-      });
-    }
-
-    req.id = admin._id;
-    req.role = admin.role;
-    req.accessRoutes = admin.accessRoutes;
-    next();
+    next()
   } catch (error) {
     return responseReturn(res, 401, {
-      error: "Admin access token invalid or expired",
-    });
+      error: 'Admin access token invalid or expired'
+    })
   }
-};
+}
 
 // Customer JWT Middleware - checks for customerAccessToken OR regular accessToken
 // Also supports Authorization header as fallback for production environments
 module.exports.customerJwtMiddleware = async (req, res, next) => {
   // First try to get token from cookies (preferred method)
-  const { customerAccessToken, accessToken } = req.cookies;
-  let token = customerAccessToken || accessToken; // Backward compatibility
+  const { customerAccessToken, accessToken } = req.cookies
+  let token = customerAccessToken || accessToken // Backward compatibility
 
   // If no cookie token, try Authorization header (fallback for production)
   if (!token) {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7); // Remove "Bearer " prefix
+    const authHeader = req.headers.authorization
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7) // Remove "Bearer " prefix
     }
   }
 
   if (!token) {
     return responseReturn(res, 401, {
-      error: "Customer access token missing or expired",
-    });
+      error: 'Customer access token missing or expired'
+    })
   }
   try {
-    const decodedToken = jwt.verify(token, secret);
-    // Support both 'sub' and 'id' for backward compatibility
-    const userId = decodedToken.sub || decodedToken.id;
-    
-    if (!userId) {
-      return responseReturn(res, 401, {
-        error: "Invalid token payload",
-      });
+    const decodedToken = jwt.verify(token, secret)
+
+    const cached = await redis.get(`customer:${decodedToken.sub}`)
+    if (cached) {
+      req.customer = JSON.parse(cached)
+    } else {
+      const customer = await Admin.findById(decodedToken.sub)
+
+      if (!customer) {
+        return responseReturn(res, 401, {
+          error: 'Customer not found'
+        })
+      }
+      await redis.set(`customer:${decodedToken.sub}`, JSON.stringify(customer), 'EX', 3600)
+      req.customer = customer
     }
 
-    // Fetch customer data from database
-    const customer = await Customer.findById(userId).select('_id name email method assignedAdmin');
-    if (!customer) {
-      return responseReturn(res, 401, {
-        error: "Customer not found",
-      });
-    }
-
-    req.id = customer._id;
-    req.name = customer.name;
-    req.email = customer.email;
-    req.method = customer.method;
-    req.assignedAdmin = customer.assignedAdmin;
-    next();
+    next()
   } catch (error) {
     return responseReturn(res, 401, {
-      error: "Customer access token invalid or expired",
-    });
+      error: 'Customer access token invalid or expired'
+    })
   }
-};
+}
 
 module.exports.roleMiddleware = (requiredRole) => {
   return (req, res, next) => {
-    if (!req.role) {
-      return responseReturn(res, 403, { error: "Role not found in token" });
+    if (!req.admin?.role) {
+      return responseReturn(res, 403, { error: 'Role not found in token' })
     }
-    if (req.role !== requiredRole) {
-      return responseReturn(res, 403, { error: "Access Denied" });
+
+    if (req.admin.role !== requiredRole) {
+      return responseReturn(res, 403, { error: 'Access Denied' })
     }
-    next();
-  };
-};
+    next()
+  }
+}

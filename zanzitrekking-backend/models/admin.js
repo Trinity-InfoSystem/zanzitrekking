@@ -1,59 +1,57 @@
-const { Schema, model, mongo, default: mongoose } = require("mongoose");
+const { Schema, model, mongo, default: mongoose } = require('mongoose')
 
 const adminSchema = new Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: true
     },
     email: {
       type: String,
-      required: true,
+      required: true
     },
     password: {
       type: String,
-      required: true,
+      required: true
     },
     image: {
       type: String,
-      required: true,
+      required: true
     },
     role: {
       type: String,
-      default: "admin",
+      default: 'admin'
     },
     accessRoutes: {
       type: [String],
-      default: [],
+      default: []
     },
     companyEmail: {
-      type: String,
+      type: String
     },
     companyAddress: {
-      type: String,
+      type: String
     },
     companyPhoneNumber: {
-      type: String,
+      type: String
     },
     resetPasswordOTP: {
-      type: String,
-      select: false,
+      type: String
     },
     resetPasswordExpires: {
-      type: Date,
-      select: false,
-    },
+      type: Date
+    }
   },
   {
     toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toObject: { virtuals: true }
   }
-);
+)
 
 // Add unique index on email field
-adminSchema.index({ email: 1 }, { unique: true });
+adminSchema.index({ email: 1 }, { unique: true })
 
-adminSchema.virtual("chatRoom").get(function () {
-  return this._id?.toString();
-});
-module.exports = mongoose.model("Admin", adminSchema);
+adminSchema.virtual('chatRoom').get(function () {
+  return this._id?.toString()
+})
+module.exports = mongoose.model('Admin', adminSchema)
