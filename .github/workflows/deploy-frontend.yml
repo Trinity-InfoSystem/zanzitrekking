@@ -18,7 +18,7 @@ jobs:
     defaults:
       run:
         working-directory: ./zanzitrekking-frontend
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,11 +48,6 @@ jobs:
           ls -a dist | head -20
           echo ""
           echo "📊 Total files: $(find dist -type f | wc -l)"
-
-      - name: Install SSH client
-        run: |
-          apt-get update
-          apt-get install -y openssh-client rsync
 
       - name: Setup SSH
         run: |

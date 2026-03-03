@@ -14,15 +14,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install SSH client
-        run: |
-          apt-get update
-          apt-get install -y openssh-client rsync
 
       - name: Setup SSH
         run: |

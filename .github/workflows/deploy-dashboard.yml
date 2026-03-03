@@ -16,18 +16,18 @@ jobs:
     defaults:
       run:
         working-directory: ./zanzitrekking-dashboard
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: zanzitrekking-dashboard/package-lock.json
-      
+
       - name: Install dependencies
         run: npm ci
 
@@ -46,11 +46,6 @@ jobs:
           ls -a dist | head -20
           echo ""
           echo "📊 Total files: $(find dist -type f | wc -l)"
-
-      - name: Install SSH client
-        run: |
-          apt-get update
-          apt-get install -y openssh-client rsync
 
       - name: Setup SSH
         run: |
