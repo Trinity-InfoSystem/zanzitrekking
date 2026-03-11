@@ -26,16 +26,16 @@ const ReviewableTrips = () => {
     useSelector((state) => state.review);
 
   useEffect(() => {
-    if (userInfo?.id) {
+    if (userInfo?._id) {
       dispatch(
         getReviewableTrips({
-          customerId: userInfo.id,
+          customerId: userInfo._id,
           page: currentPage,
           limit: 6,
         }),
       );
     }
-  }, [currentPage, userInfo?.id, dispatch]);
+  }, [currentPage, userInfo?._id, dispatch]);
 
   useEffect(() => {
     if (errorMessage) {

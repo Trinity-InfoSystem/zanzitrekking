@@ -76,14 +76,14 @@ const ReviewModal = ({
   }, [successMessage, errorMessage, dispatch, onClose]);
 
   const onSubmit = async (data) => {
-    if (!userInfo?.id) {
+    if (!userInfo?._id) {
       toast.error("User information not available");
       return;
     }
 
     dispatch(
       createReview({
-        customerId: userInfo.id,
+        customerId: userInfo._id,
         tripId: data.tripId,
         orderId: data.orderId,
         rating: data.rating,

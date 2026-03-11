@@ -58,7 +58,7 @@ const Wishlist = () => {
     } else {
       dispatch(
         add_to_cart({
-          userId: userInfo.id,
+          userId: userInfo._id,
           tripId: actualTripId,
           startingDate: formatDateForAPI(new Date()),
           travelersNumber: 1,
@@ -77,8 +77,8 @@ const Wishlist = () => {
   useEffect(() => {
     if (successMessage) {
       toast.success(successMessage);
-      dispatch(get_wishlist_trips(userInfo.id));
-      dispatch(get_cart_trips(userInfo.id));
+      dispatch(get_wishlist_trips(userInfo._id));
+      dispatch(get_cart_trips(userInfo._id));
       dispatch(clearMessage());
       setRemovingId(null);
       setLoadingCartId(null);
@@ -90,7 +90,7 @@ const Wishlist = () => {
       setRemovingId(null);
       setLoadingCartId(null);
     }
-  }, [dispatch, successMessage, errorMessage, userInfo?.id]);
+  }, [dispatch, successMessage, errorMessage, userInfo?._id]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("en-US").format(price);

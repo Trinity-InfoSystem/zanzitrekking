@@ -41,7 +41,7 @@ const Jobs = () => {
         get_user_applications({
           page: currentPage,
           parPage: 100,
-          customerId: userInfo._id || userInfo.id,
+          customerId: userInfo._id || userInfo._id,
         }),
       );
     }

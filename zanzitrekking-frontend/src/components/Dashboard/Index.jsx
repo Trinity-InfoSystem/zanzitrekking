@@ -38,8 +38,8 @@ const Index = () => {
   });
 
   useEffect(() => {
-    dispatch(getCustomerOrderStatistics(userInfo.id));
-  }, [userInfo.id, dispatch]);
+    dispatch(getCustomerOrderStatistics(userInfo._id));
+  }, [userInfo._id, dispatch]);
 
   // Review modal handlers
   const openReviewModal = (orderId, tripId, tripTitle, tripImage) => {

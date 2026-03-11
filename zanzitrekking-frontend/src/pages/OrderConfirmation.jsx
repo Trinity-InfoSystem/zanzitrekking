@@ -113,6 +113,29 @@ const OrderConfirmation = () => {
     }
   };
 
+  // Check for cancelled payment in URL params or location state
+  const urlParams = new URLSearchParams(window.location.search);
+  const locationState = location.state || {};
+  const orderIdFromUrl = urlParams.get("orderId");
+  const paymentCancelled = urlParams.get("cancelled") === "true" || 
+                          urlParams.get("payment_cancelled") === "true" ||
+                          urlParams.get("cancel") === "true" ||
+                          locationState.paymentCancelled === true;
+
+  // If payment is cancelled, redirect to booking page immediately
+  useEffect(() => {
+    if (paymentCancelled && (orderIdFromUrl || orderDetails?._id) && !isLoading) {
+      const orderId = orderIdFromUrl || orderDetails?._id;
+      // Redirect to booking detail page instead of staying on order confirmation
+      navigate(`/dashboard/orders/${orderId}`, {
+        replace: true,
+        state: {
+          paymentCancelled: true,
+        },
+      });
+    }
+  }, [paymentCancelled, orderIdFromUrl, orderDetails?._id, isLoading, navigate]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-gray-50">
@@ -179,29 +202,6 @@ const OrderConfirmation = () => {
       </div>
     );
   }
-
-  // Check for cancelled payment in URL params or location state
-  const urlParams = new URLSearchParams(window.location.search);
-  const locationState = location.state || {};
-  const orderIdFromUrl = urlParams.get("orderId");
-  const paymentCancelled = urlParams.get("cancelled") === "true" || 
-                          urlParams.get("payment_cancelled") === "true" ||
-                          urlParams.get("cancel") === "true" ||
-                          locationState.paymentCancelled === true;
-
-  // If payment is cancelled, redirect to booking page immediately
-  useEffect(() => {
-    if (paymentCancelled && (orderIdFromUrl || orderDetails?._id) && !isLoading) {
-      const orderId = orderIdFromUrl || orderDetails?._id;
-      // Redirect to booking detail page instead of staying on order confirmation
-      navigate(`/dashboard/orders/${orderId}`, {
-        replace: true,
-        state: {
-          paymentCancelled: true,
-        },
-      });
-    }
-  }, [paymentCancelled, orderIdFromUrl, orderDetails?._id, isLoading, navigate]);
 
   // Determine payment status
   const paymentStatus = orderDetails?.payment?.status;

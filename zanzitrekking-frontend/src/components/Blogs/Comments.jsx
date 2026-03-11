@@ -23,7 +23,7 @@ function formatCustomDate(isoDate) {
 const Comments = ({ blogPost }) => {
   const commentCount = blogPost?.comments?.length || 0;
   const { userInfo } = useSelector((state) => state.auth);
-  const currentUserId = userInfo?.id;
+  const currentUserId = userInfo?._id;
 
   return (
     <div className="w-full">

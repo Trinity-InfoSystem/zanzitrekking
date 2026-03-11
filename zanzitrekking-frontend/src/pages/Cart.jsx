@@ -643,7 +643,7 @@ const Cart = () => {
       const dateStringToSend = `${year}-${month}-${day}`;
 
       const updatePayload = {
-        userId: userInfo.id,
+        userId: userInfo._id,
         cartId: tripId,
         travelersNumber: trip.travelersNumber,
         startingDate: dateStringToSend,
@@ -663,12 +663,12 @@ const Cart = () => {
           // Only refresh if there was an error
         } else if (result.type === "wishlist/update_cart_trip/rejected") {
           // Refresh cart on error to get the correct state
-          dispatch(get_cart_trips(userInfo.id));
+          dispatch(get_cart_trips(userInfo._id));
         }
       } catch (error) {
         toast.error("Failed to update trip date");
         // Refresh cart on error
-        dispatch(get_cart_trips(userInfo.id));
+        dispatch(get_cart_trips(userInfo._id));
       } finally {
         // Clear the updating flag
         updatingDateRef.current[tripId] = false;
@@ -695,7 +695,7 @@ const Cart = () => {
       try {
         await dispatch(
           update_cart_trip({
-            userId: userInfo.id,
+            userId: userInfo._id,
             cartId: tripId,
             travelersNumber: trip.travelersNumber,
             startingDate: dateString,
@@ -706,7 +706,7 @@ const Cart = () => {
         );
 
         // Refresh cart data after successful update
-        dispatch(get_cart_trips(userInfo.id));
+        dispatch(get_cart_trips(userInfo._id));
       } catch (error) {
         console.error("Error updating category:", error);
         toast.error("Failed to update package type");
@@ -721,7 +721,7 @@ const Cart = () => {
 
   const handleDelete = (trip) => {
     dispatch(delete_cart_trip(trip._id));
-    dispatch(get_cart_trips(userInfo.id));
+    dispatch(get_cart_trips(userInfo._id));
   };
 
   const handleTravelersChange = async (trip, newCount) => {
@@ -737,7 +737,7 @@ const Cart = () => {
     try {
       await dispatch(
         update_cart_trip({
-          userId: userInfo.id,
+          userId: userInfo._id,
           cartId: trip._id,
           travelersNumber: newCount,
           startingDate: dateString,
@@ -747,7 +747,7 @@ const Cart = () => {
         }),
       );
 
-      dispatch(get_cart_trips(userInfo.id));
+      dispatch(get_cart_trips(userInfo._id));
     } catch (error) {
       console.error("Error updating travelers:", error);
       toast.error("Failed to update travelers count");
@@ -761,10 +761,10 @@ const Cart = () => {
     }
     if (successMessage) {
       toast.success(successMessage);
-      dispatch(get_cart_trips(userInfo.id));
+      dispatch(get_cart_trips(userInfo._id));
       dispatch(clearMessage());
     }
-  }, [dispatch, successMessage, errorMessage, userInfo?.id]);
+  }, [dispatch, successMessage, errorMessage, userInfo?._id]);
 
   // Refresh cart data when cart_trips changes to ensure category updates are reflected
   useEffect(() => {
@@ -1011,7 +1011,7 @@ const Cart = () => {
                             try {
                               const result = await dispatch(
                                 update_cart_trip({
-                                  userId: userInfo.id,
+                                  userId: userInfo._id,
                                   cartId: trip._id,
                                   travelersNumber: trip.travelersNumber,
                                   startingDate: dateString,
@@ -1031,7 +1031,7 @@ const Cart = () => {
                               
                               // Refresh cart to get updated data with recalculated prices
                               // Keep ref true during refresh to prevent useEffect from overwriting
-                              await dispatch(get_cart_trips(userInfo.id));
+                              await dispatch(get_cart_trips(userInfo._id));
                               
                               // Wait a bit more to ensure useEffect has run and seen the ref as true
                               await new Promise(resolve => setTimeout(resolve, 100));
@@ -1075,7 +1075,7 @@ const Cart = () => {
                             try {
                               await dispatch(
                                 update_cart_trip({
-                                  userId: userInfo.id,
+                                  userId: userInfo._id,
                                   cartId: trip._id,
                                   travelersNumber: trip.travelersNumber,
                                   startingDate: dateString,
@@ -1085,7 +1085,7 @@ const Cart = () => {
                                 }),
                               );
                               // Refresh cart to get updated data
-                              await dispatch(get_cart_trips(userInfo.id));
+                              await dispatch(get_cart_trips(userInfo._id));
                             } catch (error) {
                               console.error("Error updating children ages:", error);
                               toast.error("Failed to update children ages");

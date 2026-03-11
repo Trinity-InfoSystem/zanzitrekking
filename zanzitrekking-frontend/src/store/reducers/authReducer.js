@@ -56,7 +56,7 @@ export const refresh_token = createAsyncThunk(
   async (_, { fulfillWithValue, rejectWithValue }) => {
     try {
       const refreshToken = localStorage.getItem("refreshToken");
-      
+
       if (!refreshToken) {
         throw new Error("No refresh token available");
       }
@@ -81,7 +81,7 @@ export const refresh_token = createAsyncThunk(
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
       }
-      
+
       // Update refresh token if a new one is provided (for token rotation)
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);
@@ -217,6 +217,22 @@ export const resend_otp = createAsyncThunk(
   },
 );
 
+export const hydrateAuth = createAsyncThunk(
+  "auth/hydrateAuth",
+  async (_, { fulfillWithValue, rejectWithValue }) => {
+    try {
+      if (localStorage.getItem("accessToken")) {
+        const decodedToken = decodeToken(localStorage.getItem("accessToken"));
+        const { data } = await api.get(`/customer/${decodedToken.sub}`);
+        return fulfillWithValue(data);
+      }
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error || error.message;
+      return rejectWithValue(errorMessage);
+    }
+  },
+);
+
 // Initial state
 const initialState = {
   loader: false,
@@ -251,6 +267,18 @@ export const authReducer = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Hydrate when token is present but user info is absent
+      .addCase(hydrateAuth.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(hydrateAuth.fulfilled, (state, { payload }) => {
+        state.loader = false;
+        state.userInfo = payload.customer;
+      })
+      .addCase(hydrateAuth.rejected, (state, { payload }) => {
+        state.loader = false;
+      })
+
       // Register
       .addCase(customer_register.pending, (state) => {
         state.loader = true;
@@ -258,7 +286,7 @@ export const authReducer = createSlice({
       .addCase(customer_register.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = decodeToken(payload.accessToken);
+        state.userInfo = payload.user;
         state.accessToken = payload.accessToken;
         state.refreshToken = payload.refreshToken;
       })
@@ -274,7 +302,7 @@ export const authReducer = createSlice({
       .addCase(customer_login.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = decodeToken(payload.accessToken);
+        state.userInfo = payload.user;
         state.accessToken = payload.accessToken;
         state.refreshToken = payload.refreshToken;
       })
@@ -290,7 +318,7 @@ export const authReducer = createSlice({
       .addCase(refresh_token.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.accessToken = payload.accessToken;
-        state.userInfo = decodeToken(payload.accessToken);
+        state.userInfo = payload.user;
         // Update refresh token if a new one is provided (for token rotation)
         if (payload.refreshToken) {
           state.refreshToken = payload.refreshToken;
@@ -311,7 +339,7 @@ export const authReducer = createSlice({
       .addCase(google_login.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = decodeToken(payload.accessToken);
+        state.userInfo = payload.user;
         state.accessToken = payload.accessToken;
         state.refreshToken = payload.refreshToken;
       })
@@ -327,7 +355,7 @@ export const authReducer = createSlice({
       .addCase(facebook_login.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = decodeToken(payload.accessToken);
+        state.userInfo = payload.user;
         state.accessToken = payload.accessToken;
         state.refreshToken = payload.refreshToken;
       })

@@ -21,8 +21,8 @@ const Orders = () => {
   });
 
   useEffect(() => {
-    dispatch(get_orders({ status: state, customerId: userInfo.id }));
-  }, [userInfo.id, state, dispatch]);
+    dispatch(get_orders({ status: state, customerId: userInfo._id }));
+  }, [userInfo._id, state, dispatch]);
 
   const openReviewModal = (orderId, tripId, tripTitle, tripImage) => {
     setReviewModal({

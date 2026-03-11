@@ -29,6 +29,21 @@ import { FaTiktok } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
+const languages = [
+  { code: "en", name: "English", flag: "🇬🇧", nativeName: "English" },
+  { code: "es", name: "Spanish", flag: "🇪🇸", nativeName: "Español" },
+  { code: "fr", name: "French", flag: "🇫🇷", nativeName: "Français" },
+  { code: "de", name: "German", flag: "🇩🇪", nativeName: "Deutsch" },
+  { code: "it", name: "Italian", flag: "🇮🇹", nativeName: "Italiano" },
+  { code: "pt", name: "Portuguese", flag: "🇵🇹", nativeName: "Português" },
+  { code: "ru", name: "Russian", flag: "🇷🇺", nativeName: "Русский" },
+  { code: "zh-CN", name: "Chinese", flag: "🇨🇳", nativeName: "中文" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵", nativeName: "日本語" },
+  { code: "ko", name: "Korean", flag: "🇰🇷", nativeName: "한국어" },
+  { code: "ar", name: "Arabic", flag: "🇸🇦", nativeName: "العربية" },
+  { code: "hi", name: "Hindi", flag: "🇮🇳", nativeName: "हिन्दी" },
+];
+
 const MobileSidebar = ({
   showSidebar,
   setShowSidebar,
@@ -154,26 +169,16 @@ const MobileLanguageSelector = () => {
     nativeName: "English",
   });
 
-  const languages = [
-    { code: "en", name: "English", flag: "🇬🇧", nativeName: "English" },
-    { code: "es", name: "Spanish", flag: "🇪🇸", nativeName: "Español" },
-    { code: "fr", name: "French", flag: "🇫🇷", nativeName: "Français" },
-    { code: "de", name: "German", flag: "🇩🇪", nativeName: "Deutsch" },
-    { code: "it", name: "Italian", flag: "🇮🇹", nativeName: "Italiano" },
-    { code: "pt", name: "Portuguese", flag: "🇵🇹", nativeName: "Português" },
-    { code: "ru", name: "Russian", flag: "🇷🇺", nativeName: "Русский" },
-    { code: "zh-CN", name: "Chinese", flag: "🇨🇳", nativeName: "中文" },
-    { code: "ja", name: "Japanese", flag: "🇯🇵", nativeName: "日本語" },
-    { code: "ko", name: "Korean", flag: "🇰🇷", nativeName: "한국어" },
-    { code: "ar", name: "Arabic", flag: "🇸🇦", nativeName: "العربية" },
-    { code: "hi", name: "Hindi", flag: "🇮🇳", nativeName: "हिन्दी" },
-  ];
+  
 
   useEffect(() => {
     const loadGoogleTranslate = () => {
-      if (window.google?.translate) {return;}
+      if (window.google?.translate) return
+
+      if (document.getElementById("google-translate-script")) return;
 
       const script = document.createElement("script");
+      script.id = "google-translate-script";
       script.src =
         "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
       script.async = true;

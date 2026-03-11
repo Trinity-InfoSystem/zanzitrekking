@@ -50,8 +50,8 @@ const TripDetails = () => {
     if (errorMessage) {toast.error(errorMessage);}
     if (successMessage) {toast.success(successMessage);}
     if (userInfo) {
-      dispatch(get_cart_trips(userInfo.id));
-      dispatch(get_wishlist_trips(userInfo.id));
+      dispatch(get_cart_trips(userInfo._id));
+      dispatch(get_wishlist_trips(userInfo._id));
     }
 
     dispatch(clearMessage());
@@ -81,7 +81,7 @@ const TripDetails = () => {
     } else {
       dispatch(
         add_to_wishlist({
-          userId: userInfo.id,
+          userId: userInfo._id,
           tripId: trip._id,
           mainTitle: trip.mainTitle,
           mainImage: trip.mainImage,
@@ -110,7 +110,7 @@ const TripDetails = () => {
     } else {
       dispatch(
         add_to_cart({
-          userId: userInfo.id,
+          userId: userInfo._id,
           tripId,
           startingDate: formatDateForAPI(new Date()),
           travelersNumber: 1,

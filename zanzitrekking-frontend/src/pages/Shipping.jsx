@@ -41,7 +41,7 @@ const Shipping = () => {
     //     products,
     //     price,
     //     items,
-    //     userId: userInfo.id,
+    //     userId: userInfo._id,
     //     navigate,
     //   }),
     // );

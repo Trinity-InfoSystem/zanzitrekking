@@ -37,7 +37,7 @@ const Chat = () => {
   const { userInfo } = useSelector((state) => state.auth);
 
   const conversationId =
-    storedConversationId || (userInfo?.id ? `customer-${userInfo.id}` : null);
+    storedConversationId || (userInfo?._id ? `customer-${userInfo._id}` : null);
 
   const activeAdminId = useMemo(() => {
     if (userInfo?.assignedAdmin) {return userInfo.assignedAdmin;}
@@ -82,7 +82,7 @@ const Chat = () => {
   }, [messages, activeAdminId]);
 
   useEffect(() => {
-    if (userInfo?.id) {
+    if (userInfo?._id) {
       try {
         socket.current = io(API_URL, {
           transports: ["websocket", "polling"],
@@ -95,7 +95,7 @@ const Chat = () => {
 
         socket.current.on("connect", () => {
           setSocketConnected(true);
-          socket.current.emit("join", userInfo.id);
+          socket.current.emit("join", userInfo._id);
         });
 
         socket.current.on("receive_message", (newMessage) => {
@@ -115,7 +115,7 @@ const Chat = () => {
             dispatch(add_new_message(newMessage));
 
             if (
-              newMessage.sender !== userInfo.id &&
+              newMessage.sender !== userInfo._id &&
               activeAdminId &&
               (newMessage.sender?._id === activeAdminId ||
                 newMessage.sender === activeAdminId)
@@ -123,7 +123,7 @@ const Chat = () => {
               dispatch(
                 mark_messages_read({
                   senderId: newMessage.sender?._id || newMessage.sender,
-                  receiverId: userInfo.id,
+                  receiverId: userInfo._id,
                 }),
               );
             }
@@ -188,7 +188,7 @@ const Chat = () => {
         setSocketConnected(false);
       }
     }
-  }, [userInfo?.id, dispatch, activeAdminId]);
+  }, [userInfo?._id, dispatch, activeAdminId]);
 
   useEffect(() => {
     if (!socket.current || !conversationId) {return;}
@@ -216,15 +216,15 @@ const Chat = () => {
   }, [conversationId]);
 
   useEffect(() => {
-    if (userInfo?.id) {
+    if (userInfo?._id) {
       dispatch(
         get_messages({
-          customerId: userInfo.id,
+          customerId: userInfo._id,
           adminId: activeAdminId || "shared",
         }),
       );
     }
-  }, [dispatch, userInfo?.id, activeAdminId]);
+  }, [dispatch, userInfo?._id, activeAdminId]);
 
   // Track which admins/editors have sent their first message
   const firstAdminMessages = useMemo(() => {
@@ -291,7 +291,7 @@ const Chat = () => {
               serverResponse.sender.name
                 ? serverResponse.sender
                 : {
-                    _id: userInfo.id,
+                    _id: userInfo._id,
                     name: userInfo.name || userInfo.email || "Customer",
                   },
             senderModel: "Customer",
@@ -345,7 +345,7 @@ const Chat = () => {
     // Stop typing indicator when message is sent
     if (activeAdminId) {
       socket.current.emit("typing", {
-        userId: userInfo.id,
+        userId: userInfo._id,
         receiverId: activeAdminId,
         isTyping: false,
       });
@@ -429,7 +429,7 @@ const Chat = () => {
                 <ChatMessage
                   message={msg}
                   isCurrentUser={
-                    (msg.sender?._id || msg.sender) === userInfo.id
+                    (msg.sender?._id || msg.sender) === userInfo._id
                   }
                 />
               </div>
@@ -471,7 +471,7 @@ const Chat = () => {
           if (activeAdminId) {
             // Emit typing start
             socket.current.emit("typing", {
-              userId: userInfo.id,
+              userId: userInfo._id,
               receiverId: activeAdminId,
               isTyping: true,
             });
@@ -484,7 +484,7 @@ const Chat = () => {
             // Set timeout to stop typing indicator
             const timeout = setTimeout(() => {
               socket.current.emit("typing", {
-                userId: userInfo.id,
+                userId: userInfo._id,
                 receiverId: activeAdminId,
                 isTyping: false,
               });
@@ -497,7 +497,7 @@ const Chat = () => {
           // Prepare message for socket in case of file upload
           dispatch(
             set_sent_message({
-              sender: userInfo.id,
+              sender: userInfo._id,
               senderModel: "Customer",
               receiver: activeAdminId,
               receiverModel: "Admin",

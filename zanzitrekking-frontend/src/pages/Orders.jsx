@@ -35,17 +35,17 @@ const Orders = () => {
       offset: 60,
       easing: "ease-out-cubic",
     });
-    if (userInfo?.id) {
+    if (userInfo?._id) {
       dispatch(
         getCustomerOrderHistory({
-          customerId: userInfo.id,
+          customerId: userInfo._id,
           page: currentPageState,
           parPage,
           status: statusFilter,
         }),
       );
     }
-  }, [userInfo?.id, currentPageState, parPage, statusFilter, dispatch]);
+  }, [userInfo?._id, currentPageState, parPage, statusFilter, dispatch]);
 
   const handleSearch = (e) => {
     e.preventDefault();

@@ -138,7 +138,7 @@ const ApplyToJob = () => {
     submitFormData.append("phone", data.phone);
     submitFormData.append("additionalDetails", data.additionalDetails || "");
     submitFormData.append("cvFile", cvFile);
-    submitFormData.append("customerId", userInfo._id || userInfo.id);
+    submitFormData.append("customerId", userInfo._id || userInfo._id);
 
     dispatch(apply_to_job({ jobId, formData: submitFormData }));
   };

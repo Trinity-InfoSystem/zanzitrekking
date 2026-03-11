@@ -59,7 +59,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
 
     setLoading(true);
     try {
-      const customerId = userInfo?._id || userInfo?.id;
+      const customerId = userInfo?._id || userInfo?._id;
       const queryParams = new URLSearchParams({
         page: parPage.toString(),
         limit: pageNumber.toString(),
@@ -95,7 +95,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
     setSubmitting(true);
     try {
       if (editingReview) {
-        const customerId = userInfo?._id || userInfo?.id;
+        const customerId = userInfo?._id || userInfo?._id;
 
         if (!customerId) {
           toast.error("User information not found. Please login again.");
@@ -112,7 +112,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
 
         toast.success("Review updated successfully!");
       } else {
-        const customerId = userInfo?._id || userInfo?.id;
+        const customerId = userInfo?._id || userInfo?._id;
 
         if (!customerId) {
           toast.error("User information not found. Please login again.");
@@ -184,7 +184,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
   const handleDeleteReview = async (reviewId) => {
     try {
       await api.delete(
-        `/reviews/${reviewId}?customerId=${userInfo?._id || userInfo?.id}`,
+        `/reviews/${reviewId}?customerId=${userInfo?._id || userInfo?._id}`,
         {
           params: { customerId: userInfo?._id },
         },
@@ -204,7 +204,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
   };
   const isUserReview = (review) => {
     if (!userInfo) {return false;}
-    const userId = userInfo._id || userInfo.id;
+    const userId = userInfo._id || userInfo._id;
     if (!userId) {return false;}
 
     let reviewUserId = null;
@@ -219,7 +219,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
 
   const hasUserReviewed = () => {
     if (!userInfo || !reviews.length) {return false;}
-    const userId = (userInfo._id || userInfo.id)?.toString();
+    const userId = (userInfo._id || userInfo._id)?.toString();
     if (!userId) {return false;}
 
     return reviews.some((review) => {
@@ -235,7 +235,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
 
   useEffect(() => {
     fetchReviews();
-  }, [tripId, parPage, userInfo?._id || userInfo?.id]);
+  }, [tripId, parPage, userInfo?._id || userInfo?._id]);
 
   return (
     <div className="safari-reviews my-8">

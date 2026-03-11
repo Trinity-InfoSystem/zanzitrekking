@@ -178,7 +178,7 @@ const AvailabilityRequestForm = ({
           const requestedDateStr = `${datePart}T00:00:00.000Z`; // Force UTC midnight for the intended date
 
           const requestData = {
-            customerId: userInfo.id || userInfo._id,
+            customerId: userInfo._id,
             tripId: tripIdStr,
             requestedDate: requestedDateStr,
             selectedCategory: blockedTrip.selectedCategory,

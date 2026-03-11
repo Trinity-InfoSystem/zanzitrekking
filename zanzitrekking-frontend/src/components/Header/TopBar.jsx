@@ -20,6 +20,81 @@ import { get_conpany_info } from "../../store/reducers/authReducer";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 
+const languages = [
+  {
+    code: "en",
+    name: "EN",
+    flag: "https://flagcdn.com/w40/gb.png",
+    fullName: "English",
+  },
+  {
+    code: "es",
+    name: "ES",
+    flag: "https://flagcdn.com/w40/es.png",
+    fullName: "Español",
+  },
+  {
+    code: "fr",
+    name: "FR",
+    flag: "https://flagcdn.com/w40/fr.png",
+    fullName: "Français",
+  },
+  {
+    code: "de",
+    name: "DE",
+    flag: "https://flagcdn.com/w40/de.png",
+    fullName: "Deutsch",
+  },
+  {
+    code: "it",
+    name: "IT",
+    flag: "https://flagcdn.com/w40/it.png",
+    fullName: "Italiano",
+  },
+  {
+    code: "pt",
+    name: "PT",
+    flag: "https://flagcdn.com/w40/pt.png",
+    fullName: "Português",
+  },
+  {
+    code: "ru",
+    name: "RU",
+    flag: "https://flagcdn.com/w40/ru.png",
+    fullName: "Русский",
+  },
+  {
+    code: "zh-CN",
+    name: "CN",
+    flag: "https://flagcdn.com/w40/cn.png",
+    fullName: "中文",
+  },
+  {
+    code: "ja",
+    name: "JP",
+    flag: "https://flagcdn.com/w40/jp.png",
+    fullName: "日本語",
+  },
+  {
+    code: "ko",
+    name: "KR",
+    flag: "https://flagcdn.com/w40/kr.png",
+    fullName: "한국어",
+  },
+  {
+    code: "ar",
+    name: "AR",
+    flag: "https://flagcdn.com/w40/sa.png",
+    fullName: "العربية",
+  },
+  {
+    code: "hi",
+    name: "HI",
+    flag: "https://flagcdn.com/w40/in.png",
+    fullName: "हिन्दी",
+  },
+];
+
 const TopBar = ({ userInfo, showTopBar }) => {
   const dispatch = useDispatch();
   const { companyInfo } = useSelector((state) => state.auth);
@@ -160,81 +235,6 @@ const LanguageSelector = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef(null);
 
-  const languages = [
-    {
-      code: "en",
-      name: "EN",
-      flag: "https://flagcdn.com/w40/gb.png",
-      fullName: "English",
-    },
-    {
-      code: "es",
-      name: "ES",
-      flag: "https://flagcdn.com/w40/es.png",
-      fullName: "Español",
-    },
-    {
-      code: "fr",
-      name: "FR",
-      flag: "https://flagcdn.com/w40/fr.png",
-      fullName: "Français",
-    },
-    {
-      code: "de",
-      name: "DE",
-      flag: "https://flagcdn.com/w40/de.png",
-      fullName: "Deutsch",
-    },
-    {
-      code: "it",
-      name: "IT",
-      flag: "https://flagcdn.com/w40/it.png",
-      fullName: "Italiano",
-    },
-    {
-      code: "pt",
-      name: "PT",
-      flag: "https://flagcdn.com/w40/pt.png",
-      fullName: "Português",
-    },
-    {
-      code: "ru",
-      name: "RU",
-      flag: "https://flagcdn.com/w40/ru.png",
-      fullName: "Русский",
-    },
-    {
-      code: "zh-CN",
-      name: "CN",
-      flag: "https://flagcdn.com/w40/cn.png",
-      fullName: "中文",
-    },
-    {
-      code: "ja",
-      name: "JP",
-      flag: "https://flagcdn.com/w40/jp.png",
-      fullName: "日本語",
-    },
-    {
-      code: "ko",
-      name: "KR",
-      flag: "https://flagcdn.com/w40/kr.png",
-      fullName: "한국어",
-    },
-    {
-      code: "ar",
-      name: "AR",
-      flag: "https://flagcdn.com/w40/sa.png",
-      fullName: "العربية",
-    },
-    {
-      code: "hi",
-      name: "HI",
-      flag: "https://flagcdn.com/w40/in.png",
-      fullName: "हिन्दी",
-    },
-  ];
-
   useEffect(() => {
     const getLanguageFromCookie = () => {
       const cookieValue = document.cookie
@@ -256,26 +256,32 @@ const LanguageSelector = () => {
 
   useEffect(() => {
     const loadGoogleTranslate = () => {
-      if (window.google?.translate) {return;}
+      if (window.google?.translate) return;
 
-      const script = document.createElement("script");
-      script.src =
-        "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-      script.async = true;
-      document.body.appendChild(script);
+      if (document.getElementById("google-translate-script")) return;
 
       window.googleTranslateElementInit = () => {
-        new window.google.translate.TranslateElement(
-          {
-            pageLanguage: "en",
-            includedLanguages: languages.map((l) => l.code).join(","),
-            layout:
-              window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-            autoDisplay: false,
-          },
-          "google_translate_element",
-        );
+        if (window.google?.translate?.TranslateElement) {
+          new window.google.translate.TranslateElement(
+            {
+              pageLanguage: "en",
+              includedLanguages: languages.map((l) => l.code).join(","),
+              layout:
+                window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+              autoDisplay: false,
+            },
+            "google_translate_element"
+          );
+        }
       };
+
+      const script = document.createElement("script");
+      script.id = "google-translate-script";
+      script.src =
+        "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      script.async = true;
+
+      document.body.appendChild(script);
     };
 
     loadGoogleTranslate();

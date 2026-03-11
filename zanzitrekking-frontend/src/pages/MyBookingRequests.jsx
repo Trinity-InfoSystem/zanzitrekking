@@ -26,9 +26,9 @@ const MyBookingRequests = () => {
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
-    if (!userInfo?.id) {return;}
-    dispatch(getMyRequests(userInfo.id));
-  }, [dispatch, userInfo?.id]);
+    if (!userInfo?._id) {return;}
+    dispatch(getMyRequests(userInfo._id));
+  }, [dispatch, userInfo?._id]);
 
   useEffect(() => {
     if (!errorMessage) {return;}
@@ -41,11 +41,11 @@ const MyBookingRequests = () => {
       toast.success(successMessage);
       dispatch(clearMessage());
       // Refresh requests after deletion
-      if (userInfo?.id) {
-        dispatch(getMyRequests(userInfo.id));
+      if (userInfo?._id) {
+        dispatch(getMyRequests(userInfo._id));
       }
     }
-  }, [dispatch, successMessage, userInfo?.id]);
+  }, [dispatch, successMessage, userInfo?._id]);
 
   const grouped = useMemo(() => {
     const pending = [];
@@ -96,7 +96,7 @@ const MyBookingRequests = () => {
   };
 
   const handleDeleteRequest = async (requestId) => {
-    if (!userInfo?.id) {
+    if (!userInfo?._id) {
       toast.error("Please login to delete requests");
       return;
     }
@@ -107,7 +107,7 @@ const MyBookingRequests = () => {
 
     setDeletingId(requestId);
     try {
-      await dispatch(deleteRequest({ requestId, customerId: userInfo.id })).unwrap();
+      await dispatch(deleteRequest({ requestId, customerId: userInfo._id })).unwrap();
     } catch (error) {
       toast.error(error || "Failed to delete request");
     } finally {

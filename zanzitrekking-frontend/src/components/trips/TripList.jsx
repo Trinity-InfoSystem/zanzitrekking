@@ -278,7 +278,7 @@ const TripList = ({ styles, trips, onAddToCart }) => {
       } else {
         dispatch(
           add_to_wishlist({
-            userId: userInfo.id,
+            userId: userInfo._id,
             tripId: trip._id,
             mainTitle: trip.mainTitle,
             mainImage: trip.mainImage,

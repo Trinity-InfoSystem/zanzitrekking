@@ -65,7 +65,7 @@ const CareerHistory = () => {
         get_user_applications({
           page: currentPage,
           parPage,
-          customerId: userInfo?._id || userInfo?.id,
+          customerId: userInfo?._id,
         }),
       );
     }

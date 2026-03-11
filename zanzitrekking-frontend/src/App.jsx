@@ -76,6 +76,7 @@ import { getPdfs } from "./store/reducers/pdfReducer";
 import SEO from "./components/SEO";
 import { initRouteOptimizations } from "./utils/routeOptimization";
 import ChatBot from "./components/Chatbot/ChatBot";
+import { hydrateAuth } from "./store/reducers/authReducer";
 
 // ✅ Optimized ScrollToTop with smooth behavior
 const ScrollToTop = () => {
@@ -99,6 +100,7 @@ function App() {
 
   // ✅ Critical data - load immediately (needed for initial render)
   useEffect(() => {
+    dispatch(hydrateAuth());
     dispatch(get_category());
     dispatch(get_products());
   }, [dispatch]);
@@ -106,11 +108,11 @@ function App() {
   // ✅ Defer non-critical data fetching to improve initial load
   // Load cart and wishlist after initial render (only if user is logged in)
   useEffect(() => {
-    if (userInfo?.id) {
+    if (userInfo?._id) {
       // Use requestIdleCallback or setTimeout to defer
       const loadUserData = () => {
-        dispatch(get_cart_trips(userInfo.id));
-        dispatch(get_wishlist_trips(userInfo.id));
+        dispatch(get_cart_trips(userInfo._id));
+        dispatch(get_wishlist_trips(userInfo._id));
       };
 
       if ("requestIdleCallback" in window) {
@@ -119,7 +121,7 @@ function App() {
         setTimeout(loadUserData, 100);
       }
     }
-  }, [dispatch, userInfo?.id]);
+  }, [dispatch, userInfo?._id]);
 
   // ✅ Defer PDFs loading (not critical for initial render)
   useEffect(() => {

@@ -127,9 +127,9 @@ const Checkout = () => {
     try {
       // Fetch user's existing requests
     let userRequestsData = [];
-    if (userInfo?.id) {
+    if (userInfo?._id) {
       try {
-        const requestsResult = await dispatch(getMyRequests(userInfo.id));
+        const requestsResult = await dispatch(getMyRequests(userInfo._id));
         if (requestsResult.payload?.requests) {
           userRequestsData = requestsResult.payload.requests;
         }
@@ -244,7 +244,7 @@ const Checkout = () => {
 
       // If blocked, check if user has an approved request
       let existingRequest = null;
-      if (isBlocked && userInfo?.id) {
+      if (isBlocked && userInfo?._id) {
         // Check existing requests first - compare dates as YYYY-MM-DD strings to avoid timezone issues
         const requestDateStr = startingDate.toISOString().split("T")[0];
         existingRequest = userRequestsData.find((req) => {
@@ -299,7 +299,7 @@ const Checkout = () => {
                 tripId,
                 requestedDate: startingDate.toISOString(),
                 selectedCategory,
-                customerId: userInfo.id,
+                customerId: userInfo._id,
               }),
             );
             if (result.payload?.allowed && result.payload?.hasApprovedRequest) {
@@ -372,7 +372,7 @@ const Checkout = () => {
 
     checkBookingRestrictions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkoutTrips.length, userInfo?.id]);
+  }, [checkoutTrips.length, userInfo?._id]);
 
   // Re-check restrictions when categories change (category affects blocking rules)
   // Use a ref to track previous categories to avoid unnecessary re-checks
@@ -382,7 +382,7 @@ const Checkout = () => {
     // Only re-check if categories actually changed and we have trips
     if (
       checkoutTrips.length > 0 &&
-      userInfo?.id &&
+      userInfo?._id &&
       currentCategoriesStr !== prevCategoriesRef.current &&
       Object.keys(selectedCategories).length > 0
     ) {
@@ -390,7 +390,7 @@ const Checkout = () => {
       checkBookingRestrictions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategories, checkoutTrips.length, userInfo?.id]);
+  }, [selectedCategories, checkoutTrips.length, userInfo?._id]);
 
   // Helper function to get applicable rates based on pricing type and date
   const getApplicableRates = (trip) => {
@@ -568,7 +568,7 @@ const Checkout = () => {
   useEffect(() => {
     if (orderCreationStatus === "success" && currentOrder) {
       if (!directTripId) {
-        dispatch(clear_cart(userInfo.id));
+        dispatch(clear_cart(userInfo._id));
         dispatch(clearMessage());
       }
 
@@ -617,7 +617,7 @@ const Checkout = () => {
     currentOrder,
     dispatch,
     navigate,
-    userInfo.id,
+    userInfo._id,
     directTripId,
   ]);
 
@@ -723,9 +723,10 @@ const Checkout = () => {
         return;
       }
 
+      console.log(userInfo)
       // Validate required fields
       const requiredFields = {
-        customerId: userInfo.id,
+        customerId: userInfo._id || userInfo._id,
         cartItems,
         personalInfo: {
           firstName: formData.personalInfo.firstName,
@@ -740,6 +741,7 @@ const Checkout = () => {
           status: "pending",
           paymentOption: paymentOption, // "deposit" or "full"
           depositAmount: depositAmount,
+          // TODO the total amount must be calculated from backend
           totalAmount: calculatedTotal,
         },
         serviceFee: serviceFee, // Include service fee in order

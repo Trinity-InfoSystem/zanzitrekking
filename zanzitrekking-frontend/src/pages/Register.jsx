@@ -81,13 +81,15 @@ const Register = () => {
 
   // Password validation
   useEffect(() => {
-    setPasswordChecks({
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-      symbol: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
-    });
+    if (password) {
+      setPasswordChecks({
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /\d/.test(password),
+        symbol: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
+      });
+    }
   }, [password]);
 
   const onSubmit = (data) => {
