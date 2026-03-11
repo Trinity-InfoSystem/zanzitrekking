@@ -53,7 +53,6 @@ const wetravelWebhookRouter = require("./routes/home/wetravelWebhookRoutes"); //
 const authRoute = require("./routes/authRoutes");
 const blogPostRoute = require("./routes/dashboard/blogPostRoutes");
 const categoryRoute = require("./routes/dashboard/categoryRoutes");
-const productRoute = require("./routes/dashboard/productRoutes");
 const tripRoute = require("./routes/dashboard/tripRoutes");
 const inclusionRoute = require("./routes/dashboard/inclusionRoute");
 const exclusionRoute = require("./routes/dashboard/exclusionRoute");
@@ -221,7 +220,6 @@ app.use("/api/webhooks", wetravelWebhookRouter); // ADDED - WeTravel webhook end
 app.use("/api", authRoute);
 app.use("/api", blogPostRoute);
 app.use("/api", categoryRoute);
-app.use("/api", productRoute);
 app.use("/api", tripRoute);
 app.use("/api", inclusionRoute);
 app.use("/api", exclusionRoute);
