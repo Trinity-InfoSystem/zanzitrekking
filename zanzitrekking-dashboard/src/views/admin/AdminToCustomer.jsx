@@ -23,7 +23,6 @@ import ChatHeader from "../../components/AdminToCustomer/ChatHeader/index";
 import MessageArea from "../../components/AdminToCustomer/MessageArea/index";
 import MessageInput from "../../components/AdminToCustomer/MessageInput/index";
 import EmptyState from "../../components/AdminToCustomer/EmptyState/index";
-import { API_URL } from "../../utils/constants";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Loader from "../../layout/Loader";
 
@@ -67,7 +66,7 @@ const AdminToCustomer = () => {
   }, [customerId, activeCustomers, dispatch]);
 
   useEffect(() => {
-    socket.current = io(API_URL, {
+    socket.current = io(import.meta.env.VITE_API_BASE_URL, {
       transports: ["websocket", "polling"],
       withCredentials: true,
       cors: {

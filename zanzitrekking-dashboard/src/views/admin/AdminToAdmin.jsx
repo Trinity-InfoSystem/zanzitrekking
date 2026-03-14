@@ -24,7 +24,6 @@ import AdminChatHeader from "../../components/AdminToAdmin/AdminChatHeader/index
 import MessageArea from "../../components/AdminToAdmin/MessageArea/index";
 import MessageInput from "../../components/AdminToAdmin/MessageInput/index";
 import EmptyState from "../../components/AdminToAdmin/EmptyState/index";
-import { API_URL } from "../../utils/constants";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Loader from "../../layout/Loader";
 
@@ -104,7 +103,7 @@ const AdminToAdmin = () => {
   }, [adminId, activeAdmins, dispatch]);
 
   useEffect(() => {
-    socket.current = io(API_URL, {
+    socket.current = io(import.meta.env.VITE_API_BASE_URL, {
       transports: ["websocket", "polling"],
       withCredentials: true,
       cors: {

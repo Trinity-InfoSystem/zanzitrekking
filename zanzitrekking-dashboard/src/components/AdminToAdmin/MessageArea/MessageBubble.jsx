@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FaFile, FaDownload, FaPaperclip, FaTrash } from "react-icons/fa";
-import { API_URL, LIVE_IMAGE_DOWNLOAD_URL } from "../../../utils/constants";
+import { LIVE_IMAGE_DOWNLOAD_URL } from "../../../utils/constants";
 
 const MessageBubble = ({ message, isCurrentUser, onDelete }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -76,7 +76,7 @@ const MessageBubble = ({ message, isCurrentUser, onDelete }) => {
         {isImage && message.attachment && (
           <div className="mt-2">
             <img
-              src={API_URL + "/public" + message.attachment}
+              src={import.meta.env.VITE_API_BASE_URL + "/public" + message.attachment}
               alt="Attachment"
               className="max-h-48 rounded object-cover"
             />

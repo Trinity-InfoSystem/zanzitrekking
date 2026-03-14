@@ -1,7 +1,3 @@
-export const IMAGES_URL = "https://api.zanzisafaris.com/public/uploads/";
-export const LIVE_IMAGE_DOWNLOAD_URL = "https://api.zanzisafaris.com";
-export const API_URL = "https://api.zanzisafaris.com";
-// export const API_URL = "http://localhost:3000"; // For local development
-
-// Use API_URL for downloads in local development, LIVE_IMAGE_DOWNLOAD_URL for production
-export const DOWNLOAD_URL = API_URL || LIVE_IMAGE_DOWNLOAD_URL;
+export const IMAGES_URL = `${import.meta.env.VITE_API_BASE_URL}/public/uploads/`;
+export const LIVE_IMAGE_DOWNLOAD_URL = import.meta.env.VITE_API_BASE_URL;
+export const DOWNLOAD_URL = import.meta.env.VITE_API_BASE_URL;
