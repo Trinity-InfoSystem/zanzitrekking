@@ -26,7 +26,7 @@ import { formatDateForAPI } from "../utils/dateUtils";
 import TripHero from "../components/tripDetails/TripHero";
 import TripTabs from "../components/tripDetails/TripTabs";
 import TripActions from "../components/tripDetails/TripActions";
-import Reviews from "../components/products/Reviews";
+import Reviews from "../components/reviews/Reviews";
 
 const TripDetails = () => {
   const { tripId } = useParams();

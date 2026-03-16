@@ -241,20 +241,20 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
     <div className="safari-reviews my-8">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
-        
+
         .safari-reviews {
           font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        
+
         .review-card {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .review-card:hover {
           transform: translateY(-2px);
           box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
         }
-        
+
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -265,7 +265,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
             transform: translateY(0);
           }
         }
-        
+
         .animate-fade-in {
           animation: fadeIn 0.4s ease-out;
         }
