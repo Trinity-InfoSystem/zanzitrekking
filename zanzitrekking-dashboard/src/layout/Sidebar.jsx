@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { RiLogoutCircleLine } from "react-icons/ri";
 import { useSelector, useDispatch } from "react-redux";
 import { allNav as allNavv } from "../navigation/allNav";
-import { logout } from "../store/Reducers/authReducer";
+import { admin_logout } from "../store/Reducers/authReducer";
 import { isAdmin } from "../utils/roleVerification";
 
 const Sidebar = ({ showSideBar, setShowSidebar }) => {
@@ -97,8 +97,8 @@ const Sidebar = ({ showSideBar, setShowSidebar }) => {
   }, [userInfo]);
 
   const handleLogout = async () => {
-    // Clear localStorage and broadcast logout to other tabs
-    dispatch(logout());
+    // Tell backend to clear cookies and broadcast logout to other tabs
+    await dispatch(admin_logout());
     // Navigate to home which will redirect to login
     navigate("/", { replace: true });
   };
