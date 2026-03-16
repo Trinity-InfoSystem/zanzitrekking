@@ -3,7 +3,7 @@ import Router from "./router/Router";
 import publicRoutes from "./router/routes/publicRoutes";
 import { getRoutes } from "./router/routes";
 import { useDispatch } from "react-redux";
-import { get_user_info, logout } from "./store/Reducers/authReducer";
+import { get_user_info, admin_logout } from "./store/Reducers/authReducer";
 
 function App() {
   const dispatch = useDispatch();
@@ -18,10 +18,13 @@ function App() {
     // Listen for logout events from other tabs
     const handleStorageChange = (e) => {
       if (e.key === "logoutTimestamp") {
-        // Logout was triggered in another tab
-        dispatch(logout());
+        // Logout was triggered in another tab — ensure backend cookies are cleared
+        dispatch(admin_logout());
         // Redirect to login if not already there
-        if (window.location.pathname !== "/admin/login" && !window.location.pathname.startsWith("/admin/login")) {
+        if (
+          window.location.pathname !== "/admin/login" &&
+          !window.location.pathname.startsWith("/admin/login")
+        ) {
           window.location.href = "/admin/login";
         }
       }

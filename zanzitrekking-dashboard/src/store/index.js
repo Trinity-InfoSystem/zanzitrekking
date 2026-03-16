@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from "./rootReducer";
 import api from "../api/api";
-import { refresh_token, logout } from "./Reducers/authReducer";
+import { refresh_token, admin_logout } from "./Reducers/authReducer";
 
 const store = configureStore({
   reducer: rootReducer,
@@ -115,8 +115,8 @@ api.interceptors.response.use(
         // Process queued requests with error
         processQueue(refreshError, null);
 
-        // Clear tokens and logout
-        store.dispatch(logout());
+        // Clear cookies on the backend and reset local auth state
+        await store.dispatch(admin_logout());
         localStorage.removeItem("accessToken");
 
         // Redirect to login if not already there
