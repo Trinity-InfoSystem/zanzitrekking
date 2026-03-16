@@ -9,8 +9,6 @@ import exclusionReducer from "./Reducers/exclusionReducer";
 import inclusionReducer from "./Reducers/inclusionReducer";
 import mealReducer from "./Reducers/mealReducer";
 import pdfReducer from "./Reducers/pdfReducer";
-import productReducer from "./Reducers/productReducer";
-import sellerReducer from "./Reducers/sellerReducer";
 import tripReducer from "./Reducers/tripReducer";
 import whoWeAreReducer from "./Reducers/whoWeAreReducer";
 import newsletterReducer from "./Reducers/newsletterReducer";
@@ -29,8 +27,6 @@ import urgentBookingRequestReducer from "./Reducers/urgentBookingRequestReducer"
 const rootReducer = {
   auth: authReducer,
   category: categoryReducer,
-  product: productReducer,
-  seller: sellerReducer,
   inclusion: inclusionReducer,
   trip: tripReducer,
   exclusion: exclusionReducer,

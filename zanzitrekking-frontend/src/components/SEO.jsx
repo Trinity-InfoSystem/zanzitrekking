@@ -306,7 +306,7 @@ const SEO = () => {
         "@type": "Organization",
         potentialAction: {
           "@type": "SearchAction",
-          target: `${baseUrl}/products/search?q={search_term_string}`,
+          target: `${baseUrl}/trips?search={search_term_string}`,
           "query-input": "required name=search_term_string",
         },
         aggregateRating: {

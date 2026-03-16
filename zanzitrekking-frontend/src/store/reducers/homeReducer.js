@@ -15,34 +15,6 @@ export const get_category = createAsyncThunk(
     }
   },
 );
-export const get_products = createAsyncThunk(
-  "home/get_products",
-  async (_, { fulfillWithValue, rejectWithValue }) => {
-    try {
-      const { data } = await api.get("/home/get-products");
-
-      return fulfillWithValue(data);
-    } catch (error) {
-      const errorMessage = error?.response?.data.message || error.message;
-      return rejectWithValue(errorMessage);
-    }
-  },
-);
-
-export const price_range_products = createAsyncThunk(
-  "home/price_range_products",
-  async (_, { fulfillWithValue, rejectWithValue }) => {
-    try {
-      const { data } = await api.get("/home/price-range-latest-product");
-
-      return fulfillWithValue(data);
-    } catch (error) {
-      const errorMessage = error?.response?.data.message || error.message;
-      return rejectWithValue(errorMessage);
-    }
-  },
-);
-
 export const get_statistic_data = createAsyncThunk(
   "home/get_statistic_data",
   async (_, { fulfillWithValue, rejectWithValue }) => {
@@ -56,35 +28,6 @@ export const get_statistic_data = createAsyncThunk(
     }
   },
 );
-export const query_products = createAsyncThunk(
-  "home/query_products",
-  async (query, { fulfillWithValue, rejectWithValue }) => {
-    try {
-      const { data } = await api.get(
-        `/home/query-products?category=${query.category}&&rating=${query.rating}&&lowPrice=${query.low}&&highPrice=${query.high}&&sort=${query.sort}&&pageNumber=${query.pageNumber}&&searchValue=${query.searchValue ? query.searchValue : ""}`,
-      );
-
-      return fulfillWithValue(data);
-    } catch (error) {
-      const errorMessage = error?.response?.data.message || error.message;
-      return rejectWithValue(errorMessage);
-    }
-  },
-);
-export const product_details = createAsyncThunk(
-  "home/product_details",
-  async (productId, { fulfillWithValue, rejectWithValue }) => {
-    try {
-      const { data } = await api.get(`/home/product-details/${productId}`);
-
-      return fulfillWithValue(data);
-    } catch (error) {
-      const errorMessage = error?.response?.data.message || error.message;
-      return rejectWithValue(errorMessage);
-    }
-  },
-);
-
 // Thunk for getting achievements
 export const get_achievements = createAsyncThunk(
   "home/get_achievements",
@@ -133,20 +76,9 @@ export const homeReducer = createSlice({
   initialState: {
     categories: [],
     totalTrips: 0,
-    products: [],
-    latest_product: [],
-    top_rated_product: [],
-    discount_product: [],
-    totalProducts: 0,
-    parpage: 3,
     errorMessage: "",
     successMessage: "",
     loading: false,
-    priceRange: {
-      low: 0,
-      high: 0,
-    },
-    product: {},
     statisticData: {},
     achievements: [],
     impactStats: [],
@@ -176,41 +108,6 @@ export const homeReducer = createSlice({
       })
       .addCase(get_category.rejected, (state, { payload }) => {
         state.errorMessage = payload.error;
-      });
-    builder
-      .addCase(get_products.fulfilled, (state, { payload }) => {
-        state.products = payload.products;
-        state.totalProducts = payload.totalProducts;
-        state.top_rated_product = payload.top_rated_product;
-        state.discount_product = payload.discount_product;
-        state.latest_product = payload.latest_product;
-      })
-      .addCase(get_products.rejected, (state, { payload }) => {
-        state.errorMessage = payload.errorMessage;
-      });
-    builder
-      .addCase(price_range_products.fulfilled, (state, { payload }) => {
-        state.latest_product = payload.latest_product;
-        state.priceRange = payload.priceRange;
-      })
-      .addCase(price_range_products.rejected, (state, { payload }) => {
-        state.errorMessage = payload.errorMessage;
-      });
-    builder
-      .addCase(query_products.fulfilled, (state, { payload }) => {
-        state.totalProducts = payload.totalProducts;
-        state.products = payload.result;
-        state.parpage = payload.parPage;
-      })
-      .addCase(query_products.rejected, (state, { payload }) => {
-        state.errorMessage = payload.errorMessage;
-      });
-    builder
-      .addCase(product_details.fulfilled, (state, { payload }) => {
-        state.product = payload.product;
-      })
-      .addCase(product_details.rejected, (state, { payload }) => {
-        state.errorMessage = payload.errorMessage;
       });
     builder
       .addCase(get_statistic_data.fulfilled, (state, { payload }) => {

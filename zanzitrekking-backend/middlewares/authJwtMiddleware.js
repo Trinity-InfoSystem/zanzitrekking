@@ -65,7 +65,8 @@ module.exports.customerJwtMiddleware = async (req, res, next) => {
     if (cached) {
       req.customer = JSON.parse(cached)
     } else {
-      const customer = await Admin.findById(decodedToken.sub)
+      const Customer = require('../models/customer')
+      const customer = await Customer.findById(decodedToken.sub)
 
       if (!customer) {
         return responseReturn(res, 401, {

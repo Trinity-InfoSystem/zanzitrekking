@@ -89,13 +89,14 @@ api.interceptors.response.use(
         const result = await store.dispatch(refresh_token());
         
         if (refresh_token.fulfilled.match(result)) {
-          const newToken = result.payload.accessToken || localStorage.getItem("accessToken");
+          // Backend sets new httpOnly cookies - don't use localStorage
+          // Cookies are sent automatically with withCredentials: true
+          // No need to manually add Authorization header - cookies handle it
           
-          // Process queued requests
-          processQueue(null, newToken);
+          // Process queued requests (no token needed - cookies handle auth)
+          processQueue(null, null);
           
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          // Retry original request - cookies will be sent automatically
           return api(originalRequest);
         } else {
           // Refresh failed

@@ -13,12 +13,13 @@ build/
 !zanzitrekking-frontend/dist/
 !zanzitrekking-dashboard/dist/
 
-# Environment variables (exclude from root, but allow in backend for deployment)
+# Environment variables - always ignore to protect local development configs
 .env
 .env.local
 .env.*.local
-# Allow .env in backend for deployment
-!zanzitrekking-backend/.env
+**/.env
+**/.env.local
+**/.env.*.local
 
 # Logs
 logs/

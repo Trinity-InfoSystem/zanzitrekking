@@ -1,22 +1,11 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../../api/api";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 
-// Helper function to decode token
-const decodeToken = (token) => {
-  if (token) {
-    try {
-      const userInfo = jwtDecode(token);
-      return userInfo;
-    } catch (error) {
-      return "";
-    }
-  }
-  return "";
-};
+// ---------------------------------------------------------------------------
+// Async Thunks
+// ---------------------------------------------------------------------------
 
-// Async thunks
 export const customer_register = createAsyncThunk(
   "auth/customer_register",
   async (info, { fulfillWithValue, rejectWithValue }) => {
@@ -24,8 +13,8 @@ export const customer_register = createAsyncThunk(
       const { data } = await api.post("/customer/customer-register", info, {
         withCredentials: true,
       });
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      // Backend sets httpOnly cookies — no tokens stored in JS
+      // Backend should return customer info directly (not require a second fetch)
       return fulfillWithValue(data);
     } catch (error) {
       const errorMessage = error?.response?.data?.error || error.message;
@@ -41,8 +30,8 @@ export const customer_login = createAsyncThunk(
       const { data } = await api.post("/customer/customer-login", info, {
         withCredentials: true,
       });
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      // Backend sets httpOnly cookies — no tokens stored in JS
+      // Backend should return customer info directly in the response
       return fulfillWithValue(data);
     } catch (error) {
       const errorMessage = error?.response?.data?.error || error.message;
@@ -55,43 +44,16 @@ export const refresh_token = createAsyncThunk(
   "auth/refresh_token",
   async (_, { fulfillWithValue, rejectWithValue }) => {
     try {
-      const refreshToken = localStorage.getItem("refreshToken");
-
-      if (!refreshToken) {
-        throw new Error("No refresh token available");
-      }
-
-      // Use a separate axios instance to avoid interceptor loop
+      // Separate axios instance to avoid request interceptor loop
       const refreshAxios = axios.create({
         baseURL: api.defaults.baseURL,
-        withCredentials: true,
+        withCredentials: true, // Cookie carries the refresh token — no JS access needed
       });
 
-      const { data } = await refreshAxios.post(
-        "/customer/refresh-token",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${refreshToken}`,
-          },
-        },
-      );
-
-      // Update tokens in localStorage
-      if (data.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken);
-      }
-
-      // Update refresh token if a new one is provided (for token rotation)
-      if (data.refreshToken) {
-        localStorage.setItem("refreshToken", data.refreshToken);
-      }
-
+      const { data } = await refreshAxios.post("/customer/refresh-token", {});
+      // Backend sets new httpOnly access + refresh cookies
       return fulfillWithValue(data);
     } catch (error) {
-      // Clear tokens on failure
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
       const errorMessage = error?.response?.data?.error || error.message;
       return rejectWithValue(errorMessage);
     }
@@ -107,8 +69,6 @@ export const google_login = createAsyncThunk(
         { access_token },
         { withCredentials: true },
       );
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
       return fulfillWithValue(data);
     } catch (error) {
       const errorMessage = error?.response?.data?.error || error.message;
@@ -126,8 +86,6 @@ export const facebook_login = createAsyncThunk(
         { accessToken, userID },
         { withCredentials: true },
       );
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
       return fulfillWithValue(data);
     } catch (error) {
       const errorMessage = error?.response?.data?.error || error.message;
@@ -140,7 +98,9 @@ export const get_customer = createAsyncThunk(
   "auth/get_customer",
   async (customerId, { fulfillWithValue, rejectWithValue }) => {
     try {
-      const { data } = await api.get(`/customer/${customerId}`);
+      const { data } = await api.get(`/customer/${customerId}`, {
+        withCredentials: true,
+      });
       return fulfillWithValue(data.customer);
     } catch (error) {
       const errorMessage = error?.response?.data?.error || error.message;
@@ -149,8 +109,8 @@ export const get_customer = createAsyncThunk(
   },
 );
 
-export const get_conpany_info = createAsyncThunk(
-  "auth/get_conpany_info",
+export const get_company_info = createAsyncThunk(
+  "auth/get_company_info",
   async (_, { fulfillWithValue, rejectWithValue }) => {
     try {
       const { data } = await api.get("/get-company-info", {
@@ -164,7 +124,6 @@ export const get_conpany_info = createAsyncThunk(
   },
 );
 
-// Forgot Password Actions
 export const forgot_password = createAsyncThunk(
   "auth/forgot_password",
   async (info, { fulfillWithValue, rejectWithValue }) => {
@@ -217,154 +176,190 @@ export const resend_otp = createAsyncThunk(
   },
 );
 
+/**
+ * hydrateAuth — called once on app load.
+ *
+ * Hits a real /customer/me endpoint that:
+ *   1. Reads the httpOnly access-token cookie (invisible to JS)
+ *   2. Returns the customer object if the token is valid
+ *   3. Returns 401 if not authenticated (no cookie / expired)
+ *
+ * The axios request interceptor should NOT retry this call on 401
+ * (mark it with a special config flag if needed).
+ */
 export const hydrateAuth = createAsyncThunk(
   "auth/hydrateAuth",
   async (_, { fulfillWithValue, rejectWithValue }) => {
     try {
-      if (localStorage.getItem("accessToken")) {
-        const decodedToken = decodeToken(localStorage.getItem("accessToken"));
-        const { data } = await api.get(`/customer/${decodedToken.sub}`);
-        return fulfillWithValue(data);
-      }
+      const { data } = await api.get("/customer/me", {
+        withCredentials: true,
+      });
+      // Expected response shape: { customer: { ... } }
+      return fulfillWithValue(data.customer ?? null);
     } catch (error) {
+      // 401 is expected when the user is not logged in — treat as a clean state
+      if (error?.response?.status === 401) {
+        return fulfillWithValue(null);
+      }
       const errorMessage = error?.response?.data?.error || error.message;
       return rejectWithValue(errorMessage);
     }
   },
 );
 
-// Initial state
+/**
+ * customer_logout — tells the backend to clear the httpOnly cookies.
+ * Never rely on just clearing Redux state; the cookie must be invalidated
+ * server-side as well.
+ */
+export const customer_logout = createAsyncThunk(
+  "auth/customer_logout",
+  async (_, { fulfillWithValue, rejectWithValue }) => {
+    try {
+      await api.post("/customer/logout", {}, { withCredentials: true });
+      return fulfillWithValue(null);
+    } catch (error) {
+      // Even if the request fails, clear local state so the UI reflects logout
+      const errorMessage = error?.response?.data?.error || error.message;
+      return rejectWithValue(errorMessage);
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Slice
+// ---------------------------------------------------------------------------
+
 const initialState = {
   loader: false,
-  userInfo: decodeToken(localStorage.getItem("accessToken")) || null,
+  isInitialized: false, // true once hydrateAuth has settled
+  userInfo: null,       // populated after login / hydrateAuth
   companyInfo: null,
   customer: null,
   errorMessage: "",
   successMessage: "",
-  accessToken: localStorage.getItem("accessToken") || null,
-  refreshToken: localStorage.getItem("refreshToken") || null,
+  // No tokens in state — they live exclusively in httpOnly cookies
 };
 
-// Auth slice
 export const authReducer = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    clearMessage: (state) => {
+    clearMessage(state) {
       state.errorMessage = "";
       state.successMessage = "";
     },
-    logout: (state) => {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+    // Use this only as a local state reset; always call customer_logout thunk
+    // first so the backend clears the httpOnly cookie.
+    logout(state) {
       state.userInfo = null;
       state.customer = null;
-      state.accessToken = null;
-      state.refreshToken = null;
       state.successMessage = "";
       state.errorMessage = "";
     },
   },
   extraReducers: (builder) => {
     builder
-      // Hydrate when token is present but user info is absent
+      // ── hydrateAuth ──────────────────────────────────────────────────────
       .addCase(hydrateAuth.pending, (state) => {
         state.loader = true;
       })
       .addCase(hydrateAuth.fulfilled, (state, { payload }) => {
         state.loader = false;
-        state.userInfo = payload.customer;
+        state.isInitialized = true;
+        state.userInfo = payload ?? null; // null = not logged in (clean state)
       })
-      .addCase(hydrateAuth.rejected, (state, { payload }) => {
+      .addCase(hydrateAuth.rejected, (state) => {
         state.loader = false;
+        state.isInitialized = true;
+        state.userInfo = null;
       })
 
-      // Register
+      // ── customer_logout ──────────────────────────────────────────────────
+      .addCase(customer_logout.fulfilled, (state) => {
+        state.userInfo = null;
+        state.customer = null;
+      })
+      .addCase(customer_logout.rejected, (state) => {
+        // Backend call failed, but still clear local state
+        state.userInfo = null;
+        state.customer = null;
+      })
+
+      // ── customer_register ────────────────────────────────────────────────
       .addCase(customer_register.pending, (state) => {
         state.loader = true;
       })
       .addCase(customer_register.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = payload.user;
-        state.accessToken = payload.accessToken;
-        state.refreshToken = payload.refreshToken;
+        // Backend should return customer info in the register response
+        state.userInfo = payload.customer ?? null;
       })
       .addCase(customer_register.rejected, (state, { payload }) => {
         state.loader = false;
         state.errorMessage = payload;
       })
 
-      // Login
+      // ── customer_login ───────────────────────────────────────────────────
       .addCase(customer_login.pending, (state) => {
         state.loader = true;
       })
       .addCase(customer_login.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = payload.user;
-        state.accessToken = payload.accessToken;
-        state.refreshToken = payload.refreshToken;
+        // Backend should return customer info in the login response
+        state.userInfo = payload.customer ?? null;
       })
       .addCase(customer_login.rejected, (state, { payload }) => {
         state.loader = false;
         state.errorMessage = payload;
       })
 
-      // Refresh Token
+      // ── refresh_token ────────────────────────────────────────────────────
       .addCase(refresh_token.pending, (state) => {
         state.loader = true;
       })
-      .addCase(refresh_token.fulfilled, (state, { payload }) => {
+      .addCase(refresh_token.fulfilled, (state) => {
         state.loader = false;
-        state.accessToken = payload.accessToken;
-        state.userInfo = payload.user;
-        // Update refresh token if a new one is provided (for token rotation)
-        if (payload.refreshToken) {
-          state.refreshToken = payload.refreshToken;
-        }
+        // Cookies updated by backend — no state changes needed
       })
-      .addCase(refresh_token.rejected, (state, { payload }) => {
+      .addCase(refresh_token.rejected, (state) => {
         state.loader = false;
-        state.errorMessage = payload;
+        // Refresh failed → treat as logged out
         state.userInfo = null;
-        state.accessToken = null;
-        state.refreshToken = null;
+        state.customer = null;
       })
 
-      // Google Login
+      // ── google_login ─────────────────────────────────────────────────────
       .addCase(google_login.pending, (state) => {
         state.loader = true;
       })
       .addCase(google_login.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = payload.user;
-        state.accessToken = payload.accessToken;
-        state.refreshToken = payload.refreshToken;
+        state.userInfo = payload.customer ?? null;
       })
       .addCase(google_login.rejected, (state, { payload }) => {
         state.loader = false;
         state.errorMessage = payload;
       })
 
-      // Facebook Login
+      // ── facebook_login ───────────────────────────────────────────────────
       .addCase(facebook_login.pending, (state) => {
         state.loader = true;
       })
       .addCase(facebook_login.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
-        state.userInfo = payload.user;
-        state.accessToken = payload.accessToken;
-        state.refreshToken = payload.refreshToken;
+        state.userInfo = payload.customer ?? null;
       })
       .addCase(facebook_login.rejected, (state, { payload }) => {
         state.loader = false;
         state.errorMessage = payload;
       })
 
-      // Get Customer
+      // ── get_customer ─────────────────────────────────────────────────────
       .addCase(get_customer.pending, (state) => {
         state.loader = true;
       })
@@ -372,24 +367,24 @@ export const authReducer = createSlice({
         state.loader = false;
         state.customer = payload;
       })
-      .addCase(get_customer.rejected, (state, { payload }) => {
+      .addCase(get_customer.rejected, (state) => {
         state.loader = false;
-        state.errorMessage = payload;
       })
 
-      .addCase(get_conpany_info.pending, (state) => {
+      // ── get_company_info ─────────────────────────────────────────────────
+      .addCase(get_company_info.pending, (state) => {
         state.loader = true;
       })
-      .addCase(get_conpany_info.fulfilled, (state, { payload }) => {
+      .addCase(get_company_info.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.companyInfo = payload;
       })
-      .addCase(get_conpany_info.rejected, (state, { payload }) => {
+      .addCase(get_company_info.rejected, (state, { payload }) => {
         state.loader = false;
         state.errorMessage = payload;
       })
 
-      // Forgot Password
+      // ── forgot_password ──────────────────────────────────────────────────
       .addCase(forgot_password.pending, (state) => {
         state.loader = true;
       })
@@ -402,7 +397,7 @@ export const authReducer = createSlice({
         state.errorMessage = payload;
       })
 
-      // Verify OTP
+      // ── verify_otp ───────────────────────────────────────────────────────
       .addCase(verify_otp.pending, (state) => {
         state.loader = true;
       })
@@ -415,7 +410,7 @@ export const authReducer = createSlice({
         state.errorMessage = payload;
       })
 
-      // Reset Password
+      // ── reset_password ───────────────────────────────────────────────────
       .addCase(reset_password.pending, (state) => {
         state.loader = true;
       })
@@ -427,6 +422,8 @@ export const authReducer = createSlice({
         state.loader = false;
         state.errorMessage = payload;
       })
+
+      // ── resend_otp ───────────────────────────────────────────────────────
       .addCase(resend_otp.pending, (state) => {
         state.loader = true;
       })
@@ -441,6 +438,7 @@ export const authReducer = createSlice({
   },
 });
 
-// Export actions
 export const { clearMessage, logout } = authReducer.actions;
+// Keep backward-compat alias
+export const get_conpany_info = get_company_info;
 export default authReducer.reducer;

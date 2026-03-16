@@ -19,7 +19,7 @@ const RoleSelectionModal = ({
     {
       id: "categories",
       name: "Categories",
-      description: "Manage product categories",
+      description: "Manage trip categories",
     },
     {
       id: "inclusions",

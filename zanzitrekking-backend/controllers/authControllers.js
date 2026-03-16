@@ -3,437 +3,464 @@ const { responseReturn } = require('../utilities/response')
 const bcrypt = require('bcryptjs')
 const crypto = require('crypto')
 const { createAccessToken, createRefreshToken, verifyRefreshToken } = require('../utilities/tokenCreate')
-const jwt = require('jsonwebtoken')
 const fs = require('fs')
 const path = require('path')
 const emailQueue = require('../workers/emailQueue')
 const redis = require('../redis')
+
+// ---------------------------------------------------------------------------
+// Cookie helpers — single source of truth for cookie config
+// ---------------------------------------------------------------------------
+const COOKIE_BASE = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict',
+}
+
+const setAuthCookies = (res, accessToken, refreshToken, rememberMe = false) => {
+  res.cookie('adminAccessToken', accessToken, {
+    ...COOKIE_BASE,
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  })
+  res.cookie('adminRefreshToken', refreshToken, {
+    ...COOKIE_BASE,
+    maxAge: rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000,
+  })
+}
+
+const clearAuthCookies = (res) => {
+  res.clearCookie('adminAccessToken', COOKIE_BASE)
+  res.clearCookie('adminRefreshToken', COOKIE_BASE)
+}
+
 class AuthControllers {
+  // ---------------------------------------------------------------------------
+  // POST /admin/admin-login
+  // ---------------------------------------------------------------------------
   admin_login = async (req, res) => {
     const { email, password, rememberMe } = req.body
 
     try {
-      const admin = await Admin.findOne({ email })
-      if (!admin) {
+      // Fetch with password field only for comparison — strip before responding
+      const adminWithPassword = await Admin.findOne({ email }).select('+password')
+      if (!adminWithPassword) {
         return responseReturn(res, 404, { message: 'Email not found' })
       }
 
-      const match = await bcrypt.compare(password, admin.password)
+      const match = await bcrypt.compare(password, adminWithPassword.password)
       if (!match) {
         return responseReturn(res, 401, { message: 'Invalid credentials' })
       }
 
-      // Create tokens
-      const payload = { sub: admin._id }
+      const payload = { sub: adminWithPassword._id }
       const accessToken = createAccessToken(payload)
       const refreshToken = createRefreshToken(payload, rememberMe ? '7d' : '1d')
 
-      // Set cookies with ADMIN-specific names
-      res.cookie('adminAccessToken', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict',
-        maxAge: 15 * 60 * 1000 // 15 minutes
-      })
-      res.cookie('adminRefreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict',
-        maxAge: rememberMe ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000 // 7 days or 1 day
-      })
+      setAuthCookies(res, accessToken, refreshToken, rememberMe)
+
+      // Return clean userInfo — no tokens in the response body
+      const userInfo = await Admin.findById(adminWithPassword._id)
+        .select('-password -resetPasswordOTP -resetPasswordExpires')
+        .lean()
 
       return responseReturn(res, 200, {
         message: 'Login successful',
-        userInfo: admin,
-        accessToken: accessToken // Return accessToken for frontend to store as fallback
+        userInfo,
       })
     } catch (error) {
-      console.error(error)
+      console.error('admin_login error:', error)
       return responseReturn(res, 500, { message: 'Internal server error' })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /admin/logout
+  // ---------------------------------------------------------------------------
+  admin_logout = async (req, res) => {
+    clearAuthCookies(res)
+    return responseReturn(res, 200, { message: 'Logged out successfully' })
+  }
+
+  // ---------------------------------------------------------------------------
+  // POST /admin/refresh-token
+  // Reads ONLY from the httpOnly cookie — no Authorization header fallback.
+  // ---------------------------------------------------------------------------
   refresh_token = async (req, res) => {
-    // First try to get token from cookies (preferred method)
-    const { adminRefreshToken, refreshToken } = req.cookies
-    let token = adminRefreshToken || refreshToken // Backward compatibility
-
-    // If no cookie token, try Authorization header (fallback for production)
-    if (!token) {
-      const authHeader = req.headers.authorization
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7) // Remove "Bearer " prefix
-      }
-    }
+    const token = req.cookies?.adminRefreshToken
 
     if (!token) {
-      return responseReturn(res, 409, { message: 'No refresh token provided' })
+      return responseReturn(res, 401, { message: 'No refresh token provided' })
     }
 
     try {
-      // Use verifyRefreshToken utility for consistency
       const { success, data, error } = await verifyRefreshToken(token)
 
-      if (!success) {
+      if (!success || !data?.sub) {
         return responseReturn(res, 403, { message: error || 'Invalid refresh token' })
       }
 
-      // Verify token payload has required fields
-      if (!data.sub) {
-        return responseReturn(res, 401, { message: 'Invalid refresh token payload' })
-      }
-
-      // Verify admin still exists
       const admin = await Admin.findById(data.sub)
+        .select('-password -resetPasswordOTP -resetPasswordExpires')
+        .lean()
+
       if (!admin) {
+        clearAuthCookies(res)
         return responseReturn(res, 401, { message: 'Admin not found' })
       }
 
-      // Generate new access token
-      const payload = { sub: data.sub }
-      const newAccessToken = createAccessToken(payload)
+      const newAccessToken = createAccessToken({ sub: data.sub })
 
-      // Set cookie
       res.cookie('adminAccessToken', newAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict',
-        maxAge: 15 * 60 * 1000 // 15 minutes
+        ...COOKIE_BASE,
+        maxAge: 15 * 60 * 1000,
       })
 
-      // Return accessToken in response body for frontend to use
-      return responseReturn(res, 200, {
-        message: 'Token refreshed',
-        accessToken: newAccessToken
-      })
+      // No token in response body — cookie is sufficient
+      return responseReturn(res, 200, { message: 'Token refreshed' })
     } catch (error) {
-      console.error('Refresh token error:', error)
+      console.error('refresh_token error:', error)
       return responseReturn(res, 401, { message: 'Invalid refresh token' })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /admin/get-user
+  // Called on app load (get_user_info thunk) to rehydrate Redux from the cookie.
+  // ---------------------------------------------------------------------------
   getUser = async (req, res) => {
     const { admin } = req
 
     if (!admin) {
-      return responseReturn(res, 401, { message: 'Admin not found' })
+      return responseReturn(res, 401, { message: 'Not authenticated' })
     }
 
     try {
-      return responseReturn(res, 200, { userInfo: admin })
+      const userInfo = await Admin.findById(admin._id)
+        .select('-password -resetPasswordOTP -resetPasswordExpires')
+        .lean()
+
+      if (!userInfo) {
+        return responseReturn(res, 401, { message: 'Admin not found' })
+      }
+
+      return responseReturn(res, 200, { userInfo })
     } catch (error) {
+      console.error('getUser error:', error)
       return responseReturn(res, 500, { error: error.message })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // GET /get-company-info  (public — no auth required)
+  // ---------------------------------------------------------------------------
   getCompanyInfo = async (req, res) => {
     try {
-      const { admin } = req
-      const { _id, companyAddress, companyEmail, companyPhoneNumber } = admin
-      return responseReturn(res, 200, { userInfo: { _id, companyAddress, companyEmail, companyPhoneNumber } })
+      const source = req.admin
+        ? await Admin.findById(req.admin._id)
+            .select('companyAddress companyEmail companyPhoneNumber')
+            .lean()
+        : await Admin.findOne()
+            .select('companyAddress companyEmail companyPhoneNumber')
+            .lean()
+
+      if (!source) {
+        return responseReturn(res, 404, { error: 'Company information not found' })
+      }
+
+      return responseReturn(res, 200, {
+        userInfo: {
+          _id: source._id,
+          companyAddress: source.companyAddress,
+          companyEmail: source.companyEmail,
+          companyPhoneNumber: source.companyPhoneNumber,
+        },
+      })
     } catch (error) {
+      console.error('getCompanyInfo error:', error)
       return responseReturn(res, 500, { error: error.message })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /admin/profile-image-upload
+  // ---------------------------------------------------------------------------
   profile_image_upload = async (req, res) => {
     const { admin } = req
     const file = req.file
 
-    // Validate input
     if (!file) {
       return responseReturn(res, 400, { error: 'Image is required' })
     }
 
     try {
-      // If admin already has an image, delete the old one
       if (admin.image) {
-        const oldImageFileName = path.basename(admin.image)
-        const oldImagePath = path.resolve(__dirname, '..', 'public', 'uploads', oldImageFileName)
-
-        // Try to delete the old image file asynchronously
+        const oldImagePath = path.resolve(
+          __dirname, '..', 'public', 'uploads', path.basename(admin.image)
+        )
         fs.unlink(oldImagePath, (err) => {
-          if (err) {
-            // Error deleting old image
-          }
+          if (err) console.warn('Could not delete old profile image:', err.message)
         })
       }
 
-      // Update the admin's image with the new file path
-      const fileName = file.filename
-      const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`
-      const updatedImagePath = `${basePath}${fileName}`
+      const updatedImagePath = `${req.protocol}://${req.get('host')}/public/uploads/${file.filename}`
 
-      admin.image = updatedImagePath // Update admin image
-      await admin.save() // Save updated admin
+      const updatedAdmin = await Admin.findByIdAndUpdate(
+        admin._id,
+        { image: updatedImagePath },
+        { new: true }
+      ).select('-password -resetPasswordOTP -resetPasswordExpires')
 
-      await Admin.findByIdAndUpdate(admin._id, { image: updatedImagePath })
-      await redis.set(`admin:${admin._id}`, JSON.stringify({ ...admin, image: updatedImagePath }), 'EX', 3600)
+      await redis.set(
+        `admin:${admin._id}`,
+        JSON.stringify(updatedAdmin),
+        'EX', 3600
+      )
 
-      // Respond with success
       return responseReturn(res, 200, {
         message: 'Profile image successfully updated',
-        data: { image: updatedImagePath }
+        data: updatedAdmin,
       })
     } catch (error) {
-      console.error(`Error updating profile image: ${error.message}`)
-      return responseReturn(res, 500, {
-        error: 'Server error, could not update profile image'
-      })
+      console.error('profile_image_upload error:', error)
+      return responseReturn(res, 500, { error: 'Could not update profile image' })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /admin/update-company-info
+  // ---------------------------------------------------------------------------
   update_company_info = async (req, res) => {
     const { admin } = req
     const { email, address, phone } = req.body
 
     try {
-      const userInfo = await Admin.findByIdAndUpdate(admin._id, {
-        companyEmail: email,
-        companyAddress: address,
-        companyPhoneNumber: phone
-      })
+      const userInfo = await Admin.findByIdAndUpdate(
+        admin._id,
+        { companyEmail: email, companyAddress: address, companyPhoneNumber: phone },
+        { new: true }
+      ).select('-password -resetPasswordOTP -resetPasswordExpires')
 
-      if (userInfo) {
-        await redis.set(`admin:${admin._id}`, JSON.stringify(userInfo), 'EX', 3600)
-        return responseReturn(res, 201, {
-          userInfo,
-          message: 'Company Info successfully Updated'
-        })
-      } else {
-        return responseReturn(res, 404, {
-          error: 'Company Info Upload Failed'
-        })
+      if (!userInfo) {
+        return responseReturn(res, 404, { error: 'Admin not found' })
       }
+
+      await redis.set(`admin:${admin._id}`, JSON.stringify(userInfo), 'EX', 3600)
+
+      return responseReturn(res, 200, {
+        userInfo,
+        message: 'Company info updated successfully',
+      })
     } catch (error) {
+      console.error('update_company_info error:', error)
       return responseReturn(res, 500, { error: error.message })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // PUT /admin/update-password
+  // ---------------------------------------------------------------------------
   password_update = async (req, res) => {
-    const { email, o_password, n_password } = req.body
+    const { o_password, n_password } = req.body
+    const { admin } = req
 
     try {
-      const { admin } = req
-
       if (!admin) {
         return responseReturn(res, 404, { error: 'User not found' })
       }
 
-      // Compare the old password with the stored hashed password
-      const isMatch = await bcrypt.compare(o_password, admin.password)
-
+      const adminWithPassword = await Admin.findById(admin._id).select('+password')
+      const isMatch = await bcrypt.compare(o_password, adminWithPassword.password)
       if (!isMatch) {
         return responseReturn(res, 400, { error: 'Old password is incorrect' })
       }
 
-      // Hash the new password
-      const salt = await bcrypt.genSalt(10)
-      const hashedPassword = await bcrypt.hash(n_password, salt)
+      const hashedPassword = await bcrypt.hash(n_password, await bcrypt.genSalt(10))
 
-      // Update the user's password
-      admin.password = hashedPassword
-      await admin.save()
-      await Admin.findByIdAndUpdate(admin._id, { password: hashedPassword })
-      await redis.set(
-        `admin:${admin._id}`,
-        JSON.stringify({ ...admin, password: hashedPassword }),
-        'EX',
-        3600
-      )
+      const updatedAdmin = await Admin.findByIdAndUpdate(
+        admin._id,
+        { password: hashedPassword },
+        { new: true }
+      ).select('-password -resetPasswordOTP -resetPasswordExpires')
 
-      // Create a new token
-      const token = await createAccessToken({
-        sub: admin._id
+      await redis.set(`admin:${admin._id}`, JSON.stringify(updatedAdmin), 'EX', 3600)
+
+      // Rotate access token cookie after password change
+      const newAccessToken = createAccessToken({ sub: admin._id })
+      res.cookie('adminAccessToken', newAccessToken, {
+        ...COOKIE_BASE,
+        maxAge: 15 * 60 * 1000,
       })
 
-      // Set the token in a secure cookie
-      res.cookie('accessToken', token, {
-        httpOnly: true, // Prevents client-side access to the cookie
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week expiration
-        sameSite: 'Strict' // Helps prevent CSRF
-      })
-
-      // Return updated user info
       return responseReturn(res, 200, {
-        userInfo: {
-          id: admin._id,
-          name: admin.name,
-          email: admin.email, // Adjusted to use 'email'
-          image: admin.image,
-          role: admin.role,
-          companyAddress: admin.companyAddress,
-          companyPhoneNumber: admin.companyPhoneNumber,
-          companyEmail: admin.companyEmail
-        },
-        message: 'Password updated successfully'
+        userInfo: updatedAdmin,
+        message: 'Password updated successfully',
       })
     } catch (error) {
+      console.error('password_update error:', error)
       return responseReturn(res, 500, { error: error.message })
     }
   }
 
-  // Add to your AuthControllers class
+  // ---------------------------------------------------------------------------
+  // POST /admin/forgot-password
+  // ---------------------------------------------------------------------------
   forgot_password = async (req, res) => {
     const { email } = req.body
 
     try {
-      // Check if admin exists
       const admin = await Admin.findOne({ email })
+
+      // Always return the same message to prevent email enumeration
       if (!admin) {
-        return responseReturn(res, 404, { error: 'Email not found' })
+        return responseReturn(res, 200, {
+          message: 'If that email exists, an OTP has been sent',
+          email,
+        })
       }
 
-      // Generate secure OTP (6-digit code) using cryptographically secure random number generator
-      function generateOtp() {
-        return crypto.randomInt(100000, 999999).toString()
-      }
+      const otp = crypto.randomInt(100000, 999999).toString()
+      const otpExpiry = Date.now() + 15 * 60 * 1000
 
-      // Generate OTP (6-digit code)
-      const otp = generateOtp()
-      const otpExpiry = Date.now() + 15 * 60 * 1000 // 15 minutes expiry
-
-      // Save OTP and expiry to admin document
       admin.resetPasswordOTP = otp
       admin.resetPasswordExpires = otpExpiry
       await admin.save()
 
-      // Prepare email content
-      const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #059473;">Password Reset Request</h2>
-        <p>You requested to reset your password. Use the OTP below to proceed:</p>
-        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; margin: 20px 0;">
-          <h1 style="color: #059473; margin: 0; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
-        </div>
-        <p>This OTP will expire in 15 minutes.</p>
-        <p>If you didn't request this reset, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #777; font-size: 12px;">This is an automated message, please do not reply.</p>
-      </div>
-    `
-
-      // Add to email queue
       emailQueue.add({
         subject: 'Password Reset OTP',
-        content: emailContent,
-        recipients: [email]
+        content: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #059473;">Password Reset Request</h2>
+            <p>Use the OTP below to reset your password:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; text-align: center; margin: 20px 0;">
+              <h1 style="color: #059473; margin: 0; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+            </div>
+            <p>This OTP expires in 15 minutes.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+          </div>
+        `,
+        recipients: [email],
       })
 
       return responseReturn(res, 200, {
-        message: 'OTP sent to your email',
-        email: email // Return email for frontend state
+        message: 'If that email exists, an OTP has been sent',
+        email,
       })
     } catch (error) {
-      console.error('Forgot password error:', error)
+      console.error('forgot_password error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /admin/verify-otp
+  // ---------------------------------------------------------------------------
   verify_otp = async (req, res) => {
     const { email, otp } = req.body
 
     try {
-      // Find admin with matching email and valid expiry
       const admin = await Admin.findOne({
         email,
         resetPasswordOTP: otp,
-        resetPasswordExpires: { $gt: Date.now() }
+        resetPasswordExpires: { $gt: Date.now() },
       })
 
       if (!admin) {
         return responseReturn(res, 400, { error: 'Invalid or expired OTP' })
       }
 
-      // OTP is valid - you might want to create a temporary token here
-      // for the reset password step, or just mark the OTP as verified
-
-      return responseReturn(res, 200, {
-        message: 'OTP verified successfully',
-        verified: true
-      })
+      return responseReturn(res, 200, { message: 'OTP verified successfully', verified: true })
     } catch (error) {
-      console.error('Verify OTP error:', error)
+      console.error('verify_otp error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // POST /admin/reset-password
+  // ---------------------------------------------------------------------------
   reset_password = async (req, res) => {
     const { email, otp, newPassword } = req.body
 
     try {
-      // Find admin with matching email and valid expiry
       const admin = await Admin.findOne({
         email,
         resetPasswordOTP: otp,
-        resetPasswordExpires: { $gt: Date.now() }
+        resetPasswordExpires: { $gt: Date.now() },
       })
 
       if (!admin) {
         return responseReturn(res, 400, { error: 'Invalid or expired OTP' })
       }
 
-      // Hash new password
-      const salt = await bcrypt.genSalt(10)
-      const hashedPassword = await bcrypt.hash(newPassword, salt)
-
-      // Update password and clear OTP fields
-      admin.password = hashedPassword
+      admin.password = await bcrypt.hash(newPassword, await bcrypt.genSalt(10))
       admin.resetPasswordOTP = undefined
       admin.resetPasswordExpires = undefined
       await admin.save()
 
-      return responseReturn(res, 200, {
-        message: 'Password reset successfully'
-      })
+      // Clear active session cookies after password reset
+      clearAuthCookies(res)
+
+      return responseReturn(res, 200, { message: 'Password reset successfully' })
     } catch (error) {
-      console.error('Reset password error:', error)
+      console.error('reset_password error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
-  // get All admins
 
+  // ---------------------------------------------------------------------------
+  // GET /admin/get-all-admins
+  // ---------------------------------------------------------------------------
   get_all_admins = async (req, res) => {
     try {
-      const admins = await Admin.find().select('-password')
+      const admins = await Admin.find()
+        .select('-password -resetPasswordOTP -resetPasswordExpires')
       return responseReturn(res, 200, { admins })
     } catch (error) {
+      console.error('get_all_admins error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
 
-  // update admin access routes
+  // ---------------------------------------------------------------------------
+  // PUT /admin/update-admin-access-routes/:id
+  // ---------------------------------------------------------------------------
   update_admin_access_routes = async (req, res) => {
     const { id } = req.params
     const { accessRoutes } = req.body
+
     try {
-      const admin = await Admin.findByIdAndUpdate(id, { accessRoutes })
-      return responseReturn(res, 200, { admin })
+      const admin = await Admin.findByIdAndUpdate(
+        id,
+        { accessRoutes },
+        { new: true }
+      ).select('-password -resetPasswordOTP -resetPasswordExpires')
+
+      if (!admin) {
+        return responseReturn(res, 404, { error: 'Admin not found' })
+      }
+
+      return responseReturn(res, 200, { admin, message: 'Access routes updated' })
     } catch (error) {
+      console.error('update_admin_access_routes error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
 
-  // create new admin
+  // ---------------------------------------------------------------------------
+  // POST /admin/create-admin
+  // ---------------------------------------------------------------------------
   create_admin = async (req, res) => {
     const { name, email, password, role, companyEmail, companyPhoneNumber, companyAddress } = req.body
 
     try {
-      // Check if admin already exists
       const existingAdmin = await Admin.findOne({ email })
       if (existingAdmin) {
-        return responseReturn(res, 400, {
-          message: 'Admin with this email already exists'
-        })
+        return responseReturn(res, 400, { message: 'Admin with this email already exists' })
       }
 
-      // Hash password
-      const salt = await bcrypt.genSalt(10)
-      const hashedPassword = await bcrypt.hash(password, salt)
+      const hashedPassword = await bcrypt.hash(password, await bcrypt.genSalt(10))
 
-      // Create new admin
-      const newAdmin = new Admin({
+      const newAdmin = await new Admin({
         name,
         email,
         password: hashedPassword,
@@ -442,116 +469,75 @@ class AuthControllers {
         companyEmail,
         companyPhoneNumber,
         companyAddress,
-        accessRoutes: [] // Default empty access routes
-      })
+        accessRoutes: [],
+      }).save()
 
-      await newAdmin.save()
-
-      // Return admin without password
-      const { password: _, ...adminWithoutPassword } = newAdmin.toObject()
+      const { password: _, resetPasswordOTP: __, resetPasswordExpires: ___, ...adminSafe } =
+        newAdmin.toObject()
 
       return responseReturn(res, 201, {
         message: 'Admin created successfully',
-        admin: adminWithoutPassword
+        admin: adminSafe,
       })
     } catch (error) {
-      console.error('Create admin error:', error)
+      console.error('create_admin error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
 
-  // delete admin with cascade deletion
+  // ---------------------------------------------------------------------------
+  // DELETE /admin/delete-admin/:id
+  // ---------------------------------------------------------------------------
   delete_admin = async (req, res) => {
     const { id } = req.params
-    const { currentAdminId } = req.body // To prevent self-deletion
+    const { currentAdminId } = req.body
 
     try {
-      // Prevent self-deletion
       if (id === currentAdminId) {
-        return responseReturn(res, 400, {
-          message: 'You cannot delete your own account'
-        })
+        return responseReturn(res, 400, { message: 'You cannot delete your own account' })
       }
 
-      // Check if admin exists
       const admin = await Admin.findById(id)
       if (!admin) {
-        return responseReturn(res, 404, {
-          message: 'Admin not found'
-        })
+        return responseReturn(res, 404, { message: 'Admin not found' })
       }
 
-      // Prevent deletion of the last admin
       const adminCount = await Admin.countDocuments()
       if (adminCount <= 1) {
-        return responseReturn(res, 400, {
-          message: 'Cannot delete the last admin account'
-        })
+        return responseReturn(res, 400, { message: 'Cannot delete the last admin account' })
       }
 
-      // Import required models for cascade deletion
       const Message = require('../models/chat/chat')
       const Customer = require('../models/customer')
       const Order = require('../models/order')
       const CustomerOrder = require('../models/customerOrder')
 
-      // Start cascade deletion
-      const deletionResults = {
-        messages: 0,
-        customers: 0,
-        orders: 0,
-        customerOrders: 0
-      }
-
-      // 1. Delete all messages where admin is sender or receiver
-      const messageResult = await Message.deleteMany({
-        $or: [
-          { sender: id, senderModel: 'Admin' },
-          { receiver: id, receiverModel: 'Admin' }
-        ]
-      })
-      deletionResults.messages = messageResult.deletedCount
-
-      // 2. Update customers assigned to this admin (set assignedAdmin to null)
-      const customerResult = await Customer.updateMany(
-        { assignedAdmin: id },
-        { $unset: { assignedAdmin: 1 } }
-      )
-      deletionResults.customers = customerResult.modifiedCount
-
-      // 3. Update orders that might have admin references (if any)
-      // Note: Orders don't directly reference admin, but we'll check for any admin notes
-      const orderResult = await Order.updateMany(
-        { adminNotes: { $exists: true, $ne: null } },
-        { $unset: { adminNotes: 1 } }
-      )
-      deletionResults.orders = orderResult.modifiedCount
-
-      // 4. Update customer orders (if they have admin references)
-      const customerOrderResult = await CustomerOrder.updateMany(
-        { assignedAdmin: id },
-        { $unset: { assignedAdmin: 1 } }
-      )
-      deletionResults.customerOrders = customerOrderResult.modifiedCount
-
-      // 5. Finally, delete the admin
-      await Admin.findByIdAndDelete(id)
-      await redis.del(`admin:${id}`)
+      await Promise.all([
+        Message.deleteMany({
+          $or: [
+            { sender: id, senderModel: 'Admin' },
+            { receiver: id, receiverModel: 'Admin' },
+          ],
+        }),
+        Customer.updateMany({ assignedAdmin: id }, { $unset: { assignedAdmin: 1 } }),
+        Order.updateMany(
+          { adminNotes: { $exists: true, $ne: null } },
+          { $unset: { adminNotes: 1 } }
+        ),
+        CustomerOrder.updateMany({ assignedAdmin: id }, { $unset: { assignedAdmin: 1 } }),
+        Admin.findByIdAndDelete(id),
+        redis.del(`admin:${id}`),
+      ])
 
       return responseReturn(res, 200, {
-        message: 'Admin deleted successfully with cascade cleanup',
-        deletionResults,
-        deletedAdmin: {
-          id: admin._id,
-          name: admin.name,
-          email: admin.email,
-          role: admin.role
-        }
+        message: 'Admin deleted successfully',
+        deletedAdmin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role },
       })
     } catch (error) {
-      console.error('Delete admin error:', error)
+      console.error('delete_admin error:', error)
       return responseReturn(res, 500, { error: 'Internal server error' })
     }
   }
 }
+
 module.exports = new AuthControllers()

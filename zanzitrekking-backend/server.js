@@ -159,16 +159,23 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use('/api', limiter);
+// Public static files
+app.use("/public", express.static(path.join(__dirname, "public"), {
+  setHeaders: (res) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  }
+}));
 
-app.use("/public", express.static(path.join(__dirname, "public")));
-
-// Also add this for better static file serving:
+// Uploads static files
 app.use(
   "/public/uploads",
   express.static(path.join(__dirname, "public", "uploads"), {
-    maxAge: "1d", // Cache for 1 day
+    maxAge: "1d",
     etag: true,
     lastModified: true,
+    setHeaders: (res) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    }
   })
 );
 

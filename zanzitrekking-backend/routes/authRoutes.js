@@ -5,6 +5,7 @@ const { uploadOptions } = require('../utilities/multerUpload')
 
 const router = express.Router()
 router.post('/admin-login', AuthControllers.admin_login)
+router.post('/logout', AuthControllers.admin_logout)
 
 router.get('/get-user', jwtMiddleware, AuthControllers.getUser)
 router.get('/get-company-info', AuthControllers.getCompanyInfo)

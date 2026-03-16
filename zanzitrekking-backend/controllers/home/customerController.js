@@ -1,8 +1,9 @@
 const Customer = require("../../models/customer");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const Admin = require("../../models/admin");
 const { responseReturn } = require("../../utilities/response");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const {
   createAccessToken,
   createRefreshToken,
@@ -12,7 +13,47 @@ const { OAuth2Client } = require("google-auth-library");
 const axios = require("axios");
 const emailQueue = require("../../workers/emailQueue");
 
+// ---------------------------------------------------------------------------
+// Cookie helpers — single source of truth for cookie config
+// ---------------------------------------------------------------------------
+const COOKIE_BASE = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "Strict",
+};
+
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  res.cookie("customerAccessToken", accessToken, {
+    ...COOKIE_BASE,
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+  res.cookie("customerRefreshToken", refreshToken, {
+    ...COOKIE_BASE,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+};
+
+const clearAuthCookies = (res) => {
+  res.clearCookie("customerAccessToken", COOKIE_BASE);
+  res.clearCookie("customerRefreshToken", COOKIE_BASE);
+};
+
+// ---------------------------------------------------------------------------
+// Strip sensitive fields before returning customer to client
+// ---------------------------------------------------------------------------
+const safeCustomer = (customer) => {
+  const obj = customer.toObject ? customer.toObject() : { ...customer };
+  delete obj.password;
+  delete obj.refreshToken;
+  delete obj.resetPasswordOTP;
+  delete obj.resetPasswordExpires;
+  return obj;
+};
+
 class CustomerController {
+  // ---------------------------------------------------------------------------
+  // POST /customer/customer-register
+  // ---------------------------------------------------------------------------
   register_customer = async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -24,9 +65,7 @@ class CustomerController {
 
       const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
       if (!admin) {
-        return responseReturn(res, 500, {
-          error: "No admin available for support",
-        });
+        return responseReturn(res, 500, { error: "No admin available for support" });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -38,53 +77,33 @@ class CustomerController {
         assignedAdmin: admin._id,
       });
 
-      // Generate both tokens with minimal payload (only user ID)
-      const tokenData = {
-        sub: customer.id, // Use 'sub' (subject) standard JWT claim
-      };
+      const tokenData = { sub: customer.id };
+      const accessToken = createAccessToken(tokenData);
+      const refreshToken = createRefreshToken(tokenData);
 
-      const accessToken = await createAccessToken(tokenData);
-      const refreshToken = await createRefreshToken(tokenData);
-
-      // Save refresh token to DB
       customer.refreshToken = refreshToken;
       await customer.save();
 
-      // Set both cookies with CUSTOMER-specific names
-      res.cookie("customerAccessToken", accessToken, {
-        expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
+      setAuthCookies(res, accessToken, refreshToken);
 
-      res.cookie("customerRefreshToken", refreshToken, {
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
-
+      // Return customer info directly — frontend no longer decodes tokens
       return responseReturn(res, 201, {
         message: "Register Success",
-        accessToken,
-        refreshToken,
+        customer: safeCustomer(customer),
       });
     } catch (error) {
+      logger.error("register_customer error:", error);
       return responseReturn(res, 500, { error: error.message });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // POST /customer/customer-login
+  // ---------------------------------------------------------------------------
   login_customer = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-      const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
-      if (!admin) {
-        return responseReturn(res, 500, {
-          error: "No admin available for support",
-        });
-      }
-
       const customer = await Customer.findOne({ email }).select(
         "+password +refreshToken"
       );
@@ -92,171 +111,185 @@ class CustomerController {
         return responseReturn(res, 404, { error: "Email doesn't exist" });
       }
 
-      // For social login users who try to login manually
       if (customer.method !== "manual") {
         return responseReturn(res, 400, {
           error: `Please login using ${customer.method} authentication`,
         });
       }
 
-      const isPasswordCorrect = await bcrypt.compare(
-        password,
-        customer.password
-      );
+      const isPasswordCorrect = await bcrypt.compare(password, customer.password);
       if (!isPasswordCorrect) {
         return responseReturn(res, 400, { error: "Incorrect Password" });
       }
 
-      // Generate tokens with minimal payload (only user ID)
-      const tokenData = {
-        sub: customer.id, // Use 'sub' (subject) standard JWT claim
-      };
+      const tokenData = { sub: customer.id };
+      const accessToken = createAccessToken(tokenData);
+      const refreshToken = createRefreshToken(tokenData);
 
-      const accessToken = await createAccessToken(tokenData);
-      const refreshToken = await createRefreshToken(tokenData);
-
-      // Update refresh token in DB
       customer.refreshToken = refreshToken;
       await customer.save();
 
-      res.cookie("customerAccessToken", accessToken, {
-        expires: new Date(Date.now() + 15 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
+      setAuthCookies(res, accessToken, refreshToken);
 
-      res.cookie("customerRefreshToken", refreshToken, {
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
+      // Fetch clean customer object (without sensitive fields) for response
+      const customerData = await Customer.findById(customer.id)
+        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .populate({ path: "assignedAdmin", select: "name email image role" })
+        .lean();
 
       return responseReturn(res, 200, {
-        accessToken,
-        refreshToken,
         message: "Login successful",
+        customer: customerData,
       });
     } catch (error) {
+      logger.error("login_customer error:", error);
       return responseReturn(res, 500, { error: error.message });
     }
   };
-  refresh_token = async (req, res) => {
-    // First try to get token from cookies (preferred method)
-    const { customerRefreshToken, refreshToken } = req.cookies;
-    let token = customerRefreshToken || refreshToken; // Backward compatibility
 
-    // If no cookie token, try Authorization header (fallback for production)
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7); // Remove "Bearer " prefix
+  // ---------------------------------------------------------------------------
+  // POST /customer/logout
+  // ---------------------------------------------------------------------------
+  logout_customer = async (req, res) => {
+    try {
+      // Invalidate refresh token in DB if customer is identified
+      const token = req.cookies?.customerRefreshToken;
+      if (token) {
+        try {
+          const { success, data } = await verifyRefreshToken(token);
+          if (success && data?.sub) {
+            await Customer.findByIdAndUpdate(data.sub, { refreshToken: null });
+          }
+        } catch (_) {
+          // Token may already be invalid — that's fine, still clear cookies
+        }
       }
+
+      clearAuthCookies(res);
+      return responseReturn(res, 200, { message: "Logged out successfully" });
+    } catch (error) {
+      logger.error("logout_customer error:", error);
+      // Still clear cookies even if DB update fails
+      clearAuthCookies(res);
+      return responseReturn(res, 200, { message: "Logged out successfully" });
     }
+  };
+
+  // ---------------------------------------------------------------------------
+  // GET /customer/me
+  // Called by hydrateAuth on app load — verifies the httpOnly cookie and
+  // returns the current customer so Redux state can be restored.
+  // ---------------------------------------------------------------------------
+  get_me = async (req, res) => {
+    try {
+      const token = req.cookies?.customerAccessToken;
+      if (!token) {
+        return responseReturn(res, 401, { error: "Not authenticated" });
+      }
+
+      // Re-use the existing auth middleware pattern — verify token inline
+      // (or wire this through your auth middleware if preferred)
+      const jwt = require("jsonwebtoken");
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (_) {
+        return responseReturn(res, 401, { error: "Not authenticated" });
+      }
+
+      const customer = await Customer.findById(decoded.sub)
+        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .populate({ path: "assignedAdmin", select: "name email image role" })
+        .lean();
+
+      if (!customer) {
+        return responseReturn(res, 401, { error: "Customer not found" });
+      }
+
+      return responseReturn(res, 200, { customer });
+    } catch (error) {
+      logger.error("get_me error:", error);
+      return responseReturn(res, 500, { error: "Internal server error" });
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // POST /customer/refresh-token
+  // Reads ONLY from the httpOnly cookie — no Authorization header fallback.
+  // ---------------------------------------------------------------------------
+  refresh_token = async (req, res) => {
+    const token = req.cookies?.customerRefreshToken;
 
     if (!token) {
-      return responseReturn(res, 409, { error: "Refresh token missing" });
+      return responseReturn(res, 401, { error: "Refresh token missing" });
     }
 
     try {
       const { success, data, error } = await verifyRefreshToken(token);
 
-      if (!success) {
-        return responseReturn(res, 403, { error });
+      if (!success || !data?.sub) {
+        return responseReturn(res, 403, { error: error || "Invalid refresh token" });
       }
 
-      // Support both 'sub' and 'id' for backward compatibility
-      const userId = data.sub || data.id;
-      if (!userId) {
-        return responseReturn(res, 403, { error: "Invalid refresh token payload" });
-      }
-
-      // Check if token exists in DB
-      const customer = await Customer.findById(userId).select("+refreshToken");
+      const customer = await Customer.findById(data.sub).select("+refreshToken");
       if (!customer || customer.refreshToken !== token) {
+        // Token reuse detected or customer deleted
+        clearAuthCookies(res);
         return responseReturn(res, 403, { error: "Invalid refresh token" });
       }
 
-      // Generate new access token with minimal payload
-      const tokenData = {
-        sub: customer.id,
-      };
+      const tokenData = { sub: customer.id };
+      const newAccessToken = createAccessToken(tokenData);
+      // Rotate refresh token on every use (prevents token reuse attacks)
+      const newRefreshToken = createRefreshToken(tokenData);
 
-      const newAccessToken = await createAccessToken(tokenData);
-
-      // Rotate refresh token for better security (prevents token reuse attacks)
-      const newRefreshToken = await createRefreshToken(tokenData);
       customer.refreshToken = newRefreshToken;
       await customer.save();
 
-      res.cookie("customerAccessToken", newAccessToken, {
-        expires: new Date(Date.now() + 15 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
+      setAuthCookies(res, newAccessToken, newRefreshToken);
 
-      res.cookie("customerRefreshToken", newRefreshToken, {
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
-
-      return responseReturn(res, 200, {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken, // Return new refresh token for frontend
-      });
+      // No tokens in response body — cookies are the only delivery mechanism
+      return responseReturn(res, 200, { message: "Token refreshed" });
     } catch (error) {
+      logger.error("refresh_token error:", error);
       return responseReturn(res, 500, { error: error.message });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // POST /customer/google-login
+  // ---------------------------------------------------------------------------
   google_login = async (req, res) => {
     try {
       const { tokenId, access_token } = req.body;
-
       let payload;
       const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-      // Method 1: Verify JWT ID Token (existing flow)
       if (tokenId) {
         const ticket = await client.verifyIdToken({
           idToken: tokenId,
           audience: process.env.GOOGLE_CLIENT_ID,
         });
         payload = ticket.getPayload();
-      }
-      // Method 2: Verify Access Token (new flow)
-      else if (access_token) {
-        const userInfo = await axios.get(
+      } else if (access_token) {
+        const { data: userInfo } = await axios.get(
           "https://www.googleapis.com/oauth2/v3/userinfo",
-          {
-            headers: { Authorization: `Bearer ${access_token}` },
-          }
+          { headers: { Authorization: `Bearer ${access_token}` } }
         );
-        payload = {
-          email: userInfo.data.email,
-          name: userInfo.data.name,
-          sub: userInfo.data.sub,
-        };
+        payload = { email: userInfo.email, name: userInfo.name, sub: userInfo.sub };
       } else {
         return responseReturn(res, 400, {
-          error: "Either tokenId or accessToken must be provided",
+          error: "Either tokenId or access_token must be provided",
         });
       }
 
       const { email, name, sub: googleId } = payload;
 
-      // Find available admin (existing logic)
       const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
       if (!admin) {
-        return responseReturn(res, 500, {
-          error: "No admin available for support",
-        });
+        return responseReturn(res, 500, { error: "No admin available for support" });
       }
 
-      // Check if user exists (existing logic with improved error handling)
       let customer = await Customer.findOne({ email });
 
       if (!customer) {
@@ -270,80 +303,62 @@ class CustomerController {
       } else if (customer.method !== "google") {
         return responseReturn(res, 400, {
           error: `Email already registered with ${customer.method} authentication`,
-          method: customer.method, // Return the existing method
+          method: customer.method,
         });
       }
 
-      // Token generation with minimal payload
-      const tokenData = {
-        sub: customer.id,
-      };
+      const tokenData = { sub: customer.id };
+      const accessToken = createAccessToken(tokenData);
+      const refreshToken = createRefreshToken(tokenData);
 
-      const accessToken = await createAccessToken(tokenData);
-      const refreshToken = await createRefreshToken(tokenData);
-
-      // Update customer (existing logic)
       customer.refreshToken = refreshToken;
       await customer.save();
 
-      // Cookie setting with customer-specific names
-      res.cookie("customerAccessToken", accessToken, {
-        expires: new Date(Date.now() + 15 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
+      setAuthCookies(res, accessToken, refreshToken);
 
-      res.cookie("customerRefreshToken", refreshToken, {
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "strict",
-      });
+      const customerData = await Customer.findById(customer.id)
+        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .populate({ path: "assignedAdmin", select: "name email image role" })
+        .lean();
 
       return responseReturn(res, 200, {
-        accessToken,
-        refreshToken,
         message: "Google login successful",
+        customer: customerData,
       });
     } catch (error) {
-      logger.error("Google login error:", error);
-
-      // Improved error handling
+      logger.error("google_login error:", error);
       if (error.response?.status === 401) {
         return responseReturn(res, 401, { error: "Invalid Google token" });
       }
-
       return responseReturn(res, 500, {
         error: "Internal server error",
-        details:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+        details: process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // POST /customer/facebook-login
+  // ---------------------------------------------------------------------------
   facebook_login = async (req, res) => {
     try {
       const { accessToken, userID } = req.body;
 
-      // Verify Facebook token
-      const response = await axios.get(
-        `https://graph.facebook.com/v12.0/${userID}?fields=id,name,email&access_token=${accessToken}`
+      const { data } = await axios.get(
+        `https://graph.facebook.com/v12.0/${userID}`,
+        { params: { fields: "id,name,email", access_token: accessToken } }
       );
 
-      const { email, name, id: facebookId } = response.data;
+      const { email, name, id: facebookId } = data;
 
       const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
       if (!admin) {
-        return responseReturn(res, 500, {
-          error: "No admin available for support",
-        });
+        return responseReturn(res, 500, { error: "No admin available for support" });
       }
 
-      // Check if user exists
       let customer = await Customer.findOne({ email });
 
       if (!customer) {
-        // Create new customer
         customer = await Customer.create({
           name,
           email,
@@ -357,113 +372,96 @@ class CustomerController {
         });
       }
 
-      // Generate tokens with minimal payload
-      const tokenData = {
-        sub: customer.id,
-      };
-
-      const newAccessToken = await createAccessToken(tokenData);
-      const refreshToken = await createRefreshToken(tokenData);
+      const tokenData = { sub: customer.id };
+      const newAccessToken = createAccessToken(tokenData);
+      const refreshToken = createRefreshToken(tokenData);
 
       customer.refreshToken = refreshToken;
       await customer.save();
 
-      res.cookie("customerAccessToken", newAccessToken, {
-        expires: new Date(Date.now() + 15 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      });
+      setAuthCookies(res, newAccessToken, refreshToken);
 
-      res.cookie("customerRefreshToken", refreshToken, {
-        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      });
+      const customerData = await Customer.findById(customer.id)
+        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .populate({ path: "assignedAdmin", select: "name email image role" })
+        .lean();
 
       return responseReturn(res, 200, {
-        newAccessToken,
-        refreshToken,
         message: "Facebook login successful",
+        customer: customerData,
       });
     } catch (error) {
+      logger.error("facebook_login error:", error);
       return responseReturn(res, 500, { error: error.message });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // GET /customer/:customerId
+  // ---------------------------------------------------------------------------
   getCustomer = async (req, res) => {
     const { customerId } = req.params;
 
     try {
       const customer = await Customer.findById(customerId)
-        .populate({
-          path: "assignedAdmin",
-          select: "name email image role", // Only get these fields from admin
-        })
+        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
       if (!customer) {
         return responseReturn(res, 404, { error: "Customer not found" });
       }
 
-      // Remove password if it somehow comes through (though schema has select: false)
-      delete customer.password;
-
       return responseReturn(res, 200, { customer });
     } catch (error) {
-      logger.error(error);
+      logger.error("getCustomer error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // GET /customer/all
+  // ---------------------------------------------------------------------------
   getAllCustomers = async (req, res) => {
     try {
       const customers = await Customer.find({})
-        .select("-password -refreshToken")
-        .populate({
-          path: "assignedAdmin",
-          select: "name email image role",
-        })
+        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
-
-      if (!customers) {
-        return responseReturn(res, 404, { error: "Customers not found" });
-      }
 
       return responseReturn(res, 200, { customers });
     } catch (error) {
-      logger.error(error);
+      logger.error("getAllCustomers error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
+
+  // ---------------------------------------------------------------------------
+  // GET /customer   (paginated)
+  // ---------------------------------------------------------------------------
   getCustomers = async (req, res) => {
     try {
-      const { page = 1, parPage = 10, searchValue = "", sort = "newest-desc" } = req.query;
+      const {
+        page = 1,
+        parPage = 10,
+        searchValue = "",
+        sort = "newest-desc",
+      } = req.query;
 
-      // Determine sort order
       let sortOptions = {};
       let collation = null;
-      if (sort === "name-asc") {
-        sortOptions = { name: 1 }; // A-Z
-        collation = { locale: "en", strength: 2 }; // Case-insensitive collation
-      } else if (sort === "name-desc") {
-        sortOptions = { name: -1 }; // Z-A
-        collation = { locale: "en", strength: 2 }; // Case-insensitive collation
-      } else if (sort === "newest-asc") {
-        sortOptions = { createdAt: 1 }; // Oldest first
-      } else {
-        sortOptions = { createdAt: -1 }; // Newest first (default)
-      }
 
-      const options = {
-        page: parseInt(page),
-        limit: parseInt(parPage),
-        sort: sortOptions,
-        populate: {
-          path: "assignedAdmin",
-          select: "name email image role",
-        },
-        ...(collation && { collation }),
-      };
+      if (sort === "name-asc") {
+        sortOptions = { name: 1 };
+        collation = { locale: "en", strength: 2 };
+      } else if (sort === "name-desc") {
+        sortOptions = { name: -1 };
+        collation = { locale: "en", strength: 2 };
+      } else if (sort === "newest-asc") {
+        sortOptions = { createdAt: 1 };
+      } else {
+        sortOptions = { createdAt: -1 };
+      }
 
       const query = {};
       if (searchValue) {
@@ -473,233 +471,204 @@ class CustomerController {
         ];
       }
 
-      const customers = await Customer.paginate(query, options);
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(parPage),
+        sort: sortOptions,
+        select: "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        populate: { path: "assignedAdmin", select: "name email image role" },
+        lean: true,
+        ...(collation && { collation }),
+      };
+
+      const result = await Customer.paginate(query, options);
 
       return responseReturn(res, 200, {
-        customers: customers.docs,
+        customers: result.docs,
         pagination: {
-          totalDocs: customers.totalDocs,
-          limit: customers.limit,
-          totalPages: customers.totalPages,
-          page: customers.page,
-          pagingCounter: customers.pagingCounter,
-          hasPrevPage: customers.hasPrevPage,
-          hasNextPage: customers.hasNextPage,
-          prevPage: customers.prevPage,
-          nextPage: customers.nextPage,
+          totalDocs: result.totalDocs,
+          limit: result.limit,
+          totalPages: result.totalPages,
+          page: result.page,
+          pagingCounter: result.pagingCounter,
+          hasPrevPage: result.hasPrevPage,
+          hasNextPage: result.hasNextPage,
+          prevPage: result.prevPage,
+          nextPage: result.nextPage,
         },
       });
     } catch (error) {
-      logger.error(error);
+      logger.error("getCustomers error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
   };
 
-  // Forgot Password - Send OTP
+  // ---------------------------------------------------------------------------
+  // POST /customer/forgot-password
+  // ---------------------------------------------------------------------------
   forgot_password = async (req, res) => {
     const { email } = req.body;
 
     try {
-      // Check if customer exists
       const customer = await Customer.findOne({ email });
-      if (!customer) {
-        return responseReturn(res, 404, { error: "Email not found" });
-      }
 
-      // For social login users, don't allow password reset
-      if (customer.method !== "manual") {
-        return responseReturn(res, 400, {
-          error: `This email is registered with ${customer.method} authentication. Please use ${customer.method} login instead.`,
+      // Always return the same response to prevent email enumeration
+      if (!customer || customer.method !== "manual") {
+        return responseReturn(res, 200, {
+          message: "If that email exists, an OTP has been sent",
+          email,
         });
       }
 
-      function generateOtpInsecure() {
-        // returns 000000 - 999999
-        const num = Math.floor(Math.random() * 1_000_000);
-        return String(num).padStart(6, "0");
-      }
+      // Use crypto for a cryptographically secure OTP
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const otpExpiry = Date.now() + 15 * 60 * 1000;
 
-      // Generate OTP (6-digit code)
-      const otp = generateOtpInsecure();
-      const otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
-
-      // Hash OTP before storing in database
-      const hashedOtp = await bcrypt.hash(otp, 10);
-
-      // Save hashed OTP and expiry to customer document
-      customer.resetPasswordOTP = hashedOtp;
+      customer.resetPasswordOTP = await bcrypt.hash(otp, 10);
       customer.resetPasswordExpires = otpExpiry;
       await customer.save();
 
-      // Prepare email content
-      const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #1B4332; margin: 0;">Zanzi Trekking & Safaris</h1>
-          <p style="color: #E76F51; margin: 5px 0;">Your Adventure Awaits</p>
-        </div>
-        
-        <div style="background: linear-gradient(135deg, #1B4332, #E76F51); padding: 30px; border-radius: 15px; color: white; text-align: center; margin-bottom: 30px;">
-          <h2 style="margin: 0 0 15px 0; font-size: 24px;">Password Reset Request</h2>
-          <p style="margin: 0; opacity: 0.9;">You requested to reset your password. Use the OTP below to proceed:</p>
-        </div>
-        
-        <div style="background-color: #f0f9f4; padding: 25px; text-align: center; margin: 20px 0; border-radius: 10px; border: 2px solid #1B4332;">
-          <h1 style="color: #1B4332; margin: 0; font-size: 36px; letter-spacing: 8px; font-weight: bold;">${otp}</h1>
-        </div>
-        
-        <div style="background-color: #fff7ed; padding: 20px; border-radius: 10px; border-left: 4px solid #F4A261; margin: 20px 0;">
-          <p style="margin: 0; color: #92400e;"><strong>Important:</strong> This OTP will expire in 15 minutes.</p>
-          <p style="margin: 5px 0 0 0; color: #92400e;">If you didn't request this reset, please ignore this email.</p>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
-          <p style="color: #78716c; font-size: 14px; margin: 0;">This is an automated message from Zanzi Trekking & Safaris</p>
-          <p style="color: #78716c; font-size: 12px; margin: 5px 0 0 0;">Please do not reply to this email</p>
-        </div>
-      </div>
-    `;
-
-      // Add to email queue
       emailQueue.add({
         subject: "Password Reset OTP - Zanzi Trekking & Safaris",
-        content: emailContent,
+        content: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #1B4332;">Password Reset Request</h2>
+            <p>Use the OTP below to reset your password:</p>
+            <div style="background-color: #f0f9f4; padding: 25px; text-align: center; border-radius: 10px; border: 2px solid #1B4332;">
+              <h1 style="color: #1B4332; margin: 0; font-size: 36px; letter-spacing: 8px;">${otp}</h1>
+            </div>
+            <p><strong>This OTP expires in 15 minutes.</strong></p>
+            <p>If you didn't request this, please ignore this email.</p>
+          </div>
+        `,
         recipients: [email],
       });
 
       return responseReturn(res, 200, {
-        message: "OTP sent to your email",
-        email: email, // Return email for frontend state
+        message: "If that email exists, an OTP has been sent",
+        email,
       });
     } catch (error) {
-      logger.error("Forgot password error:", error);
+      logger.error("forgot_password error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
-  // Verify OTP
+  // ---------------------------------------------------------------------------
+  // POST /customer/verify-otp
+  // ---------------------------------------------------------------------------
   verify_otp = async (req, res) => {
     const { email, otp } = req.body;
 
     try {
-      // Find customer with matching email and valid expiry
       const customer = await Customer.findOne({
         email,
         resetPasswordExpires: { $gt: Date.now() },
-      }).select('+resetPasswordOTP');
+      }).select("+resetPasswordOTP");
 
-      if (!customer || !customer.resetPasswordOTP) {
+      if (!customer?.resetPasswordOTP) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
-      // Compare provided OTP with hashed OTP
       const isOtpValid = await bcrypt.compare(otp, customer.resetPasswordOTP);
       if (!isOtpValid) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
-      // OTP is valid
       return responseReturn(res, 200, {
         message: "OTP verified successfully",
         verified: true,
       });
     } catch (error) {
-      logger.error("Verify OTP error:", error);
+      logger.error("verify_otp error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
-  // Resend OTP
+  // ---------------------------------------------------------------------------
+  // POST /customer/resend-otp
+  // ---------------------------------------------------------------------------
   resend_otp = async (req, res) => {
     const { email } = req.body;
 
     try {
-      // Find customer by email
       const customer = await Customer.findOne({ email });
 
-      if (!customer) {
-        return responseReturn(res, 404, { error: "Customer not found" });
-      }
-
-      // Check if customer used social login
-      if (!customer.password) {
-        return responseReturn(res, 400, {
-          error: "Password reset not available for social login accounts",
+      // Same response regardless — prevent enumeration
+      if (!customer || customer.method !== "manual") {
+        return responseReturn(res, 200, {
+          message: "If that email exists, a new OTP has been sent",
         });
       }
 
-      // Generate new OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp = crypto.randomInt(100000, 999999).toString();
 
-      // Hash OTP before storing
-      const hashedOtp = await bcrypt.hash(otp, 10);
-
-      // Set hashed OTP and expiry (15 minutes)
-      customer.resetPasswordOTP = hashedOtp;
-      customer.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
-
+      customer.resetPasswordOTP = await bcrypt.hash(otp, 10);
+      customer.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
       await customer.save();
 
-      // Send OTP email
-      const emailData = {
-        to: email,
-        subject: "New Verification Code - Zanzi Trekking",
-        template: "otp",
-        data: {
-          name: customer.name,
-          otp: otp,
-        },
-      };
-
-      await emailQueue.add("send-email", emailData);
+      emailQueue.add({
+        subject: "New Verification Code - Zanzi Trekking & Safaris",
+        content: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #1B4332;">New Verification Code</h2>
+            <p>Hi ${customer.name}, here is your new OTP:</p>
+            <div style="background-color: #f0f9f4; padding: 25px; text-align: center; border-radius: 10px; border: 2px solid #1B4332;">
+              <h1 style="color: #1B4332; margin: 0; font-size: 36px; letter-spacing: 8px;">${otp}</h1>
+            </div>
+            <p><strong>This OTP expires in 15 minutes.</strong></p>
+          </div>
+        `,
+        recipients: [email],
+      });
 
       return responseReturn(res, 200, {
-        message: "New verification code sent to your email",
+        message: "If that email exists, a new OTP has been sent",
       });
     } catch (error) {
-      logger.error("Resend OTP error:", error);
+      logger.error("resend_otp error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 
-  // Reset Password
+  // ---------------------------------------------------------------------------
+  // POST /customer/reset-password
+  // ---------------------------------------------------------------------------
   reset_password = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     try {
-      // Find customer with matching email and valid expiry
       const customer = await Customer.findOne({
         email,
         resetPasswordExpires: { $gt: Date.now() },
-      }).select('+resetPasswordOTP');
+      }).select("+resetPasswordOTP");
 
-      if (!customer || !customer.resetPasswordOTP) {
+      if (!customer?.resetPasswordOTP) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
-      // Compare provided OTP with hashed OTP
       const isOtpValid = await bcrypt.compare(otp, customer.resetPasswordOTP);
       if (!isOtpValid) {
         return responseReturn(res, 400, { error: "Invalid or expired OTP" });
       }
 
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      // Update password and clear OTP fields
-      customer.password = hashedPassword;
+      customer.password = await bcrypt.hash(newPassword, 10);
       customer.resetPasswordOTP = undefined;
       customer.resetPasswordExpires = undefined;
+      // Invalidate all existing sessions on password reset
+      customer.refreshToken = null;
       await customer.save();
 
+      clearAuthCookies(res);
+
       return responseReturn(res, 200, {
-        message:
-          "Password reset successfully. You can now login with your new password.",
+        message: "Password reset successfully. Please log in with your new password.",
       });
     } catch (error) {
-      logger.error("Reset password error:", error);
+      logger.error("reset_password error:", error);
       return responseReturn(res, 500, { error: "Internal server error" });
     }
   };
 }
+
 module.exports = new CustomerController();

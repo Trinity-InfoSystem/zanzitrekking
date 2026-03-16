@@ -2,7 +2,7 @@ import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import "./App.css";
 import { useDispatch, useSelector } from "react-redux";
-import { get_category, get_products } from "./store/reducers/homeReducer";
+import { get_category } from "./store/reducers/homeReducer";
 import {
   get_cart_trips,
   get_wishlist_trips,
@@ -24,15 +24,11 @@ const Home = lazy(() => import("./pages/Home"));
 const Trips = lazy(() => import("./pages/Trips"));
 const Card = lazy(() => import("./pages/Cart"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
-const Shipping = lazy(() => import("./pages/Shipping"));
-const Details = lazy(() => import("./pages/Details"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPasswordEmail = lazy(() => import("./pages/ForgotPasswordEmail"));
 const ForgotPasswordOTP = lazy(() => import("./pages/ForgotPasswordOTP"));
 const ForgotPasswordReset = lazy(() => import("./pages/ForgotPasswordReset"));
-const CategoryShops = lazy(() => import("./pages/CategoryShop"));
-const SearchProducts = lazy(() => import("./pages/SearchProducts"));
 const GoogleReviews = lazy(() => import("./pages/GoogleReviews"));
 const SafariBookingReviews = lazy(() => import("./pages/SafariBookingReviews"));
 const GetYourGuideReviews = lazy(() => import("./pages/GetYourGuideReviews"));
@@ -75,8 +71,8 @@ import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility
 import { getPdfs } from "./store/reducers/pdfReducer";
 import SEO from "./components/SEO";
 import { initRouteOptimizations } from "./utils/routeOptimization";
-import ChatBot from "./components/Chatbot/ChatBot";
 import { hydrateAuth } from "./store/reducers/authReducer";
+import ChatBot from "./components/Chatbot/ChatBot";
 
 // ✅ Optimized ScrollToTop with smooth behavior
 const ScrollToTop = () => {
@@ -102,7 +98,6 @@ function App() {
   useEffect(() => {
     dispatch(hydrateAuth());
     dispatch(get_category());
-    dispatch(get_products());
   }, [dispatch]);
 
   // ✅ Defer non-critical data fetching to improve initial load
@@ -148,7 +143,12 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <ScrollToTop />
       <SEO />
       <div>
@@ -159,10 +159,8 @@ function App() {
             <Route path="/trips" element={<Trips />} />
             <Route path="/trip/details/:tripId" element={<TripDetails />} />
             <Route path="/cart" element={<Card />} />
-            <Route path="/shipping" element={<Shipping />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/about-us" element={<AboutUs />} />
-            <Route path="/product/detail/:productId" element={<Details />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
@@ -177,8 +175,6 @@ function App() {
               path="/forgot-password-reset"
               element={<ForgotPasswordReset />}
             />
-            <Route path="/products?" element={<CategoryShops />} />
-            <Route path="/products/search?" element={<SearchProducts />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:blogId" element={<BlogPost />} />
             <Route path="/careers" element={<Jobs />} />

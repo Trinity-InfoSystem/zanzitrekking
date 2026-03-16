@@ -56,7 +56,11 @@ class ErrorBoundary extends React.Component {
                 Refresh Page
               </button>
               <button
-                onClick={() => (window.location.href = "/")}
+                onClick={() => {
+                  // Use replaceState to avoid creating history entry
+                  window.history.replaceState({}, "", "/");
+                  window.location.reload();
+                }}
                 className="w-full bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Go to Homepage

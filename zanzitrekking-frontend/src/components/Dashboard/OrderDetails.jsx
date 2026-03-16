@@ -170,7 +170,7 @@ const OrderDetails = () => {
           </div>
         </div>
 
-        {/* Order Products */}
+        {/* Order Items (Trips) */}
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft">
           <div className="border-b border-neutral-200 bg-background-muted p-4 sm:p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-primary-800">
@@ -180,8 +180,8 @@ const OrderDetails = () => {
           </div>
 
           <div className="divide-y divide-neutral-100 p-4 sm:p-6">
-            {myOrder.products?.length > 0 ? (
-              myOrder.products.map((prd, i) => (
+            {myOrder.cartItems?.length > 0 ? (
+              myOrder.cartItems.map((item, i) => (
                 <div
                   key={i}
                   className="flex flex-col gap-4 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
@@ -190,51 +190,40 @@ const OrderDetails = () => {
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200">
                       <img
                         className="h-full w-full object-cover"
-                        src={prd.images?.[0] || "/placeholder.svg"}
-                        alt={prd.name}
+                        src={item.mainImage || item.tripId?.mainImage || "/placeholder.svg"}
+                        alt={item.mainTitle || item.tripId?.mainTitle || "Trip"}
                       />
                     </div>
                     <div className="flex flex-col justify-center">
                       <Link
-                        to="#"
+                        to={`/trip/details/${item.tripId?._id || item.tripId || ""}`}
                         className="text-sm font-semibold text-primary-800 hover:text-primary-600"
                       >
-                        {prd.name}
+                        {item.mainTitle || item.tripId?.mainTitle || "Trip"}
                       </Link>
                       <p className="mt-1 text-xs text-text-light">
-                        Brand: {prd.brand}
+                        Travelers: {item.travelersNumber || 1}
                       </p>
-                      <p className="text-xs text-text-light">
-                        Quantity: {prd.quantity}
-                      </p>
+                      {item.startingDate && (
+                        <p className="text-xs text-text-light">
+                          Date: {new Date(item.startingDate).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4 sm:flex-col sm:items-end">
                     <div className="text-right">
                       <p className="text-base font-bold text-primary-800">
-                        $
-                        {(prd.price - (prd.price * prd.discount) / 100).toFixed(
-                          2,
-                        )}
+                        ${(item.itemTotal || item.itemSubtotal || 0).toFixed(2)}
                       </p>
-                      {prd.discount > 0 && (
-                        <div className="mt-1 flex items-center gap-2">
-                          <p className="text-xs text-text-lighter line-through">
-                            ${prd.price}
-                          </p>
-                          <span className="rounded-md bg-error-100 px-1.5 py-0.5 text-xs font-medium text-error-700">
-                            -{prd.discount}%
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="py-8 text-center">
-                <p className="text-sm text-text-light">No products found</p>
+                <p className="text-sm text-text-light">No items found</p>
               </div>
             )}
           </div>

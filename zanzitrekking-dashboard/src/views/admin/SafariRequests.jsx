@@ -111,10 +111,8 @@ const fetchAllRequestsStatsForAnalytics = useCallback(async () => {
   setStatsLoading(true);
   try {
     // Use the server-side summary endpoint for status counts (makes minimal API calls)
-    // Use full backend URL in development to bypass Vite proxy issues
-    const backendUrl = import.meta.env.DEV 
-      ? 'http://localhost:5000' 
-      : window.location.origin;
+    // Use environment variable for backend URL
+    const backendUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
     const summaryUrl = `${backendUrl}/api/safari-analytics/summary`;
     const summaryResponse = await fetch(summaryUrl, {
       method: 'GET',
