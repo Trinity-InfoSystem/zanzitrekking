@@ -20,7 +20,7 @@ import {
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../store/reducers/authReducer";
+import { customer_logout } from "../store/reducers/authReducer";
 
 const Dashboard = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -133,8 +133,8 @@ const Dashboard = () => {
     };
   }, [sidebarOpen]);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(customer_logout());
     // Use window.location to force a full page reload and show home page
     window.location.href = "/";
   };

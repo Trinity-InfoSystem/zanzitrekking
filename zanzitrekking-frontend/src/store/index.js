@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { rootReducer } from "./rootReducer";
 import api from "../api/api";
-import { logout, refresh_token } from "./reducers/authReducer";
+import { customer_logout, refresh_token } from "./reducers/authReducer";
 
 /**
  * Redux store configuration.
@@ -87,15 +87,15 @@ api.interceptors.response.use(
 
       try {
         const result = await store.dispatch(refresh_token());
-        
+
         if (refresh_token.fulfilled.match(result)) {
           // Backend sets new httpOnly cookies - don't use localStorage
           // Cookies are sent automatically with withCredentials: true
           // No need to manually add Authorization header - cookies handle it
-          
+
           // Process queued requests (no token needed - cookies handle auth)
           processQueue(null, null);
-          
+
           // Retry original request - cookies will be sent automatically
           return api(originalRequest);
         } else {
@@ -105,15 +105,15 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Process queued requests with error
         processQueue(refreshError, null);
-        
-        // Clear tokens and logout
-        store.dispatch(logout());
-        
+
+        // Clear auth cookies on the backend and local Redux state
+        await store.dispatch(customer_logout());
+
         // Redirect to login if not already there
         if (window.location.pathname !== "/login") {
           window.location.href = "/login";
         }
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
