@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   AlertCircle,
   BadgeCheck,
@@ -78,8 +78,93 @@ const currencies = [
   },
 ];
 
+const MobilePricingCard = ({
+  group,
+  prices,
+  categories,
+  isLoading,
+  convertPrice,
+}) => {
+  return (
+    <div className="pricing-card overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm">
+      <div className="border-b border-neutral-100 bg-gradient-to-r from-slate-50/30 to-transparent p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 shadow-sm">
+            <Users className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-neutral-900">
+              {group.label}
+            </div>
+            <div className="text-xs text-slate-500">
+              {group.number} {group.number === 1 ? "traveler" : "travelers"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2 p-4">
+        {categories.map((category) => {
+          const categoryPrices = prices[category.key];
+          if (!categoryPrices) {return null;}
+
+          const hasAnyPrices = Object.values(categoryPrices).some(
+            (price) => price && price > 0,
+          );
+          if (!hasAnyPrices) {return null;}
+
+          const price = categoryPrices[group.key];
+          const convertedPrice = convertPrice(price);
+          const CategoryIcon = category.icon;
+
+          return (
+            <div
+              key={category.key}
+              className={`category-card flex items-center justify-between rounded-lg ${category.colorClasses.bg} border ${category.colorClasses.border} p-3.5 transition-all ${category.colorClasses.hover}`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br ${category.colorClasses.gradient} shadow-sm`}
+                >
+                  <CategoryIcon className="h-4 w-4 text-white" />
+                </div>
+                <span
+                  className={`text-sm font-semibold ${category.colorClasses.text}`}
+                >
+                  {category.label}
+                </span>
+              </div>
+              {isLoading ? (
+                <div className="h-6 w-24 animate-pulse rounded bg-neutral-200"></div>
+              ) : price && price > 0 ? (
+                <div
+                  className={`text-lg font-bold ${category.colorClasses.price}`}
+                >
+                  {convertedPrice}
+                </div>
+              ) : (
+                <span className="text-sm text-neutral-400">—</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const RatesTab = ({ trip }) => {
   const { pricingType, regularPrices, seasons, discount } = trip;
+
+  const memoizedRegularGroups = useMemo(
+    () => (pricingType === "yearRound" && regularPrices ? getAllGroupSizes(regularPrices) : []),
+    [pricingType, regularPrices]
+  );
+
+  const memoizedSeasonalGroups = useMemo(
+    () => (pricingType === "seasonal" && seasons ? seasons.map(s => getAllGroupSizes(s.rates || {})) : []),
+    [pricingType, seasons]
+  );
 
   const categories = [
     {
@@ -289,74 +374,7 @@ const RatesTab = ({ trip }) => {
     },
   ];
 
-  const MobilePricingCard = ({ group, prices }) => {
-    return (
-      <div className="pricing-card overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-sm">
-        <div className="border-b border-neutral-100 bg-gradient-to-r from-slate-50/30 to-transparent p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 shadow-sm">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-neutral-900">
-                {group.label}
-              </div>
-              <div className="text-xs text-slate-500">
-                {group.number} {group.number === 1 ? "traveler" : "travelers"}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-2 p-4">
-          {categories.map((category) => {
-            const categoryPrices = prices[category.key];
-            if (!categoryPrices) {return null;}
-
-            const hasAnyPrices = Object.values(categoryPrices).some(
-              (price) => price && price > 0,
-            );
-            if (!hasAnyPrices) {return null;}
-
-            const price = categoryPrices[group.key];
-            const convertedPrice = convertPrice(price);
-            const CategoryIcon = category.icon;
-
-            return (
-              <div
-                key={category.key}
-                className={`category-card flex items-center justify-between rounded-lg ${category.colorClasses.bg} border ${category.colorClasses.border} p-3.5 transition-all ${category.colorClasses.hover}`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br ${category.colorClasses.gradient} shadow-sm`}
-                  >
-                    <CategoryIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <span
-                    className={`text-sm font-semibold ${category.colorClasses.text}`}
-                  >
-                    {category.label}
-                  </span>
-                </div>
-                {isLoading ? (
-                  <div className="h-6 w-24 animate-pulse rounded bg-neutral-200"></div>
-                ) : price && price > 0 ? (
-                  <div
-                    className={`text-lg font-bold ${category.colorClasses.price}`}
-                  >
-                    {convertedPrice}
-                  </div>
-                ) : (
-                  <span className="text-sm text-neutral-400">—</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="safari-pricing space-y-6 p-6 lg:p-8">
@@ -632,7 +650,7 @@ const RatesTab = ({ trip }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
-                  {getAllGroupSizes(regularPrices).map((group) => {
+                  {memoizedRegularGroups.map((group) => {
                     return (
                       <tr key={group.key}>
                         <td className="px-6 py-4">
@@ -716,11 +734,14 @@ const RatesTab = ({ trip }) => {
                 All prices shown per person • Year-round rates
               </p>
             </div>
-            {getAllGroupSizes(regularPrices).map((group) => (
+            {memoizedRegularGroups.map((group) => (
               <MobilePricingCard
                 key={group.key}
                 group={group}
                 prices={regularPrices}
+                categories={categories}
+                isLoading={isLoading}
+                convertPrice={convertPrice}
               />
             ))}
           </div>
@@ -825,7 +846,7 @@ const RatesTab = ({ trip }) => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
-                        {getAllGroupSizes(season.rates).map((group) => {
+                        {(memoizedSeasonalGroups[seasonIndex] || []).map((group) => {
                           return (
                             <tr key={group.key}>
                               <td className="px-6 py-4">
@@ -912,11 +933,14 @@ const RatesTab = ({ trip }) => {
                       All prices shown per person • {season.name}
                     </p>
                   </div>
-                  {getAllGroupSizes(season.rates).map((group) => (
+                  {(memoizedSeasonalGroups[seasonIndex] || []).map((group) => (
                     <MobilePricingCard
                       key={group.key}
                       group={group}
                       prices={season.rates}
+                      categories={categories}
+                      isLoading={isLoading}
+                      convertPrice={convertPrice}
                     />
                   ))}
                 </div>

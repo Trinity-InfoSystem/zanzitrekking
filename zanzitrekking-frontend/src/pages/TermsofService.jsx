@@ -24,9 +24,9 @@ import Footer from "../components/Footer";
 const TermsOfService = () => {
   useEffect(() => {
     AOS.init({
-      duration: 800,
+      duration: 400,
       once: true,
-      offset: 50,
+      offset: 60,
     });
   }, []);
 

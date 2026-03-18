@@ -55,10 +55,12 @@ api.interceptors.response.use(
       "/customer/reset-password",
       "/customer/google-login",
       "/customer/facebook-login",
+      "/customer/me",
+      "/customer/logout",
     ];
 
     const isAuthEndpoint = authEndpoints.some((endpoint) =>
-      originalRequest.url?.includes(endpoint)
+      originalRequest.url?.includes(endpoint),
     );
 
     // Only handle 401 errors for non-auth endpoints

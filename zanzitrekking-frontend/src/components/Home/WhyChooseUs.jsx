@@ -22,7 +22,7 @@ const WhyChooseUs = () => {
   const [hoveredCard, setHoveredCard] = useState(null);
 
   useEffect(() => {
-    AOS.init({ once: true, duration: 800, offset: 60 });
+    AOS.init({ once: true, duration: 400, offset: 60 });
   }, []);
 
   const advantages = [

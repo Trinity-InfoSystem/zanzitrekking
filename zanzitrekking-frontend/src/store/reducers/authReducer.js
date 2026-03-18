@@ -233,7 +233,7 @@ export const customer_logout = createAsyncThunk(
 const initialState = {
   loader: false,
   isInitialized: false, // true once hydrateAuth has settled
-  userInfo: null,       // populated after login / hydrateAuth
+  userInfo: null, // populated after login / hydrateAuth
   companyInfo: null,
   customer: null,
   errorMessage: "",

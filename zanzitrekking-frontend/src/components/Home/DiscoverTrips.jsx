@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { get_trips } from "../../store/reducers/tripReducer";
 import { IMAGES_URL } from "../../utils/constants";
-import AOS from "aos";
 import "aos/dist/aos.css";
 
 const DiscoverTrips = () => {
@@ -26,10 +25,6 @@ const DiscoverTrips = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [displayLimit, setDisplayLimit] = useState(6);
-
-  useEffect(() => {
-    AOS.init({ once: true, duration: 800, offset: 60 });
-  }, []);
 
   useEffect(() => {
     dispatch(get_trips({ parPage: 20, currentPage: 1, searchValue: "" }));

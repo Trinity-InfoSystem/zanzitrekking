@@ -19,7 +19,7 @@ import Footer from "../components/Footer";
 const CookiesPolicy = () => {
   useEffect(() => {
     AOS.init({
-      duration: 600,
+      duration: 400,
       once: true,
       offset: 60,
       easing: "ease-out-cubic",

@@ -1,32 +1,37 @@
 import { useDispatch, useSelector } from "react-redux";
-import { lazy, Suspense, useEffect } from "react";
-import Banner from "../components/Banner";
-import Categories from "../components/Categories";
-import Footer from "../components/Footer";
-import Header from "../components/Header";
-import FeatureTrip from "../components/trips/FeatureTrip";
-import { get_special_trips } from "../store/reducers/tripReducer";
-
-import SectionDivider from "../components/Home/SectionDivider";
-import CertificationsSection from "../components/Home/CertificationsSection";
-import LatestBlogs from "../components/Home/LatestBlogs";
-import DiscoverTrips from "../components/Home/DiscoverTrips";
+import { lazy, Suspense, useEffect, useMemo } from "react";
+import { Helmet } from "react-helmet-async";
 import AOS from "aos";
 
-// ✅ Lazy load below-the-fold components
-const TripadvisorReviews = lazy(
-  () => import("../components/TripadvisorReviews"),
-);
-const AchievementsSection = lazy(
-  () => import("../components/Home/AchievementsSection "),
-);
-const GoogleReviewsWidgets = lazy(
-  () => import("../components/GoogleReviewsWidgets"),
-);
+import Header from "../components/Header";
+import Banner from "../components/Banner";
+import Categories from "../components/Categories";
+import FeatureTrip from "../components/trips/FeatureTrip";
+import Footer from "../components/Footer";
+import SectionDivider from "../components/Home/SectionDivider";
+
+import { get_special_trips } from "../store/reducers/tripReducer";
+
+// ✅ Helpers should live OUTSIDE the component rendering cycle to prevent memory leaks and prop recreation.
+const ensureArray = (data) => {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object" && Object.keys(data).length > 0) {
+    return Object.values(data);
+  }
+  return [];
+};
+
+// ✅ Expanded Lazy loading for components considerably below the fold
+const DiscoverTrips = lazy(() => import("../components/Home/DiscoverTrips"));
+const CertificationsSection = lazy(() => import("../components/Home/CertificationsSection"));
+const LatestBlogs = lazy(() => import("../components/Home/LatestBlogs"));
+const AchievementsSection = lazy(() => import("../components/Home/AchievementsSection "));
+const TripadvisorReviews = lazy(() => import("../components/TripadvisorReviews"));
+const GoogleReviewsWidgets = lazy(() => import("../components/GoogleReviewsWidgets"));
 
 // ✅ Simple loading fallback for sections
 const SectionLoader = () => (
-  <div className="flex items-center justify-center py-16">
+  <div className="flex items-center justify-center py-16 min-h-[200px]" aria-label="Loading section...">
     <div className="h-8 w-8 animate-spin rounded-full border-4 border-neutral-200 border-t-primary-600"></div>
   </div>
 );
@@ -36,58 +41,55 @@ const Home = () => {
   const { trips } = useSelector((state) => state.trip);
 
   useEffect(() => {
-    AOS.init({ once: true, duration: 800, offset: 60 });
-  }, []);
-
-  useEffect(() => {
+    AOS.init({ once: true, duration: 400, offset: 60 });
     dispatch(get_special_trips());
   }, [dispatch]);
 
-  // Helper function to ensure data is always an array
-  const ensureArray = (data) => {
-    if (Array.isArray(data)) {return data;}
-    if (data && typeof data === "object" && Object.keys(data).length > 0) {
-      return Object.values(data);
-    }
-    return [];
-  };
+  // Use memoization to avoid changing the array reference if Redux store doesn't change
+  const normalizedTrips = useMemo(() => ensureArray(trips), [trips]);
 
   return (
     <div className="min-h-screen bg-white">
+      {/* 🚀 SEO METADATA */}
+      <Helmet>
+        <title>Zanzi Trekking | Authentic Safaris & Tours</title>
+        <meta name="description" content="Discover unforgettable trekking and safari experiences in Zanzibar. Explore top-rated tours, guides, and vacation packages today." />
+        <link rel="canonical" href="https://www.yourdomain.com/" />
+        {/* OpenGraph properties for links sharing */}
+        <meta property="og:title" content="Zanzi Trekking | Authentic Safaris & Tours" />
+        <meta property="og:description" content="Discover unforgettable trekking and safari experiences in Zanzibar..." />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       <Header />
 
-      {/* ✅ Critical above-the-fold content loads first */}
-      <Banner />
-      <Categories />
+      {/* 🏗️ SEMANTIC MAIN WRAPPER */}
+      <main>
+        {/* Critical above-the-fold content loads synchronously */}
+        <Banner />
+        <Categories />
 
-      {/* Divider between Categories and DiscoverTrips */}
-      <div className="relative w-full py-12">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary-200 to-transparent" />
-        </div>
-      </div>
+        <SectionDivider />
 
-      <DiscoverTrips />
-      <FeatureTrip trips={ensureArray(trips)} />
+        {/* 📉 Below-the-fold content loads asynchronously */}
+        <Suspense fallback={<SectionLoader />}>
+          <DiscoverTrips />
+        </Suspense>
 
-      <CertificationsSection />
-      <LatestBlogs />
-      <SectionDivider />
+        <FeatureTrip trips={normalizedTrips} />
 
+        {/* Consolidating suspense block for sequential sections to avoid jarring UI pop-ins */}
+        <Suspense fallback={<SectionLoader />}>
+          <CertificationsSection />
+          <LatestBlogs />
+          <SectionDivider />
+          
+          <AchievementsSection />
+          <TripadvisorReviews />
+          <GoogleReviewsWidgets />
+        </Suspense>
+      </main>
 
-
-      {/* ✅ Below-the-fold content lazy loads */}
-      <Suspense fallback={<SectionLoader />}>
-        <AchievementsSection />
-      </Suspense>
-
-      <Suspense fallback={<SectionLoader />}>
-        <TripadvisorReviews />
-      </Suspense>
-
-      <Suspense fallback={<SectionLoader />}>
-        <GoogleReviewsWidgets />
-      </Suspense>
       <Footer />
     </div>
   );
