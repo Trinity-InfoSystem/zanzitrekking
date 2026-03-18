@@ -1,196 +1,249 @@
-import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useLocation, useParams } from "react-router-dom";
-import { BASE_URL, getRouteConfig } from "../config/routes";
-import api from "../api/api";
+import { useLocation } from "react-router-dom";
+import { getRouteConfig } from "../config/routes";
 
-const SEO = () => {
+/**
+ * SEO Component
+ *
+ * Usage:
+ * - On static pages (Home, Trips, Blog listing, etc.): just use <SEO /> with no props,
+ *   it will pick up metadata from routeConfig automatically.
+ *
+ * - On dynamic pages (TripDetails, BlogPost, JobDetails): pass props from already-fetched data:
+ *   <SEO
+ *     title="3-Day Safari | Zanzi Safaris"
+ *     description="..."
+ *     image="https://..."
+ *     type="trip"          // "trip" | "blog" | "job" | "website"
+ *     data={tripObject}    // full object for JSON-LD structured data
+ *   />
+ *
+ * This component does NOT make any API calls.
+ * Data should be fetched by the page component and passed as props.
+ */
+const SEO = ({ title: propTitle, description: propDescription, image: propImage, type: propType, data = null }) => {
   const location = useLocation();
-  const params = useParams();
-  const [dynamicMetadata, setDynamicMetadata] = useState(null);
-  const [dynamicContent, setDynamicContent] = useState(null); // Store full content for AI search
-  const baseUrl = BASE_URL;
+  // Use frontend URL from env or fallback to current origin (for SEO, we need the frontend URL, not API URL)
+  const baseUrl = import.meta.env.VITE_FRONTEND_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "https://zanzisafaris.com");
 
-  // Fetch dynamic metadata for dynamic routes (trips, blog posts, jobs)
-  useEffect(() => {
-    const fetchDynamicMetadata = async () => {
-      const routeConfig = getRouteConfig(location.pathname);
+  // Get static metadata from route config as fallback
+  const routeConfig = getRouteConfig(location.pathname);
+  const staticMeta = routeConfig?.metadata || {};
 
-      if (routeConfig?.dynamic) {
-        try {
-          let metadata = null;
-
-          // Fetch trip metadata
-          if (location.pathname.startsWith("/trip/details/") && params.tripId) {
-            try {
-              const { data } = await api.get(`/trip-get/${params.tripId}`);
-              if (data?.trip) {
-                const tripTitle = data.trip.mainTitle || data.trip.title;
-                const tripDescription = data.trip.description || data.trip.overview || "";
-                const tripImage = data.trip.images?.[0] || data.trip.mainImage || "/images/newZanzi.jpg";
-                
-                metadata = {
-                  title: `${tripTitle} | Safari Details | Zanzi Safaris`,
-                  description: tripDescription
-                    ? tripDescription.substring(0, 160)
-                    : `Book ${tripTitle} - Expert guided Tanzania safari adventure.`,
-                  image: tripImage,
-                };
-                // Store full trip data for AI search optimization
-                setDynamicContent({
-                  type: "trip",
-                  data: {
-                    ...data.trip,
-                    title: tripTitle,
-                    images: data.trip.images || (data.trip.mainImage ? [data.trip.mainImage] : []),
-                  },
-                });
-              }
-            } catch (error) {
-              // Failed to fetch trip metadata - use defaults
-            }
-          }
-
-          // Fetch blog post metadata
-          if (location.pathname.startsWith("/blog/") && params.blogId) {
-            try {
-              const { data } = await api.get(`/blogPost-get/${params.blogId}`);
-              if (data?.blogPost) {
-                const blogTitle = data.blogPost.mainTitle || data.blogPost.title;
-                // Create description from mainParagraph or combine paragraphs
-                const blogDescription = data.blogPost.description || 
-                  data.blogPost.mainParagraph || 
-                  data.blogPost.secondParagraph || 
-                  "";
-                const blogImage = data.blogPost.mainImage || data.blogPost.image || "/images/newZanzi.jpg";
-                
-                metadata = {
-                  title: `${blogTitle} | Travel Blog | Zanzi Safaris`,
-                  description: blogDescription
-                    ? blogDescription.substring(0, 160)
-                    : `Read ${blogTitle} on Zanzi Safaris travel blog.`,
-                  image: blogImage,
-                };
-                // Store full blog post data for AI search optimization
-                setDynamicContent({
-                  type: "blog",
-                  data: {
-                    ...data.blogPost,
-                    title: blogTitle,
-                    description: blogDescription,
-                    image: blogImage,
-                  },
-                });
-              }
-            } catch (error) {
-              // Failed to fetch blog metadata - use defaults
-            }
-          }
-
-          // Fetch job metadata
-          if (location.pathname.startsWith("/careers/") && params.jobId) {
-            try {
-              const { data } = await api.get(`/job-get/${params.jobId}`);
-              if (data?.job) {
-                metadata = {
-                  title: `${data.job.title} | Career Opportunity | Zanzi Safaris`,
-                  description: data.job.description
-                    ? data.job.description.substring(0, 160)
-                    : `Apply for ${data.job.title} position at Zanzi Safaris.`,
-                  image: "/images/newZanzi.jpg",
-                };
-                // Store full job data for AI search optimization
-                setDynamicContent({
-                  type: "job",
-                  data: data.job,
-                });
-              }
-            } catch (error) {
-              // Failed to fetch job metadata - use defaults
-            }
-          }
-
-          setDynamicMetadata(metadata);
-        } catch (error) {
-          setDynamicMetadata(null);
-          setDynamicContent(null);
-        }
-      } else {
-        setDynamicMetadata(null);
-        setDynamicContent(null);
-      }
-    };
-
-    fetchDynamicMetadata();
-  }, [location.pathname, params]);
-
-  // Get page metadata from route config
-  const getPageMeta = () => {
-    const routeConfig = getRouteConfig(location.pathname);
-    const baseMetadata = routeConfig?.metadata || {};
-
-    // Merge dynamic metadata if available
-    if (dynamicMetadata) {
-      return {
-        ...baseMetadata,
-        ...dynamicMetadata,
-      };
-    }
-
-    return baseMetadata;
-  };
-
-  const metadata = getPageMeta();
-  const {
-    title = "Zanzi Safaris | Tanzania Safari & Adventure Tours",
-    description = "Explore Tanzania with Zanzi Safaris - Your trusted partner for authentic African adventures, wildlife safaris, and mountain treks.",
-    keywords = "Tanzania safari, African tours, adventure travel, wildlife tours",
-    image = "/images/newZanzi.jpg",
-    type = "website",
-    robots = "index, follow",
-  } = metadata;
+  // Merge: props override route config which overrides defaults
+  const title = propTitle || staticMeta.title || "Zanzi Safaris | Tanzania Safari & Adventure Tours";
+  const description = propDescription || staticMeta.description || "Explore Tanzania with Zanzi Safaris - Your trusted partner for authentic African adventures, wildlife safaris, and mountain treks.";
+  const keywords = staticMeta.keywords || "Tanzania safari, African tours, adventure travel, wildlife tours";
+  const image = propImage || staticMeta.image || "/images/newZanzi.jpg";
+  const pageType = propType || staticMeta.type || "website";
+  const robots = staticMeta.robots || "index, follow";
 
   const currentUrl = `${baseUrl}${location.pathname}`;
   const fullImageUrl = image.startsWith("http") ? image : `${baseUrl}${image}`;
 
-  // Generate breadcrumb structured data for AI search
+  // ─── Structured Data (JSON-LD) ───────────────────────────────────────────
+
+  const getStructuredData = () => {
+    const baseOrg = {
+      "@context": "https://schema.org",
+      "@type": "TravelAgency",
+      name: "Zanzi Safaris",
+      url: baseUrl,
+      logo: `${baseUrl}/images/newZanzi.jpg`,
+      description: "Tanzania Safari, Kilimanjaro Trek & Zanzibar Tours",
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: "TZ",
+        addressLocality: "Arusha",
+      },
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "Customer Service",
+        url: `${baseUrl}/contact-us`,
+      },
+      // ✅ Fill in your real social media URLs here
+      sameAs: [
+        // "https://www.facebook.com/zanzisafaris",
+        // "https://www.instagram.com/zanzisafaris",
+        // "https://www.tiktok.com/@zanzisafaris",
+      ],
+    };
+
+    // Homepage
+    if (location.pathname === "/") {
+      return {
+        ...baseOrg,
+        "@type": "Organization",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${baseUrl}/trips?search={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+        // ✅ TODO: Replace with real review count from your DB
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: "4.8",
+          reviewCount: "150",
+          bestRating: "5",
+          worstRating: "1",
+        },
+        areaServed: { "@type": "Country", name: "Tanzania" },
+        serviceType: ["Safari Tours", "Mountain Trekking", "Beach Holidays", "Adventure Travel"],
+      };
+    }
+
+    // Trip details — data is passed from TripDetails page
+    if (location.pathname.startsWith("/trip/details/") && propType === "trip" && data) {
+      const schema = {
+        "@context": "https://schema.org",
+        "@type": ["TouristTrip", "Product"],
+        name: title,
+        description: data.description || data.overview || description,
+        url: currentUrl,
+        image: data.images?.length ? data.images : [fullImageUrl],
+        provider: {
+          "@type": "TravelAgency",
+          name: "Zanzi Safaris",
+          url: baseUrl,
+        },
+        // ✅ Fixed: use correct field names from your Trip model
+        offers: (data.startingPrice || data.price) ? {
+          "@type": "Offer",
+          price: data.startingPrice || data.price,
+          priceCurrency: data.currency || "USD",
+          availability: "https://schema.org/InStock",
+          url: currentUrl,
+        } : undefined,
+        duration: data.duration ? `P${data.duration}D` : undefined,
+        location: {
+          "@type": "Place",
+          name: data.location || data.destination || "Tanzania",
+          address: {
+            "@type": "PostalAddress",
+            addressCountry: "TZ",
+          },
+        },
+        // ✅ Wire in real reviews when available
+        // aggregateRating: data.rating ? {
+        //   "@type": "AggregateRating",
+        //   ratingValue: data.rating,
+        //   reviewCount: data.reviewCount,
+        // } : undefined,
+      };
+
+      // Clean undefined fields
+      Object.keys(schema).forEach(key => schema[key] === undefined && delete schema[key]);
+      return schema;
+    }
+
+    // Blog listing
+    if (location.pathname === "/blog") {
+      return {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        name: "Zanzi Safaris Travel Blog",
+        url: `${baseUrl}/blog`,
+        description: "Travel guides, safari tips, and Tanzania adventure stories",
+        publisher: { "@type": "Organization", name: "Zanzi Safaris" },
+      };
+    }
+
+    // Blog post — data is passed from BlogPost page
+    if (location.pathname.startsWith("/blog/") && propType === "blog" && data) {
+      return {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: title,
+        description: data.description || data.mainParagraph || description,
+        url: currentUrl,
+        image: fullImageUrl,
+        author: { "@type": "Organization", name: "Zanzi Safaris" },
+        publisher: {
+          "@type": "Organization",
+          name: "Zanzi Safaris",
+          logo: { "@type": "ImageObject", url: `${baseUrl}/images/newZanzi.jpg` },
+        },
+        datePublished: data.createdAt ? new Date(data.createdAt).toISOString() : undefined,
+        dateModified: data.updatedAt ? new Date(data.updatedAt).toISOString() : undefined,
+        mainEntityOfPage: { "@type": "WebPage", "@id": currentUrl },
+        articleSection: data.category || "Travel",
+        keywords: data.tags?.join(", ") || keywords,
+      };
+    }
+
+    // Job posting — data is passed from JobDetails page
+    if (location.pathname.startsWith("/careers/") && propType === "job" && data) {
+      const schema = {
+        "@context": "https://schema.org",
+        "@type": "JobPosting",
+        title,
+        description: data.description || description,
+        url: currentUrl,
+        datePosted: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(),
+        employmentType: data.employmentType || "FULL_TIME",
+        jobLocation: {
+          "@type": "Place",
+          address: {
+            "@type": "PostalAddress",
+            addressCountry: "TZ",
+            addressLocality: "Tanzania",
+          },
+        },
+        hiringOrganization: {
+          "@type": "Organization",
+          name: "Zanzi Safaris",
+          url: baseUrl,
+          logo: `${baseUrl}/images/newZanzi.jpg`,
+        },
+        baseSalary: data.salary ? {
+          "@type": "MonetaryAmount",
+          currency: data.currency || "USD",
+          value: { "@type": "QuantitativeValue", value: data.salary },
+        } : undefined,
+      };
+
+      Object.keys(schema).forEach(key => schema[key] === undefined && delete schema[key]);
+      return schema;
+    }
+
+    return baseOrg;
+  };
+
+  // ─── Breadcrumb Schema ────────────────────────────────────────────────────
+
   const getBreadcrumbSchema = () => {
     const pathSegments = location.pathname.split("/").filter(Boolean);
-    const breadcrumbs = [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: baseUrl,
-      },
-    ];
+    if (pathSegments.length === 0) {
+      return null;
+    }
+
+    const breadcrumbs = [{ "@type": "ListItem", position: 1, name: "Home", item: baseUrl }];
 
     let currentPath = "";
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
-      const position = index + 2;
-      let name = segment
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-
-      // Special handling for known routes
       if (segment === "trip" || segment === "details") {
         return;
       }
-      if (segment === "blog" && index === 0) {
-        name = "Blog";
-      } else if (segment === "careers" && index === 0) {
-        name = "Careers";
-      } else if (segment === "about-us") {
-        name = "About Us";
-      } else if (segment === "contact-us") {
-        name = "Contact Us";
-      }
+
+      const nameMap = {
+        blog: "Blog",
+        careers: "Careers",
+        "about-us": "About Us",
+        "contact-us": "Contact Us",
+        trips: "Trips",
+        "privacy-policy": "Privacy Policy",
+        "terms-of-service": "Terms of Service",
+        "cookie-policy": "Cookie Policy",
+      };
+
+      const name = nameMap[segment] ||
+        segment.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
       breadcrumbs.push({
         "@type": "ListItem",
-        position,
+        position: index + 2,
         name,
         item: `${baseUrl}${currentPath}`,
       });
@@ -203,11 +256,11 @@ const SEO = () => {
     };
   };
 
-  // Generate FAQ schema for AI search (common questions)
+  // ─── FAQ Schema ───────────────────────────────────────────────────────────
+
   const getFAQSchema = () => {
     const faqs = [];
 
-    // Homepage FAQs
     if (location.pathname === "/") {
       faqs.push(
         {
@@ -237,26 +290,24 @@ const SEO = () => {
       );
     }
 
-    // Trip page FAQs
-    if (location.pathname.startsWith("/trip/details/") && dynamicContent?.type === "trip") {
-      const trip = dynamicContent.data;
+    if (location.pathname.startsWith("/trip/details/") && propType === "trip" && data) {
       faqs.push(
         {
           "@type": "Question",
-          name: `What is included in ${trip.title}?`,
+          name: `What is included in ${data.mainTitle || data.title}?`,
           acceptedAnswer: {
             "@type": "Answer",
-            text: trip.description || `The ${trip.title} includes expert guides, transportation, accommodations, and all activities as specified in the itinerary.`,
+            text: data.description || `The ${data.mainTitle || data.title} includes expert guides, transportation, accommodations, and all activities as specified in the itinerary.`,
           },
         },
         {
           "@type": "Question",
-          name: `How long is the ${trip.title}?`,
+          name: `How long is the ${data.mainTitle || data.title}?`,
           acceptedAnswer: {
             "@type": "Answer",
-            text: trip.duration
-              ? `The ${trip.title} is ${trip.duration} days.`
-              : `Please contact us for specific duration details for ${trip.title}.`,
+            text: data.duration
+              ? `The ${data.mainTitle || data.title} is ${data.duration} days.`
+              : `Please contact us for duration details on ${data.mainTitle || data.title}.`,
           },
         },
       );
@@ -273,290 +324,64 @@ const SEO = () => {
     };
   };
 
-  // Generate structured data (JSON-LD) for better SEO and AI search
-  const getStructuredData = () => {
-    const baseStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "TravelAgency",
-      name: "Zanzi Safaris",
-      url: baseUrl,
-      logo: `${baseUrl}/images/newZanzi.jpg`,
-      description: "Tanzania Safari, Kilimanjaro Trek & Zanzibar Tours",
-      address: {
-        "@type": "PostalAddress",
-        addressCountry: "TZ",
-        addressLocality: "Tanzania",
-      },
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "Customer Service",
-        url: `${baseUrl}/contact-us`,
-      },
-      sameAs: [
-        // Add social media links if available
-        // "https://www.facebook.com/zanzisafaris",
-        // "https://www.instagram.com/zanzisafaris",
-      ],
-    };
-
-    // Homepage - Enhanced Organization with SearchAction
-    if (location.pathname === "/") {
-      return {
-        ...baseStructuredData,
-        "@type": "Organization",
-        potentialAction: {
-          "@type": "SearchAction",
-          target: `${baseUrl}/trips?search={search_term_string}`,
-          "query-input": "required name=search_term_string",
-        },
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: "4.8",
-          reviewCount: "150",
-          bestRating: "5",
-          worstRating: "1",
-        },
-        areaServed: {
-          "@type": "Country",
-          name: "Tanzania",
-        },
-        serviceType: [
-          "Safari Tours",
-          "Mountain Trekking",
-          "Beach Holidays",
-          "Adventure Travel",
-        ],
-      };
-    }
-
-    // Trip details - Enhanced TouristTrip with Event schema for AI search
-    if (location.pathname.startsWith("/trip/details/")) {
-      const trip = dynamicContent?.type === "trip" ? dynamicContent.data : null;
-
-      const tripSchema = {
-        "@context": "https://schema.org",
-        "@type": ["TouristTrip", "Event"],
-        name: title,
-        description: trip?.description || description,
-        url: currentUrl,
-        image: trip?.images || [fullImageUrl],
-        provider: {
-          "@type": "TravelAgency",
-          name: "Zanzi Safaris",
-          url: baseUrl,
-          logo: `${baseUrl}/images/newZanzi.jpg`,
-        },
-        offers: trip?.price
-          ? {
-              "@type": "Offer",
-              price: trip.price,
-              priceCurrency: trip.currency || "USD",
-              availability: "https://schema.org/InStock",
-              url: currentUrl,
-            }
-          : undefined,
-        duration: trip?.duration
-          ? `P${trip.duration}D`
-          : undefined,
-        location: {
-          "@type": "Place",
-          name: trip?.location || "Tanzania",
-          address: {
-            "@type": "PostalAddress",
-            addressCountry: "TZ",
-          },
-        },
-      };
-
-      // Remove undefined fields
-      Object.keys(tripSchema).forEach(
-        (key) => tripSchema[key] === undefined && delete tripSchema[key],
-      );
-
-      return tripSchema;
-    }
-
-    // Blog listing
-    if (location.pathname === "/blog") {
-      return {
-        "@context": "https://schema.org",
-        "@type": "Blog",
-        name: "Zanzi Safaris Travel Blog",
-        url: `${baseUrl}/blog`,
-        description: "Travel guides, safari tips, and Tanzania adventure stories",
-        publisher: {
-          "@type": "Organization",
-          name: "Zanzi Safaris",
-        },
-      };
-    }
-
-    // Blog post - Enhanced BlogPosting for AI search
-    if (location.pathname.startsWith("/blog/")) {
-      const blogPost = dynamicContent?.type === "blog" ? dynamicContent.data : null;
-
-      return {
-        "@context": "https://schema.org",
-        "@type": "BlogPosting",
-        headline: title,
-        description: blogPost?.description || description,
-        url: currentUrl,
-        image: fullImageUrl,
-        author: {
-          "@type": "Organization",
-          name: "Zanzi Safaris",
-        },
-        publisher: {
-          "@type": "Organization",
-          name: "Zanzi Safaris",
-          logo: {
-            "@type": "ImageObject",
-            url: `${baseUrl}/images/newZanzi.jpg`,
-          },
-        },
-        datePublished: blogPost?.createdAt
-          ? new Date(blogPost.createdAt).toISOString()
-          : new Date().toISOString(),
-        dateModified: blogPost?.updatedAt
-          ? new Date(blogPost.updatedAt).toISOString()
-          : undefined,
-        mainEntityOfPage: {
-          "@type": "WebPage",
-          "@id": currentUrl,
-        },
-        articleSection: blogPost?.category || "Travel",
-        keywords: blogPost?.tags?.join(", ") || keywords,
-      };
-    }
-
-    // Job posting - Enhanced JobPosting for AI search
-    if (location.pathname.startsWith("/careers/")) {
-      const job = dynamicContent?.type === "job" ? dynamicContent.data : null;
-
-      return {
-        "@context": "https://schema.org",
-        "@type": "JobPosting",
-        title,
-        description: job?.description || description,
-        url: currentUrl,
-        datePosted: job?.createdAt
-          ? new Date(job.createdAt).toISOString()
-          : new Date().toISOString(),
-        employmentType: job?.employmentType || "FULL_TIME",
-        jobLocation: {
-          "@type": "Place",
-          address: {
-            "@type": "PostalAddress",
-            addressCountry: "TZ",
-            addressLocality: "Tanzania",
-          },
-        },
-        hiringOrganization: {
-          "@type": "Organization",
-          name: "Zanzi Safaris",
-          url: baseUrl,
-          logo: `${baseUrl}/images/newZanzi.jpg`,
-        },
-        baseSalary: job?.salary
-          ? {
-              "@type": "MonetaryAmount",
-              currency: job.currency || "USD",
-              value: {
-                "@type": "QuantitativeValue",
-                value: job.salary,
-              },
-            }
-          : undefined,
-      };
-    }
-
-    return baseStructuredData;
-  };
-
   const structuredData = getStructuredData();
   const breadcrumbData = getBreadcrumbSchema();
   const faqData = getFAQSchema();
 
   return (
-    <>
-      <Helmet>
-        {/* Primary Meta Tags */}
-        <title>{title}</title>
-        <meta name="title" content={title} />
-        <meta name="description" content={description} />
-        <meta name="keywords" content={keywords} />
-        <meta name="robots" content={robots} />
+    <Helmet>
+      {/* Primary Meta Tags */}
+      <title>{title}</title>
+      <meta name="title" content={title} />
+      <meta name="description" content={description} />
+      <meta name="keywords" content={keywords} />
+      <meta name="robots" content={robots} />
 
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content={type} />
-        <meta property="og:url" content={currentUrl} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:image" content={fullImageUrl} />
-        <meta property="og:site_name" content="Zanzi Safaris" />
-        <meta property="og:locale" content="en_US" />
+      {/* Open Graph */}
+      <meta property="og:type" content={pageType} />
+      <meta property="og:url" content={currentUrl} />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:image" content={fullImageUrl} />
+      <meta property="og:site_name" content="Zanzi Safaris" />
+      <meta property="og:locale" content="en_US" />
 
-        {/* Twitter */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content={currentUrl} />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content={fullImageUrl} />
+      {/* Twitter */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:url" content={currentUrl} />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={fullImageUrl} />
 
-        {/* Canonical URL */}
-        <link rel="canonical" href={currentUrl} />
+      {/* Canonical */}
+      <link rel="canonical" href={currentUrl} />
 
-        {/* Favicon */}
-        <link rel="icon" href="/favicon/favicon-16x16.png" />
-        <link
-          rel="apple-touch-icon"
-          sizes="180x180"
-          href="/favicon/apple-touch-icon.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="32x32"
-          href="/favicon/favicon-32x32.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="/favicon/favicon-16x16.png"
-        />
+      {/* Favicon */}
+      <link rel="icon" href="/favicon/favicon-16x16.png" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png" />
+      <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png" />
+      <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png" />
 
-        {/* Additional SEO tags */}
-        <meta name="language" content="English" />
-        <meta name="author" content="Zanzi Safaris" />
-        <meta name="geo.region" content="TZ" />
-        <meta name="geo.placename" content="Tanzania" />
+      {/* Geo & Author */}
+      <meta name="language" content="English" />
+      <meta name="author" content="Zanzi Safaris" />
+      <meta name="geo.region" content="TZ" />
+      <meta name="geo.placename" content="Tanzania" />
 
-        {/* Mobile optimization */}
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </Helmet>
+      {/* Mobile */}
+      <meta name="mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-      {/* Primary Structured Data (JSON-LD) for SEO and AI search */}
-      <script type="application/ld+json">
-        {JSON.stringify(structuredData)}
-      </script>
-
-      {/* Breadcrumb Structured Data for AI search context */}
+      {/* ✅ JSON-LD scripts inside Helmet so they're managed on route changes */}
+      <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       {breadcrumbData && (
-        <script type="application/ld+json">
-          {JSON.stringify(breadcrumbData)}
-        </script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbData)}</script>
       )}
-
-      {/* FAQ Structured Data for AI search (ChatGPT, Perplexity, etc.) */}
       {faqData && (
-        <script type="application/ld+json">
-          {JSON.stringify(faqData)}
-        </script>
+        <script type="application/ld+json">{JSON.stringify(faqData)}</script>
       )}
-    </>
+    </Helmet>
   );
 };
 
