@@ -5,6 +5,7 @@ const Order = require("../../models/order");
 const { responseReturn } = require("../../utilities/response");
 const path = require("path");
 const fs = require("fs");
+const redis = require('../../redis');
 
 class WhoWeAreController {
   get_whoWeAre = async (req, res) => {
@@ -190,6 +191,7 @@ class WhoWeAreController {
 
   // get Statistic data
   get_statistic_data = async (req, res) => {
+    const key=`home:statistics`
     try {
       const totalTrips = await Trip.countDocuments();
       // overall rating
@@ -212,6 +214,15 @@ class WhoWeAreController {
       const totalOrderRevenue = await Order.aggregate([
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
       ]);
+      
+      await redis.set(key, JSON.stringify({
+        statisticData: {
+          totalTrips,
+          totalOrderTraveller: totalOrderTraveller[0]?.total || 0,
+          totalOrderRevenue: totalOrderRevenue[0]?.total || 0,
+          overallRating: overallRating[0]?.total || 0,
+        },
+      }), "EX", 3600);
       responseReturn(res, 200, {
         statisticData: {
           totalTrips,

@@ -2,6 +2,7 @@ const ImpactStatModel = require("../../models/impactStat");
 const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const mongoose = require("mongoose");
+const redis = require('../../redis');
 
 class ImpactStatController {
   // Add Impact Stat
@@ -61,7 +62,7 @@ class ImpactStatController {
         updateFields,
         { new: true, runValidators: true }
       );
-
+      await redis.del(`home:impact-stats`);
       responseReturn(res, 200, {
         message: "Impact Stat updated successfully",
         impactStat: updatedImpactStat,
@@ -78,7 +79,7 @@ class ImpactStatController {
   // Get Impact Stats
   get_impact_stats = async (req, res) => {
     const { page, parPage } = req.query;
-
+    const key=`home:impact-stats` 
     try {
       let skipPage = "";
       if (parPage && page) {
@@ -91,6 +92,7 @@ class ImpactStatController {
       impactStatsQuery = impactStatsQuery.sort({ order: 1, createdAt: -1 });
       const impactStats = await impactStatsQuery;
       const totalImpactStats = await ImpactStatModel.countDocuments({});
+      await redis.set(key, JSON.stringify(transformedPdfs), "EX", 86400);
       responseReturn(res, 200, {
         totalImpactStats,
         impactStats,

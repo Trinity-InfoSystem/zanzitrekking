@@ -4,6 +4,8 @@ const { responseReturn } = require("../../utilities/response");
 const StringSimilarity = require("../../utilities/stringSimilarity");
 const fs = require("fs");
 const path = require("path");
+const redis = require('../../redis');
+
 class CategoryControllers {
   get_one_category = async (req, res) => {
     const { categoryId } = req.params;
@@ -60,6 +62,7 @@ class CategoryControllers {
           error: "Category couldn't be created",
         });
       } else {
+        await redis.del("home:categories");
         // Send back the created category
         return responseReturn(res, 202, {
           message: "Category Successfully created",
@@ -225,7 +228,7 @@ class CategoryControllers {
       if (!updatedCategory) {
         return responseReturn(res, 404, { error: "Category not found" });
       }
-
+      await redis.del("home:categories");
       return responseReturn(res, 200, {
         message: "Category successfully updated",
         data: updatedCategory,
@@ -293,7 +296,7 @@ class CategoryControllers {
       if (!updatedCategory) {
         return responseReturn(res, 404, { error: "Category not found" });
       }
-
+      await redis.del("home:categories");
       return responseReturn(res, 200, {
         message: "Category image successfully updated",
         data: updatedCategory,
@@ -349,7 +352,7 @@ class CategoryControllers {
       if (!deletedCategory) {
         return responseReturn(res, 404, { error: "Category not found" });
       }
-
+      await redis.del("home:categories");
       return responseReturn(res, 200, {
         message: "Category deleted successfully",
       });
@@ -365,6 +368,7 @@ class CategoryControllers {
       const deletedCategories = await Category.deleteMany({
         _id: { $in: ids },
       });
+      await redis.del("home:categories");
       return responseReturn(res, 200, {
         message: `Deleted ${deletedCategories.deletedCount} categories successfully`,
         deletedCount: deletedCategories.deletedCount,

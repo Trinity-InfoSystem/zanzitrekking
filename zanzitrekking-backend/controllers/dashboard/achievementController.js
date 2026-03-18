@@ -4,6 +4,8 @@ const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const redis = require('../../redis');
+const { delPattern } = require('../../utilities/cache');
 
 class AchievementController {
   // Add Achievement
@@ -143,6 +145,7 @@ class AchievementController {
         { new: true, runValidators: true }
       );
 
+      await delPattern(`home:achievements:${type || 'all'}`)
       responseReturn(res, 200, {
         message: "Achievement updated successfully",
         achievement: updatedAchievement,
@@ -159,7 +162,7 @@ class AchievementController {
   // Get Achievements
   get_achievements = async (req, res) => {
     const { page, searchValue, parPage, type } = req.query;
-
+    const key = `home:achievements:${type || 'all'}`;
     try {
       let skipPage = "";
       if (parPage && page) {
@@ -182,6 +185,10 @@ class AchievementController {
       achievementsQuery = achievementsQuery.sort({ order: 1, createdAt: -1 });
       const achievements = await achievementsQuery;
       const totalAchievements = await AchievementModel.countDocuments(query);
+      await redis.set(key, JSON.stringify({
+          totalAchievements,
+          achievements,
+        }), "EX", 86400);
       responseReturn(res, 200, {
         totalAchievements,
         achievements,

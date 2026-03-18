@@ -15,6 +15,9 @@ const {
   generatePaymentRejectionEmail,
   generateRefundEmail,
 } = require("../../utilities/orderEmailTemplates");
+const redis = require("../../redis");
+const crypto = require("crypto");
+const { delPattern } = require('../../utilities/cache');
 
 class OrderController {
   // Create new order from cart items
@@ -485,6 +488,11 @@ class OrderController {
       // Recalculate order totals
       order.calculateOrderTotals();
       await order.save();
+      await Promise.allSettled([
+        delPattern(`customer:${order.customerId}:orders:history:*`),
+        redis.del(`customer:${order.customerId}:orders:statistics`),
+        redis.del(`order:${orderId}`)
+      ]);
 
       return responseReturn(res, 200, {
         message: "Order pricing updated successfully",
@@ -561,7 +569,12 @@ class OrderController {
         { path: "customerId", select: "name email" },
         { path: "cartItems.tripId", select: "mainTitle mainImage" },
       ]);
-
+      await Promise.allSettled([
+        delPattern(`customer:${order.customerId}:orders:history:*`),
+        redis.del(`customer:${order.customerId}:orders:statistics`),
+        redis.del(`order:${orderId}`)
+      ]);
+      
       return responseReturn(res, 200, {
         message: "Order status updated successfully",
         order,
@@ -607,6 +620,7 @@ class OrderController {
   // Get order by ID
   getOrderById = async (req, res) => {
     const { orderId } = req.params;
+    const key = `order:${orderId}`;
 
     try {
       const order = await Order.findById(orderId)
@@ -622,7 +636,7 @@ class OrderController {
       if (!order) {
         return responseReturn(res, 404, { error: "Order not found" });
       }
-
+      await redis.set(key, JSON.stringify({ order }), "EX", 600);
       return responseReturn(res, 200, { order });
     } catch (error) {
       logger.error("Get order by ID error:", error);
@@ -634,7 +648,17 @@ class OrderController {
   getCustomerOrderHistory = async (req, res) => {
     const { customerId } = req.params;
     const { page = 1, parPage = 10, status } = req.query;
-
+     const hash = crypto
+          .createHash("md5")
+          .update(
+            JSON.stringify({
+              page: Number(page) || 1,
+              parPage: Number(parPage) || 10,
+              status: status || "",
+            })
+          )
+          .digest("hex");
+    const key=`customer:${customerId}:orders:history:${hash}`
     try {
       // Validate customer exists
       const customer = await Customer.findById(customerId);
@@ -665,8 +689,7 @@ class OrderController {
       }
 
       const orders = await Order.paginate(query, options);
-
-      return responseReturn(res, 200, {
+      const responseData = {
         orders: orders.docs,
         pagination: {
           totalDocs: orders.totalDocs,
@@ -679,7 +702,10 @@ class OrderController {
           prevPage: orders.prevPage,
           nextPage: orders.nextPage,
         },
-      });
+      };
+      await redis.set(key, JSON.stringify(responseData), "EX", 1800);
+
+      return responseReturn(res, 200, responseData);
     } catch (error) {
       logger.error("Get customer order history error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });
@@ -918,7 +944,12 @@ class OrderController {
           `[Email] ⚠️ No email found for order ${order.orderNumber}, skipping email notification`
         );
       }
-
+      await Promise.allSettled([
+        delPattern(`customer:${order.customerId}:orders:history:*`),
+        redis.del(`customer:${order.customerId}:orders:statistics`),
+        redis.del(`order:${orderId}`)
+      ]);
+      
       return responseReturn(res, 200, {
         message: "Payment status updated successfully",
         order,
@@ -967,6 +998,10 @@ class OrderController {
       await order.populate([
         { path: "customerId", select: "name email" },
         { path: "cartItems.tripId", select: "title mainImage" },
+      ]);
+      await Promise.allSettled([
+        delPattern(`customer:${order.customerId}:orders:history:*`),
+        redis.del(`customer:${order.customerId}:orders:statistics`),
       ]);
 
       return responseReturn(res, 200, {
@@ -1064,6 +1099,7 @@ class OrderController {
   // Get customer-specific order statistics
   getCustomerOrderStatistics = async (req, res) => {
     const { customerId } = req.params;
+    const key=`customer:${customerId}:orders:statistics`;
 
     try {
       // Auto-check for completed trips before getting statistics
@@ -1197,8 +1233,7 @@ class OrderController {
             .length || 0)
         );
       }, 0);
-
-      return responseReturn(res, 200, {
+      const responseData = {
         customer: {
           id: customer._id,
           name: customer.name,
@@ -1249,7 +1284,10 @@ class OrderController {
               days: item.days,
             })) || [],
         })),
-      });
+      };
+      await redis.set(key, JSON.stringify(responseData), "EX", 1800);
+
+      return responseReturn(res, 200, responseData);
     } catch (error) {
       logger.error("Get customer order statistics error:", error);
       return responseReturn(res, 500, { error: "Internal Server Error" });

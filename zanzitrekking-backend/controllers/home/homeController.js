@@ -36,7 +36,7 @@ class HomeControllers {
         key,
         JSON.stringify({ categories: categoriesWithCounts, totalTrips: totalTrips }),
         'EX',
-        3600
+        86400
       )
 
       responseReturn(res, 200, {

@@ -4,6 +4,7 @@ const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const redis = require('../../redis');
 
 class ClientController {
   // Add Client
@@ -112,7 +113,7 @@ class ClientController {
         updateFields,
         { new: true, runValidators: true }
       );
-
+      await redis.del(`home:clients`);
       responseReturn(res, 200, {
         message: "Client updated successfully",
         client: updatedClient,
@@ -129,7 +130,7 @@ class ClientController {
   // Get Clients
   get_clients = async (req, res) => {
     const { page, searchValue, parPage } = req.query;
-
+    const key=`home:clients` 
     try {
       let skipPage = "";
       if (parPage && page) {
@@ -146,6 +147,12 @@ class ClientController {
       clientsQuery = clientsQuery.sort({ order: 1, createdAt: -1 });
       const clients = await clientsQuery;
       const totalClients = await ClientModel.countDocuments(query);
+
+      await redis.set(key, JSON.stringify({
+        totalClients,
+        clients,
+      }), "EX", 86400);
+
       responseReturn(res, 200, {
         totalClients,
         clients,
