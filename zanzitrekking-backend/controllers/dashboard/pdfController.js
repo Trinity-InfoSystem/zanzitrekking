@@ -2,6 +2,7 @@ const PdfModel = require("../../models/pdf");
 const logger = require('./../../utilities/logger');
 const fs = require("fs").promises;
 const path = require("path");
+const redis = require('../../redis');
 
 class PDFController {
   // Helper function to get full URL (static method)
@@ -11,6 +12,7 @@ class PDFController {
 
   // Get all PDFs
   async get_pdfs(req, res) {
+    const key = "home:pdfs";
     try {
       const pdfs = await PdfModel.find().sort({ createdAt: -1 });
 
@@ -22,7 +24,7 @@ class PDFController {
           url: PDFController.getFullUrl(req, pdf.path),
         };
       });
-
+      await redis.set(key, JSON.stringify(transformedPdfs), "EX", 86400);
       res.status(200).json({ pdfs: transformedPdfs });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -129,6 +131,7 @@ class PDFController {
         ...pdfObj,
         url: PDFController.getFullUrl(req, pdf.path),
       };
+      await redis.del(`home:pdfs`);
 
       res.status(200).json({
         message: "PDF updated successfully",

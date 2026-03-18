@@ -54,7 +54,8 @@ class ReviewController {
 
       await Promise.allSettled([
         redis.del(`home:trip:${tripId}`),
-        delPattern(`home:trip:${tripId}:reviews:*`)
+        delPattern(`home:trip:${tripId}:reviews:*`),
+        delPattern(`customer:${customerId}:reviewable-trips:*`)
       ])
 
       return responseReturn(res, 201, {
@@ -328,7 +329,13 @@ class ReviewController {
           message: 'Customer ID is required'
         })
       }
+      const hash = crypto
+      .createHash('md5')
+      .update(JSON.stringify({ customerId, page: Number(page), limit: Number(limit) }))
+      .digest('hex');
 
+      const key = `customer:${customerId}:reviewable-trips:${hash}`;
+  
       const skip = (parseInt(page) - 1) * parseInt(limit)
 
       // First, auto-complete any trips that have ended
@@ -385,6 +392,7 @@ class ReviewController {
           }
         }
       }
+      await redis.set(key, JSON.stringify(responseData), 'EX', 600);
 
       return responseReturn(res, 200, {
         reviewableTrips,

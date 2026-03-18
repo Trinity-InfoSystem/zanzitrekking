@@ -1,15 +1,18 @@
 const Job = require("../../models/job");
 const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
+const redis = require('../../redis');
 
 class JobControllers {
   get_one_job = async (req, res) => {
     const { jobId } = req.params;
+    const key = `home:job:${jobId}`
     try {
       const job = await Job.findById(jobId).populate("createdBy", "name email");
       if (!job) {
         return responseReturn(res, 404, { error: "Job Not Found" });
       }
+      await redis.set(key, JSON.stringify(job), "EX", 43200);
       return responseReturn(res, 200, {
         message: "Job Fetch Successful",
         job,
@@ -117,7 +120,7 @@ class JobControllers {
           error: "Job couldn't be created",
         });
       }
-
+      await redis.del(`home:job:${job._id}`)
       return responseReturn(res, 201, {
         message: "Job Successfully created",
         job,
@@ -138,6 +141,12 @@ class JobControllers {
       isActive,
     } = req.query;
     try {
+      const hash = crypto
+        .createHash("md5")
+        .update(JSON.stringify({ page: Number(page), parPage: Number(parPage), searchValue, sort, isActive }))
+        .digest("hex");
+
+      const key = `home:jobs:list:${hash}`;
       // Determine sort order
       let sortOptions = {};
       let collation = null;
@@ -213,6 +222,7 @@ class JobControllers {
           .populate("createdBy", "name email");
         const totalJobs = await Job.find(query).countDocuments();
 
+        await redis.set(key, JSON.stringify(responseData), "EX", 43200);
         return responseReturn(res, 200, {
           totalJobs,
           jobs,
@@ -331,6 +341,7 @@ class JobControllers {
       if (!updatedJob) {
         return responseReturn(res, 404, { error: "Job not found" });
       }
+      await redis.del(`home:job:${jobId}`);
 
       return responseReturn(res, 200, {
         message: "Job successfully updated",
@@ -351,6 +362,7 @@ class JobControllers {
       if (!deletedJob) {
         return responseReturn(res, 404, { error: "Job not found" });
       }
+      await redis.del(`home:job:${jobId}`);
 
       return responseReturn(res, 200, {
         message: "Job deleted successfully",

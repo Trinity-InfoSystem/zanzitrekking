@@ -4,6 +4,7 @@ const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const redis = require('../../redis');
 
 class PartnerController {
   // Add Partner
@@ -120,6 +121,8 @@ class PartnerController {
         { new: true, runValidators: true }
       );
 
+      await redis.del(`home:partners`);
+
       responseReturn(res, 200, {
         message: "Partner updated successfully",
         partner: updatedPartner,
@@ -137,7 +140,7 @@ class PartnerController {
   // Get Partners
   get_partners = async (req, res) => {
     const { page, searchValue, parPage } = req.query;
-
+    const key=`home:partners` 
     try {
       let skipPage = "";
       if (parPage && page) {
@@ -156,6 +159,12 @@ class PartnerController {
       const totalPartners = await mongoose
         .model("Partner")
         .countDocuments(query);
+
+      await redis.set(key, JSON.stringify({
+        totalPartners,
+        partners,
+      }), "EX", 86400);
+
       responseReturn(res, 200, {
         totalPartners,
         partners,

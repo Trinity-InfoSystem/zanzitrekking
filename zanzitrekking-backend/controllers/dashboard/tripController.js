@@ -5,6 +5,9 @@ const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const redis = require("../../redis");
+const { delPattern } = require('../../utilities/cache');
+const crypto = require("crypto");
 
 const resolveCategoryData = async (categoryValue) => {
   if (!categoryValue) {
@@ -218,8 +221,15 @@ class TripController {
         newTrip.seasons = parsedSeasons;
       }
 
-      // Create the trip in the database
       const createdTrip = await TripModel.create(newTrip);
+      await Promise.allSettled([
+        redis.del("home:categories"),
+        delPattern("home:trips:list:*"),
+        redis.del("home:trips:special:all"),
+        redis.del("home:trips:price-range"),
+        delPattern("home:trips:query:*")
+      ]);
+
       responseReturn(res, 201, {
         message: "Trip Added Successfully",
         trip: createdTrip,
@@ -482,6 +492,15 @@ class TripController {
         .populate("category")
         .populate("days.accommodation");
 
+      await Promise.allSettled([
+        redis.del("home:categories"),
+        redis.del(`home:trip:${tripId}`),
+        redis.del("home:trips:special:all"),
+        redis.del("home:trips:price-range"),
+        delPattern("home:trips:list:*"),
+        delPattern("home:trips:query:*")
+      ]);
+
       responseReturn(res, 200, {
         message: "Trip updated successfully",
         trip: updatedTrip,
@@ -500,6 +519,20 @@ class TripController {
     const { page, searchValue, parPage, sort = "newest-desc" } = req.query;
 
     try {
+      // Build stable query hash
+      const hash = crypto
+      .createHash("md5")
+      .update(
+        JSON.stringify({
+          page: Number(page) || 1,
+          parPage: Number(parPage) || 10,
+          searchValue: searchValue || "",
+          sort: sort || "newest-desc",
+        })
+      )
+      .digest("hex");
+
+    const key = `home:trips:list:${hash}`;
       // Determine sort order
       let sortOptions = {};
       let collation = null;
@@ -538,6 +571,10 @@ class TripController {
         .populate("days.accommodation");
       const trips = await tripsQuery;
       const totalTrips = await mongoose.model("Trip").countDocuments(query);
+      await redis.set(key, JSON.stringify({
+          totalTrips,
+          trips,
+        }), "EX", 43200);
       responseReturn(res, 200, {
         totalTrips,
         trips,
@@ -549,6 +586,8 @@ class TripController {
 
   get_special_trips = async (req, res) => {
     try {
+      const key = `home:trips:special:all`;
+
       // Get all trips and total count
       const allTrips = await TripModel.find({})
         .populate("category")
@@ -596,13 +635,16 @@ class TripController {
         .populate("category")
         .populate("days.accommodation");
 
-      responseReturn(res, 200, {
+      const responseData = {
         totalTrips: totalTrips,
         trips: allTrips,
         latest_trips: latestTrips,
         most_days_trips: mostDaysTrips,
         discount_trips: discountTrips,
-      });
+      };
+
+      await redis.set(key, JSON.stringify(responseData), "EX", 43200);
+      responseReturn(res, 200, responseData);
     } catch (error) {
       responseReturn(res, 500, {
         error: "Error fetching trips",
@@ -614,6 +656,8 @@ class TripController {
   get_trip = async (req, res) => {
     const { tripId } = req.params;
     try {
+      const key = `home:trip:${tripId}`;
+
       const trip = await mongoose
         .model("Trip")
         .findById(tripId)
@@ -622,6 +666,8 @@ class TripController {
       if (!trip) {
         return responseReturn(res, 404, { error: "No Trip Found" });
       }
+
+      await redis.set(key, JSON.stringify(trip), "EX", 172800);
       return responseReturn(res, 202, { trip });
     } catch (error) {
       return responseReturn(res, 500, { error: "Internal server error" });
@@ -710,6 +756,14 @@ class TripController {
 
       // Now that all images are deleted, proceed to remove the trip
       await TripModel.findByIdAndDelete(tripId);
+      await Promise.allSettled([
+        redis.del("home:categories"),
+        redis.del(`home:trip:${tripId}`),
+        redis.del("home:trips:special:all"),
+        redis.del("home:trips:price-range"),
+        delPattern("home:trips:list:*"),
+        delPattern("home:trips:query:*")
+      ]);
 
       responseReturn(res, 200, { message: "Trip deleted successfully" });
       logger.info("Trip Deleted:", tripId);
@@ -721,6 +775,7 @@ class TripController {
 
   get_price_range = async (req, res) => {
     try {
+       const key = "home:trips:price-range";
       // Find the lowest and highest prices from both regular and seasonal pricing
       const result = await TripModel.aggregate([
         {
@@ -864,6 +919,7 @@ class TripController {
             }
           : { low: 200, high: 5000 }; // Default fallback values
 
+      await redis.set(key, JSON.stringify(priceRange), "EX", 86400);
       responseReturn(res, 200, {
         priceRange,
       });
@@ -888,9 +944,28 @@ class TripController {
         search,
         perPage: queryPerPage,
       } = req.query;
+
+      const normalizedQuery = {
+        low: Number(low) || 0,
+        high: Number(high) || 0,
+        category: category || "",
+        rating: rating || "",
+        sort: sort || "newest-desc",
+        pageNumber: Number(pageNumber) || 1,
+        search: search || "",
+        perPage: Number(queryPerPage) || 6,
+      };
+       // Build stable query hash for cache key
+      const hash = crypto
+        .createHash("md5")
+        .update(JSON.stringify(normalizedQuery || {}))
+        .digest("hex");
+      const key = `home:trips:query:${hash}`;
+
       const perPage = queryPerPage ? parseInt(queryPerPage) : 6;
       const skip = (parseInt(pageNumber) - 1) * perPage;
 
+      
       let baseQuery = {};
 
       if (category) {
@@ -1073,12 +1148,15 @@ class TripController {
       const filteredTripsCount = sortedTrips.length;
       const trips = sortedTrips.slice(skip, skip + perPage);
 
-      responseReturn(res, 200, {
+      const responseData = {
         trips,
         totalTrips: filteredTripsCount, // Count after filters (used for pagination)
         overallTrips: totalTripsCount, // Total count before price filtering (for stats)
         perPage,
-      });
+      };
+
+      await redis.set(key, JSON.stringify(responseData), "EX", 21600);
+      responseReturn(res, 200, responseData);
     } catch (error) {
       responseReturn(res, 500, {
         error: "Error querying trips",
@@ -1092,6 +1170,15 @@ class TripController {
     const { ids } = req.body;
     try {
       const deletedTrips = await TripModel.deleteMany({ _id: { $in: ids } });
+      await Promise.allSettled([
+        redis.del('home:categories'),
+        ...ids.map(id => delPattern(`home:trip:${id}`)),
+        delPattern("home:trips:list:*"),
+        redis.del("home:trips:special:all"),
+        redis.del("home:trips:price-range"),
+        delPattern("home:trips:query:*")
+      ])
+
       return responseReturn(res, 200, {
         message: `Deleted ${deletedTrips.deletedCount} trips successfully`,
         deletedCount: deletedTrips.deletedCount,
