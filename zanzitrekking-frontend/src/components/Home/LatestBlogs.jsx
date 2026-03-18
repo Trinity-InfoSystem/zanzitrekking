@@ -14,7 +14,6 @@ const LatestBlogs = () => {
 
   useEffect(() => {
     dispatch(get_latest_blogs({ perPage: 3 }));
-    AOS.init({ once: true, duration: 800, offset: 60 });
   }, [dispatch]);
 
   const formatDate = (dateString) => {
@@ -87,6 +86,8 @@ const LatestBlogs = () => {
                     <img
                       src={imageName}
                       alt={post.mainTitle}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />

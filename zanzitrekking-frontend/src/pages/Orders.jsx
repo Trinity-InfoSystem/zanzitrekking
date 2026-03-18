@@ -31,7 +31,7 @@ const Orders = () => {
   useEffect(() => {
     AOS.init({
       once: true,
-      duration: 800,
+      duration: 400,
       offset: 60,
       easing: "ease-out-cubic",
     });

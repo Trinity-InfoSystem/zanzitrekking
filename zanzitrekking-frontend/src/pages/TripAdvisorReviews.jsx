@@ -9,7 +9,7 @@ import { Camera, ChevronRight as ChevronRightIcon, Compass, Heart, Mountain, Spa
 
 const TripAdvisorReviews = () => {
   useEffect(() => {
-    AOS.init({ duration: 1000, once: true, offset: 100 });
+    AOS.init({ duration: 400, once: true, offset: 60 });
   }, []);
 
   return (

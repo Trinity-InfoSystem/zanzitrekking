@@ -36,7 +36,7 @@ const AboutUs = () => {
   useEffect(() => {
     AOS.init({
       once: true,
-      duration: 600,
+      duration: 400,
       offset: 60,
       easing: "ease-out-cubic",
     });

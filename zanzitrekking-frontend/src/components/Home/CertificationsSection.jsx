@@ -93,13 +93,13 @@ const CertificationsSection = () => {
           </div>
 
           {/* Main Heading */}
-          <h1 className="mb-6 text-4xl font-bold tracking-tight text-primary-900 lg:text-5xl xl:text-6xl">
+          <h2 className="mb-6 text-4xl font-bold tracking-tight text-primary-900 lg:text-5xl xl:text-6xl">
             Certified Excellence in
             <br />
             <span className="bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
               Ethical Tourism
             </span>
-          </h1>
+          </h2>
 
           {/* Logo Display */}
           <div className="mx-auto mb-8 flex flex-wrap items-center justify-center gap-8 lg:gap-12">
