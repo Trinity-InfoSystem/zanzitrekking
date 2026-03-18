@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
+import _ from "lodash";
 import {
   MapContainer,
   Marker,
@@ -245,151 +246,166 @@ const OverviewTab = ({
     setIsClient(true);
   }, []);
 
-  const dayDestinations = days
-    ?.map((day) => {
-      if (
-        day.mainDestination &&
-        day.mainDestination.location &&
-        typeof day.mainDestination.location.lat === "number" &&
-        typeof day.mainDestination.location.lng === "number"
-      ) {
-        return {
-          ...day,
-          coordinates: [
-            day.mainDestination.location.lat,
-            day.mainDestination.location.lng,
-          ],
+  const {
+    completeRoute,
+    uniqueMiddleStops,
+    startMarker,
+    endMarker,
+    sameLocation,
+    routePath,
+    center,
+    middleStops,
+  } = useMemo(() => {
+    const dayDestinations = days
+      ?.map((day) => {
+        const {
+          location: { lat = 0, lng = 0 } = {}
+        } = day.mainDestination || {};
+
+        if (lat && lng) {
+          return {
+            ...day,
+            coordinates: [
+              lat,
+              lng,
+            ],
+          };
+        }
+        return null;
+      })
+      .filter((dest) => dest && dest.coordinates);
+
+    const completeRoute = [];
+
+    const { location: sLocation = {} } = startPoint || {};
+    const { lat: sLat = 0, lng: sLng = 0 } = sLocation;
+    
+    if (
+      sLat && sLng
+    ) {
+      completeRoute.push({
+        name: startPoint.name,
+        title: startPoint.title,
+        coordinates: [sLat, sLng],
+        type: "start",
+        location: sLocation,
+      });
+    }
+
+    if (dayDestinations && dayDestinations.length > 0) {
+      completeRoute.push(
+        ...dayDestinations.map((dest) => ({
+          ...dest,
+          type: "day",
+        })),
+      );
+    }
+
+    const { location: eLocation = {} } = endPoint || {};
+    const { lat: eLat = 0, lng: eLng = 0 } = eLocation;
+
+    if (eLat && eLng) {
+      completeRoute.push({
+        name: endPoint.name,
+        title: endPoint.title,
+        coordinates: [eLat, eLng],
+        type: "end",
+        location: eLocation,
+      });
+    }
+
+    const middleStops = dayDestinations || [];
+    const groupedMiddleStops = middleStops.reduce((acc, stop, index) => {
+      const key = `${stop.coordinates[0]},${stop.coordinates[1]}`;
+      if (!acc[key]) {
+        acc[key] = {
+          coordinates: stop.coordinates,
+          indices: [],
+          destinations: [],
         };
       }
-      return null;
-    })
-    .filter((dest) => dest && dest.coordinates);
+      acc[key].indices.push(index + 1);
+      acc[key].destinations.push(stop);
+      return acc;
+    }, {});
 
-  const completeRoute = [];
+    const uniqueMiddleStops = Object.values(groupedMiddleStops);
 
-  if (
-    startPoint &&
-    startPoint.location &&
-    typeof startPoint.location.lat === "number" &&
-    typeof startPoint.location.lng === "number" &&
-    !isNaN(startPoint.location.lat) &&
-    !isNaN(startPoint.location.lng)
-  ) {
-    completeRoute.push({
-      name: startPoint.name,
-      title: startPoint.title,
-      coordinates: [startPoint.location.lat, startPoint.location.lng],
-      type: "start",
-      location: startPoint.location,
-    });
-  }
-
-  if (dayDestinations && dayDestinations.length > 0) {
-    completeRoute.push(
-      ...dayDestinations.map((dest) => ({
-        ...dest,
-        type: "day",
-      })),
+    const startMarker = completeRoute.find(
+      (dest) =>
+        dest.type === "start" &&
+        dest.coordinates &&
+        dest.coordinates.length === 2,
     );
-  }
+    const endMarker = completeRoute.find(
+      (dest) =>
+        dest.type === "end" && dest.coordinates && dest.coordinates.length === 2,
+    );
 
-  if (
-    endPoint &&
-    endPoint.location &&
-    typeof endPoint.location.lat === "number" &&
-    typeof endPoint.location.lng === "number" &&
-    !isNaN(endPoint.location.lat) &&
-    !isNaN(endPoint.location.lng)
-  ) {
-    completeRoute.push({
-      name: endPoint.name,
-      title: endPoint.title,
-      coordinates: [endPoint.location.lat, endPoint.location.lng],
-      type: "end",
-      location: endPoint.location,
-    });
-  }
+    const calculateDistance = (lat1, lng1, lat2, lng2) => {
+      const R = 6371;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLng = ((lng2 - lng1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
 
-  const middleStops = dayDestinations || [];
-  const groupedMiddleStops = middleStops.reduce((acc, stop, index) => {
-    const key = `${stop.coordinates[0]},${stop.coordinates[1]}`;
-    if (!acc[key]) {
-      acc[key] = {
-        coordinates: stop.coordinates,
-        indices: [],
-        destinations: [],
-      };
+    const sameLocation =
+      startMarker &&
+      endMarker &&
+      calculateDistance(
+        startMarker.coordinates[0],
+        startMarker.coordinates[1],
+        endMarker.coordinates[0],
+        endMarker.coordinates[1],
+      ) < 5;
+
+    const firstDestination = Array.isArray(mainDestination)
+      ? mainDestination[0]
+      : mainDestination;
+
+    let center = [-3.3667, 36.6833];
+    if (
+      firstDestination &&
+      firstDestination.location &&
+      _.isNumber(firstDestination.location.lat) && 
+      _.isNumber(firstDestination.location.lng)
+    ) {
+      center = [firstDestination.location.lat, firstDestination.location.lng];
+    } else if (
+      startPoint &&
+      startPoint.location &&
+      _.isNumber(startPoint.location.lat) && 
+      _.isNumber(startPoint.location.lng)
+    ) {
+      center = [startPoint.location.lat, startPoint.location.lng];
+    } else if (dayDestinations?.length) {
+      center = dayDestinations[0].coordinates;
     }
-    acc[key].indices.push(index + 1);
-    acc[key].destinations.push(stop);
-    return acc;
-  }, {});
 
-  const uniqueMiddleStops = Object.values(groupedMiddleStops);
+    const routePath = completeRoute
+      .filter((dest) => dest.coordinates && dest.coordinates.length === 2)
+      .map((dest) => dest.coordinates);
 
-  const startMarker = completeRoute.find(
-    (dest) =>
-      dest.type === "start" &&
-      dest.coordinates &&
-      dest.coordinates.length === 2,
-  );
-  const endMarker = completeRoute.find(
-    (dest) =>
-      dest.type === "end" && dest.coordinates && dest.coordinates.length === 2,
-  );
+    return {
+      completeRoute,
+      uniqueMiddleStops,
+      startMarker,
+      endMarker,
+      sameLocation,
+      routePath,
+      center,
+      middleStops,
+    };
+  }, [days, startPoint, endPoint, mainDestination]);
 
-  const calculateDistance = (lat1, lng1, lat2, lng2) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const sameLocation =
-    startMarker &&
-    endMarker &&
-    calculateDistance(
-      startMarker.coordinates[0],
-      startMarker.coordinates[1],
-      endMarker.coordinates[0],
-      endMarker.coordinates[1],
-    ) < 5;
-
-  const firstDestination = Array.isArray(mainDestination)
-    ? mainDestination[0]
-    : mainDestination;
-
-  let center = [-3.3667, 36.6833];
-  if (
-    firstDestination &&
-    firstDestination.location &&
-    typeof firstDestination.location.lat === "number" &&
-    typeof firstDestination.location.lng === "number"
-  ) {
-    center = [firstDestination.location.lat, firstDestination.location.lng];
-  } else if (
-    startPoint &&
-    startPoint.location &&
-    typeof startPoint.location.lat === "number" &&
-    typeof startPoint.location.lng === "number"
-  ) {
-    center = [startPoint.location.lat, startPoint.location.lng];
-  } else if (dayDestinations?.length) {
-    center = dayDestinations[0].coordinates;
-  }
-
-  const routePath = completeRoute
-    .filter((dest) => dest.coordinates && dest.coordinates.length === 2)
-    .map((dest) => dest.coordinates);
-
-  const createCustomMarker = (type, content) => {
+  const createCustomMarker = React.useCallback((type, content) => {
     const markerStyles = {
       start: {
         bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -415,13 +431,6 @@ const OverviewTab = ({
         shadow: "0 3px 10px rgba(100, 116, 139, 0.2)",
         ring: "rgba(100, 116, 139, 0.1)",
       },
-    };
-
-    const zIndexOffset = {
-      start: 1200,
-      end: 1050,
-      "start-end": 1300,
-      mid: 800,
     };
 
     const getMarkerContent = () => {
@@ -505,7 +514,180 @@ const OverviewTab = ({
       iconAnchor: [size.width / 2, size.height],
       popupAnchor: [0, -size.height],
     });
-  };
+  }, []);
+
+  const memoizedMap = React.useMemo(() => (
+    <MapContainer
+      bounds={routePath.length > 0 ? routePath : [center]}
+      style={{
+        height: "100%",
+        width: "100%",
+        position: "relative",
+        zIndex: 0,
+      }}
+      scrollWheelZoom={false}
+      className="safari-map"
+    >
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      />
+      <ScaleControl position="bottomleft" />
+
+      {routePath.length > 1 && (
+        <AnimatedRouteMarker routePath={routePath} />
+      )}
+
+      {uniqueMiddleStops.map((stop, idx) => (
+        <Marker
+          key={`mid-${idx}`}
+          position={stop.coordinates}
+          icon={createCustomMarker(
+            "mid",
+            stop.indices.join(","),
+          )}
+          zIndexOffset={800}
+        >
+          <Popup>
+            <div className="p-3 text-sm">
+              <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
+                <span className="font-bold text-neutral-900">
+                  Day {stop.indices.join(", ")}
+                </span>
+              </div>
+              {stop.destinations.map((dest, destIdx) => (
+                <div
+                  key={destIdx}
+                  className={
+                    destIdx > 0
+                      ? "mt-3 border-t border-neutral-100 pt-3"
+                      : ""
+                  }
+                >
+                  <p className="font-semibold text-neutral-800">
+                    {formatLocationName(
+                      dest.mainDestination?.name,
+                    )}
+                  </p>
+                  {dest.title && (
+                    <p className="mt-1 text-xs text-neutral-600">
+                      {dest.title}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+
+      {sameLocation && startMarker ? (
+        <Marker
+          key="start-end-marker"
+          position={startMarker.coordinates}
+          icon={createCustomMarker("start-end", "S/E")}
+          zIndexOffset={1300}
+        >
+          <Popup>
+            <div className="p-3 text-sm">
+              <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-600 text-[10px] font-bold text-white shadow-md">
+                  S/E
+                </div>
+                <strong className="font-bold text-neutral-900">
+                  Start & End Point
+                </strong>
+              </div>
+              <p className="font-semibold text-neutral-800">
+                {startMarker.name}
+              </p>
+              <p className="mt-2 text-xs text-slate-600">
+                🔄 Circular safari route
+              </p>
+            </div>
+          </Popup>
+        </Marker>
+      ) : (
+        <>
+          {startMarker && (
+            <Marker
+              key="start-marker"
+              position={startMarker.coordinates}
+              icon={createCustomMarker("start", "S")}
+              zIndexOffset={1200}
+            >
+              <Popup>
+                <div className="p-3 text-sm">
+                  <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
+                    <Flag className="h-5 w-5 text-emerald-600" />
+                    <strong className="font-bold text-neutral-900">
+                      Starting Point
+                    </strong>
+                  </div>
+                  <p className="font-semibold text-neutral-800">
+                    {startMarker.name}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+
+          {endMarker && (
+            <Marker
+              key="end-marker"
+              position={endMarker.coordinates}
+              icon={createCustomMarker("end", "E")}
+              zIndexOffset={1050}
+            >
+              <Popup>
+                <div className="p-3 text-sm">
+                  <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
+                    <Target className="h-5 w-5 text-amber-600" />
+                    <strong className="font-bold text-neutral-900">
+                      Final Destination
+                    </strong>
+                  </div>
+                  <p className="font-semibold text-neutral-800">
+                    {endMarker.name}
+                  </p>
+                </div>
+              </Popup>
+            </Marker>
+          )}
+        </>
+      )}
+
+      {routePath.length > 1 && (
+        <>
+          <Polyline
+            positions={routePath}
+            color="#000000"
+            weight={7}
+            opacity={0.08}
+            lineCap="round"
+            lineJoin="round"
+          />
+          <Polyline
+            positions={routePath}
+            color="#475569"
+            weight={4}
+            opacity={0.5}
+            dashArray="12, 8"
+            lineCap="round"
+            lineJoin="round"
+          />
+          <Polyline
+            positions={routePath}
+            color="#64748b"
+            weight={2.5}
+            opacity={0.9}
+            lineCap="round"
+            lineJoin="round"
+          />
+        </>
+      )}
+    </MapContainer>
+  ), [routePath, center, uniqueMiddleStops, startMarker, endMarker, sameLocation, createCustomMarker]);
 
   if (!overview && (!completeRoute || completeRoute.length === 0)) {
     return (
@@ -572,7 +754,7 @@ const OverviewTab = ({
         .journey-line::before {
           content: '';
           position: absolute;
-          left: 18px;
+          left: 36px;
           top: 0;
           bottom: 0;
           width: 2px;
@@ -822,178 +1004,7 @@ const OverviewTab = ({
                   }
                 `}</style>
                 <div className="h-[420px] lg:h-[480px]">
-                  {isClient && (
-                    <MapContainer
-                      bounds={routePath.length > 0 ? routePath : [center]}
-                      style={{
-                        height: "100%",
-                        width: "100%",
-                        position: "relative",
-                        zIndex: 0,
-                      }}
-                      scrollWheelZoom={false}
-                      className="safari-map"
-                    >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      />
-                      <ScaleControl position="bottomleft" />
-
-                      {routePath.length > 1 && (
-                        <AnimatedRouteMarker routePath={routePath} />
-                      )}
-
-                      {uniqueMiddleStops.map((stop, idx) => (
-                        <Marker
-                          key={`mid-${idx}`}
-                          position={stop.coordinates}
-                          icon={createCustomMarker(
-                            "mid",
-                            stop.indices.join(","),
-                          )}
-                          zIndexOffset={800}
-                        >
-                          <Popup>
-                            <div className="p-3 text-sm">
-                              <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
-                                <span className="font-bold text-neutral-900">
-                                  Day {stop.indices.join(", ")}
-                                </span>
-                              </div>
-                              {stop.destinations.map((dest, destIdx) => (
-                                <div
-                                  key={destIdx}
-                                  className={
-                                    destIdx > 0
-                                      ? "mt-3 border-t border-neutral-100 pt-3"
-                                      : ""
-                                  }
-                                >
-                                  <p className="font-semibold text-neutral-800">
-                                    {formatLocationName(
-                                      dest.mainDestination?.name,
-                                    )}
-                                  </p>
-                                  {dest.title && (
-                                    <p className="mt-1 text-xs text-neutral-600">
-                                      {dest.title}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </Popup>
-                        </Marker>
-                      ))}
-
-                      {sameLocation && startMarker ? (
-                        <Marker
-                          key="start-end-marker"
-                          position={startMarker.coordinates}
-                          icon={createCustomMarker("start-end", "S/E")}
-                          zIndexOffset={1300}
-                        >
-                          <Popup>
-                            <div className="p-3 text-sm">
-                              <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-cyan-600 text-[10px] font-bold text-white shadow-md">
-                                  S/E
-                                </div>
-                                <strong className="font-bold text-neutral-900">
-                                  Start & End Point
-                                </strong>
-                              </div>
-                              <p className="font-semibold text-neutral-800">
-                                {startMarker.name}
-                              </p>
-                              <p className="mt-2 text-xs text-slate-600">
-                                🔄 Circular safari route
-                              </p>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      ) : (
-                        <>
-                          {startMarker && (
-                            <Marker
-                              key="start-marker"
-                              position={startMarker.coordinates}
-                              icon={createCustomMarker("start", "S")}
-                              zIndexOffset={1200}
-                            >
-                              <Popup>
-                                <div className="p-3 text-sm">
-                                  <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
-                                    <Flag className="h-5 w-5 text-emerald-600" />
-                                    <strong className="font-bold text-neutral-900">
-                                      Starting Point
-                                    </strong>
-                                  </div>
-                                  <p className="font-semibold text-neutral-800">
-                                    {startMarker.name}
-                                  </p>
-                                </div>
-                              </Popup>
-                            </Marker>
-                          )}
-
-                          {endMarker && (
-                            <Marker
-                              key="end-marker"
-                              position={endMarker.coordinates}
-                              icon={createCustomMarker("end", "E")}
-                              zIndexOffset={1050}
-                            >
-                              <Popup>
-                                <div className="p-3 text-sm">
-                                  <div className="mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2">
-                                    <Target className="h-5 w-5 text-amber-600" />
-                                    <strong className="font-bold text-neutral-900">
-                                      Final Destination
-                                    </strong>
-                                  </div>
-                                  <p className="font-semibold text-neutral-800">
-                                    {endMarker.name}
-                                  </p>
-                                </div>
-                              </Popup>
-                            </Marker>
-                          )}
-                        </>
-                      )}
-
-                      {routePath.length > 1 && (
-                        <>
-                          <Polyline
-                            positions={routePath}
-                            color="#000000"
-                            weight={7}
-                            opacity={0.08}
-                            lineCap="round"
-                            lineJoin="round"
-                          />
-                          <Polyline
-                            positions={routePath}
-                            color="#475569"
-                            weight={4}
-                            opacity={0.5}
-                            dashArray="12, 8"
-                            lineCap="round"
-                            lineJoin="round"
-                          />
-                          <Polyline
-                            positions={routePath}
-                            color="#64748b"
-                            weight={2.5}
-                            opacity={0.9}
-                            lineCap="round"
-                            lineJoin="round"
-                          />
-                        </>
-                      )}
-                    </MapContainer>
-                  )}
+                  {isClient && memoizedMap}
                 </div>
               </div>
             </div>
