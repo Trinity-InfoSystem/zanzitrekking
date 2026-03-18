@@ -1,14 +1,4 @@
-/**
- * Route Configuration System
- * Centralized route definitions with metadata for SEO, code splitting, and performance
- */
 
-export const BASE_URL = "https://booking.zanzisafaris.com";
-
-/**
- * Route metadata configuration
- * Each route includes SEO metadata, priority, and chunk information
- */
 export const routeConfig = {
   // Homepage - Highest priority
   home: {

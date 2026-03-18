@@ -3,7 +3,10 @@
  * Generates sitemap.xml for better SEO and crawlability
  */
 
-import { BASE_URL, routeConfig } from "../config/routes";
+import { routeConfig } from "../config/routes";
+
+// Use frontend URL from env or fallback to production URL
+const BASE_URL = import.meta.env.VITE_FRONTEND_URL || "https://zanzisafaris.com";
 
 /**
  * Generate sitemap XML string
