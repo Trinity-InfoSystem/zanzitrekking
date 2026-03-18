@@ -13,23 +13,25 @@ const store = configureStore({
   devTools: true,
 });
 
-/**
- * Axios response interceptor for handling authentication errors.
- * Automatically attempts to refresh the token when a 401 error is received.
- * Includes race condition protection to prevent multiple simultaneous refresh attempts.
- * Prevents infinite loops by checking for auth endpoints and retry count.
- */
+// ---------------------------------------------------------------------------
+// Axios response interceptor — cookie-based auth, no localStorage involved
+// ---------------------------------------------------------------------------
 
 // Track if a refresh is currently in progress to prevent race conditions
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error, token = null) => {
+/**
+ * Resolve or reject all queued requests that arrived while a token refresh
+ * was in progress. No token is passed — the browser sends the refreshed
+ * httpOnly cookie automatically on each retry.
+ */
+const processQueue = (error) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve(); // Cookie handles auth — nothing to inject
     }
   });
   failedQueue = [];
@@ -40,7 +42,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // List of endpoints that should not trigger token refresh
+    // Endpoints that must never trigger a refresh attempt
     const authEndpoints = [
       "/admin-login",
       "/admin/refresh-token",
@@ -51,30 +53,22 @@ api.interceptors.response.use(
     ];
 
     const isAuthEndpoint = authEndpoints.some((endpoint) =>
-      originalRequest.url?.includes(endpoint)
+      originalRequest.url?.includes(endpoint),
     );
 
-    // Only handle 401 errors for non-auth endpoints
+    // Only intercept 401s on non-auth endpoints, and only once per request
     if (
-      error.response &&
-      error.response.status === 401 &&
+      error.response?.status === 401 &&
       !isAuthEndpoint &&
       !originalRequest._retry
     ) {
-      // If refresh is already in progress, queue this request
+      // If a refresh is already running, queue this request until it resolves
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            if (token) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return api(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .then(() => api(originalRequest)) // Cookie auto-sent — no header injection
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -84,42 +78,19 @@ api.interceptors.response.use(
         const result = await store.dispatch(refresh_token());
 
         if (refresh_token.fulfilled.match(result)) {
-          const newToken = result.payload?.accessToken;
-          let tokenToUse = newToken;
-
-          // If no token in response, try to get from localStorage
-          if (!tokenToUse) {
-            const storedToken = localStorage.getItem("accessToken");
-            if (storedToken) {
-              try {
-                tokenToUse = JSON.parse(storedToken);
-              } catch {
-                tokenToUse = storedToken;
-              }
-            }
-          }
-
-          // Process queued requests
-          processQueue(null, tokenToUse);
-
-          // Retry original request with new token
-          if (tokenToUse) {
-            originalRequest.headers.Authorization = `Bearer ${tokenToUse}`;
-          }
+          // Backend has set a fresh httpOnly access-token cookie.
+          // No token to extract or inject — the browser handles it.
+          processQueue(null);
           return api(originalRequest);
-        } else {
-          // Refresh failed
-          throw new Error("Token refresh failed");
         }
+
+        throw new Error("Token refresh failed");
       } catch (refreshError) {
-        // Process queued requests with error
-        processQueue(refreshError, null);
+        processQueue(refreshError);
 
-        // Clear cookies on the backend and reset local auth state
+        // Tell the backend to clear its cookies, then reset local auth state
         await store.dispatch(admin_logout());
-        localStorage.removeItem("accessToken");
 
-        // Redirect to login if not already there
         if (window.location.pathname !== "/admin/login") {
           window.location.href = "/admin/login";
         }

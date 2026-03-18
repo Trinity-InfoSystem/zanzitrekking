@@ -24,7 +24,7 @@ import { getRouteConfig } from "../config/routes";
 const SEO = ({ title: propTitle, description: propDescription, image: propImage, type: propType, data = null }) => {
   const location = useLocation();
   // Use frontend URL from env or fallback to current origin (for SEO, we need the frontend URL, not API URL)
-  const baseUrl = import.meta.env.VITE_FRONTEND_URL || 
+  const baseUrl = import.meta.env.VITE_FRONTEND_URL ||
     (typeof window !== "undefined" ? window.location.origin : "https://zanzisafaris.com");
 
   // Get static metadata from route config as fallback

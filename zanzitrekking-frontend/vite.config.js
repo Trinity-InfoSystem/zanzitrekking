@@ -47,7 +47,12 @@ function ensureReactFirst() {
 }
 
 export default defineConfig(({ mode }) => {
-  const plugins = [react(), ensureReactFirst()];
+  const plugins = [
+    react({
+      include: "**/*.{jsx,js}", // Enable JSX in .js files
+    }),
+    ensureReactFirst(),
+  ];
 
   if (mode === "analyze") {
     plugins.push(
@@ -210,6 +215,11 @@ export default defineConfig(({ mode }) => {
         },
       },
 
+      esbuild: {
+        loader: {
+          ".js": "jsx",
+        },
+      },
       minify: "terser",
       terserOptions: {
         compress: {
@@ -248,6 +258,9 @@ export default defineConfig(({ mode }) => {
       exclude: ["emoji-picker-react"],
       esbuildOptions: {
         target: "es2020",
+        loader: {
+          ".js": "jsx",
+        },
       },
       force: true,
     },

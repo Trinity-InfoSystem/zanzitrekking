@@ -15,7 +15,7 @@ export default defineConfig({
             // Add the authorization header with the COMPLETE token
             proxyReq.setHeader(
               "Authorization",
-              "Bearer ef5d32140b2702e0bf29879056a576aae011a782-55ae5",
+              `Bearer ${import.meta.env.VITE_SAFARI_API_TOKEN}`
             );
           });
         },
