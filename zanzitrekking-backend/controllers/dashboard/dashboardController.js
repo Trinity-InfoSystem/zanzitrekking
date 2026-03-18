@@ -3,6 +3,7 @@ const logger = require('./../../utilities/logger');
 const Customer = require("../../models/customer");
 const Trip = require("../../models/trip");
 const Cart = require("../../models/cart");
+const redis = require("../../redis");
 
 // Get dashboard statistics
 const getDashboardStats = async (req, res) => {
@@ -23,6 +24,7 @@ const getDashboardStats = async (req, res) => {
       currentDate.getMonth(),
       0
     );
+    const key=`dashboard:stats`
 
     // Execute all independent queries in parallel for better performance
     const [
@@ -246,6 +248,7 @@ const getDashboardStats = async (req, res) => {
       },
     };
 
+    await redis.set(key, JSON.stringify({stats }), "EX", 1800);
     res.status(200).json({
       success: true,
       message: "Dashboard statistics retrieved successfully",
