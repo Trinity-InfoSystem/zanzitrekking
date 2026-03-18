@@ -25,16 +25,18 @@ import {
   Wifi,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 
 const InclusionsTab = ({ inclusions = {}, exclusions = {}, trip = {} }) => {
-  const normalizedInclusions = Array.isArray(inclusions)
-    ? { standard: inclusions, midRange: [], luxury: [] }
-    : inclusions;
-  const normalizedExclusions = Array.isArray(exclusions)
-    ? { standard: exclusions, midRange: [], luxury: [] }
-    : exclusions;
+  const normalizedInclusions = useMemo(
+    () => (Array.isArray(inclusions) ? { standard: inclusions, midRange: [], luxury: [] } : inclusions),
+    [inclusions]
+  );
+  const normalizedExclusions = useMemo(
+    () => (Array.isArray(exclusions) ? { standard: exclusions, midRange: [], luxury: [] } : exclusions),
+    [exclusions]
+  );
 
   const [activeSection, setActiveSection] = useState("inclusions");
   const [selectedCategory, setSelectedCategory] = useState("standard");
@@ -154,8 +156,8 @@ const InclusionsTab = ({ inclusions = {}, exclusions = {}, trip = {} }) => {
     return Array.from(allItems);
   };
 
-  const uniqueInclusions = getAllUniqueItems(normalizedInclusions);
-  const uniqueExclusions = getAllUniqueItems(normalizedExclusions);
+  const uniqueInclusions = useMemo(() => getAllUniqueItems(normalizedInclusions), [normalizedInclusions]);
+  const uniqueExclusions = useMemo(() => getAllUniqueItems(normalizedExclusions), [normalizedExclusions]);
 
   const hasItem = (items, category, item) => {
     const categoryItems = items[category] || [];

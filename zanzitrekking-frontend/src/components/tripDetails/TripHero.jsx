@@ -7,21 +7,34 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const TripHero = ({ trip, imageName }) => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const imageRef = useRef(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    let animationFrameId;
+
     const handleMouseMove = (e) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 10,
-        y: (e.clientY / window.innerHeight - 0.5) * 10,
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(() => {
+        if (imageRef.current) {
+          const x = (e.clientX / window.innerWidth - 0.5) * 10;
+          const y = (e.clientY / window.innerHeight - 0.5) * 10;
+          imageRef.current.style.transform = `translate(${x * 0.3}px, ${y * 0.2}px) scale(1.05)`;
+        }
       });
     };
+    
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   const formatLocation = (location) => {
@@ -113,10 +126,9 @@ const TripHero = ({ trip, imageName }) => {
       <div className="relative h-[300px] w-full overflow-hidden bg-neutral-900 sm:h-[380px] lg:h-[430px] xl:h-[450px]">
         {/* Image with parallax */}
         <div
+          ref={imageRef}
           className="absolute inset-0 transition-transform duration-700 ease-out"
-          style={{
-            transform: `translate(${mousePosition.x * 0.3}px, ${mousePosition.y * 0.2}px) scale(1.05)`,
-          }}
+          style={{ transform: "translate(0px, 0px) scale(1.05)" }}
         >
           <img
             src={imageName}
