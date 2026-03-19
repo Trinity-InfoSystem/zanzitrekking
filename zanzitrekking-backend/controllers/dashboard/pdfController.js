@@ -14,6 +14,10 @@ class PDFController {
   async get_pdfs(req, res) {
     const key = "home:pdfs";
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       const pdfs = await PdfModel.find().sort({ createdAt: -1 });
 
       // Transform PDFs to include URLs

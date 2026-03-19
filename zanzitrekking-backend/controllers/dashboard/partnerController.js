@@ -142,6 +142,10 @@ class PartnerController {
     const { page, searchValue, parPage } = req.query;
     const key=`home:partners` 
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       let skipPage = "";
       if (parPage && page) {
         skipPage = +parPage * (+page - 1);

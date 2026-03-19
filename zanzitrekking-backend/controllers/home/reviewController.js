@@ -84,6 +84,10 @@ class ReviewController {
         .digest('hex')
 
       const key = `home:trip:${tripId}:reviews:${hash}`
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
 
       const skip = (parseInt(page) - 1) * parseInt(limit)
 
@@ -335,6 +339,10 @@ class ReviewController {
       .digest('hex');
 
       const key = `customer:${customerId}:reviewable-trips:${hash}`;
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
   
       const skip = (parseInt(page) - 1) * parseInt(limit)
 

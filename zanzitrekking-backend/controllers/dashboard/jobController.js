@@ -8,6 +8,10 @@ class JobControllers {
     const { jobId } = req.params;
     const key = `home:job:${jobId}`
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       const job = await Job.findById(jobId).populate("createdBy", "name email");
       if (!job) {
         return responseReturn(res, 404, { error: "Job Not Found" });
@@ -147,6 +151,10 @@ class JobControllers {
         .digest("hex");
 
       const key = `home:jobs:list:${hash}`;
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       // Determine sort order
       let sortOptions = {};
       let collation = null;

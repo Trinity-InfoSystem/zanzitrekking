@@ -193,6 +193,10 @@ class WhoWeAreController {
   get_statistic_data = async (req, res) => {
     const key=`home:statistics`
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       const totalTrips = await Trip.countDocuments();
       // overall rating
       const overallRating = await Trip.aggregate([

@@ -227,7 +227,8 @@ class TripController {
         delPattern("home:trips:list:*"),
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
-        delPattern("home:trips:query:*")
+        delPattern("home:trips:query:*"),
+        redis.del("dashboard:stats")
       ]);
 
       responseReturn(res, 201, {
@@ -498,7 +499,8 @@ class TripController {
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
         delPattern("home:trips:list:*"),
-        delPattern("home:trips:query:*")
+        delPattern("home:trips:query:*"),
+        redis.del("dashboard:stats")
       ]);
 
       responseReturn(res, 200, {
@@ -533,6 +535,10 @@ class TripController {
       .digest("hex");
 
     const key = `home:trips:list:${hash}`;
+    const cached = await redis.get(key)
+    if (cached) {
+      return responseReturn(res, 200, JSON.parse(cached))
+    }
       // Determine sort order
       let sortOptions = {};
       let collation = null;
@@ -587,7 +593,10 @@ class TripController {
   get_special_trips = async (req, res) => {
     try {
       const key = `home:trips:special:all`;
-
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       // Get all trips and total count
       const allTrips = await TripModel.find({})
         .populate("category")
@@ -657,6 +666,10 @@ class TripController {
     const { tripId } = req.params;
     try {
       const key = `home:trip:${tripId}`;
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
 
       const trip = await mongoose
         .model("Trip")
@@ -775,7 +788,11 @@ class TripController {
 
   get_price_range = async (req, res) => {
     try {
-       const key = "home:trips:price-range";
+      const key = "home:trips:price-range";
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       // Find the lowest and highest prices from both regular and seasonal pricing
       const result = await TripModel.aggregate([
         {
@@ -960,7 +977,12 @@ class TripController {
         .createHash("md5")
         .update(JSON.stringify(normalizedQuery || {}))
         .digest("hex");
+        
       const key = `home:trips:query:${hash}`;
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
 
       const perPage = queryPerPage ? parseInt(queryPerPage) : 6;
       const skip = (parseInt(pageNumber) - 1) * perPage;
@@ -1176,7 +1198,8 @@ class TripController {
         delPattern("home:trips:list:*"),
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
-        delPattern("home:trips:query:*")
+        delPattern("home:trips:query:*"),
+        redis.del("dashboard:stats")
       ])
 
       return responseReturn(res, 200, {

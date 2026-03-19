@@ -25,7 +25,10 @@ const getDashboardStats = async (req, res) => {
       0
     );
     const key=`dashboard:stats`
-
+    const cached = await redis.get(key)
+    if (cached) {
+      return responseReturn(res, 200, JSON.parse(cached))
+    }
     // Execute all independent queries in parallel for better performance
     const [
       totalRevenueResult,
@@ -248,7 +251,7 @@ const getDashboardStats = async (req, res) => {
       },
     };
 
-    await redis.set(key, JSON.stringify({stats }), "EX", 1800);
+    await redis.set(key, JSON.stringify({ stats }));
     res.status(200).json({
       success: true,
       message: "Dashboard statistics retrieved successfully",
