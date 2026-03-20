@@ -74,10 +74,10 @@ const AnimatedRouteMarker = ({ routePath }) => {
         </div>
         <style>
           @keyframes jumpPulse {
-            0%, 100% { 
+            0%, 100% {
               transform: translateY(0) scale(1);
             }
-            50% { 
+            50% {
               transform: translateY(-8px) scale(1.1);
             }
           }
@@ -279,7 +279,7 @@ const OverviewTab = ({
 
     const { location: sLocation = {} } = startPoint || {};
     const { lat: sLat = 0, lng: sLng = 0 } = sLocation;
-    
+
     if (
       sLat && sLng
     ) {
@@ -374,14 +374,14 @@ const OverviewTab = ({
     if (
       firstDestination &&
       firstDestination.location &&
-      _.isNumber(firstDestination.location.lat) && 
+      _.isNumber(firstDestination.location.lat) &&
       _.isNumber(firstDestination.location.lng)
     ) {
       center = [firstDestination.location.lat, firstDestination.location.lng];
     } else if (
       startPoint &&
       startPoint.location &&
-      _.isNumber(startPoint.location.lat) && 
+      _.isNumber(startPoint.location.lat) &&
       _.isNumber(startPoint.location.lng)
     ) {
       center = [startPoint.location.lat, startPoint.location.lng];
@@ -711,29 +711,29 @@ const OverviewTab = ({
     <div className="w-full">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
+
         * {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        
+
         .safari-card {
           background: white;
           border: 1px solid rgba(0, 0, 0, 0.06);
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .safari-card:hover {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
           border-color: rgba(0, 0, 0, 0.1);
         }
-        
+
         .feature-card {
           background: white;
           border: 1px solid rgba(0, 0, 0, 0.06);
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .feature-card:hover {
           transform: translateY(-2px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
@@ -758,7 +758,7 @@ const OverviewTab = ({
           top: 0;
           bottom: 0;
           width: 2px;
-          background: linear-gradient(to bottom, 
+          background: linear-gradient(to bottom,
             rgba(148, 163, 184, 0.3) 0%,
             rgba(148, 163, 184, 0.6) 50%,
             rgba(148, 163, 184, 0.3) 100%
