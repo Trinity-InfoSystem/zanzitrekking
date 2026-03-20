@@ -12,6 +12,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import GoogleReviewsWidget from "../components/GoogleReviewsWidget";
 import TripadvisorReviews from "../components/TripadvisorReviews";
+import SEO from "../components/SEO";
 
 const BlogPost = () => {
   const dispatch = useDispatch();
@@ -47,6 +48,19 @@ const BlogPost = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {blogPost?._id && (
+        <SEO
+          title={`${blogPost.title || blogPost.mainTitle} | Zanzi Safaris Blog`}
+          description={
+            blogPost.description ||
+            blogPost.mainParagraph ||
+            blogPost.excerpt
+          }
+          image={blogPost.image || blogPost.coverImage || blogPost.mainImage}
+          type="blog"
+          data={blogPost}
+        />
+      )}
       <Header />
 
       {/* Enhanced Hero Section with Background Image */}

@@ -21,6 +21,7 @@ import "aos/dist/aos.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+import SEO from "../components/SEO";
 const TermsOfService = () => {
   useEffect(() => {
     AOS.init({
@@ -32,6 +33,7 @@ const TermsOfService = () => {
 
   return (
     <div className="from-background-nature to-background-sunset min-h-screen bg-gradient-to-br via-white">
+      <SEO />
       <Header />
 
       {/* Hero Section */}

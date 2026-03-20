@@ -26,6 +26,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { registerSchema } from "../utils/validationSchemas";
 
+import SEO from "../components/SEO";
 const Register = () => {
   const navigate = useNavigate();
   const { loader, errorMessage, successMessage, userInfo } = useSelector(
@@ -151,6 +152,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-white py-16 lg:py-20">
+      <SEO />
       {/* Loading Overlay */}
       {loader && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/10 backdrop-blur-sm">

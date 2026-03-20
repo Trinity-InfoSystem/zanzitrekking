@@ -7,6 +7,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import { Camera, ChevronRight as ChevronRightIcon, Compass, Heart, Mountain, Sparkles, Star, TreePine } from "lucide-react";
 
+import SEO from "../components/SEO";
 const TripAdvisorReviews = () => {
   useEffect(() => {
     AOS.init({ duration: 400, once: true, offset: 60 });
@@ -14,6 +15,7 @@ const TripAdvisorReviews = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO />
       <Header />
 
       {/* Hero (matching Blog/Trips) */}

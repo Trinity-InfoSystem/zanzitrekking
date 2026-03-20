@@ -11,6 +11,7 @@ import {
 import { IMAGES_URL } from "../utils/constants";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 
+import SEO from "../components/SEO";
 const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -139,6 +140,7 @@ const OrderConfirmation = () => {
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-gray-50">
+        <SEO />
         <Header />
         <main className="flex-grow py-12">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">

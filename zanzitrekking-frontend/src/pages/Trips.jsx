@@ -31,6 +31,7 @@ import "aos/dist/aos.css";
 import GoogleReviewsWidget from "../components/GoogleReviewsWidget";
 import TripadvisorReviews from "../components/TripadvisorReviews";
 
+import SEO from "../components/SEO";
 const CATEGORY_CONTENT = {
   "cultural tours": {
     title: "Cultural Tours",
@@ -425,6 +426,7 @@ const Trips = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-50 to-white">
+      <SEO />
       <Header categories={categories} />
 
       <section className="relative overflow-hidden">

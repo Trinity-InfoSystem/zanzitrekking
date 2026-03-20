@@ -51,7 +51,7 @@ const ForgotPasswordOTP = () => {
     if (location.state?.email) {
       setEmail(location.state.email);
     } else {
-      navigate("/forgot-password-email", { replace: true });
+      navigate("/forgot-password", { replace: true });
     }
   }, [location.state, navigate]);
 
@@ -89,7 +89,7 @@ const ForgotPasswordOTP = () => {
       toast.success(successMessage);
 
       if (successMessage.includes("OTP verified")) {
-        navigate("/forgot-password-reset", {
+        navigate("/forgot-password/reset", {
           state: { email, otp },
           replace: true,
         });
@@ -220,7 +220,7 @@ const ForgotPasswordOTP = () => {
               {/* Back to Email */}
               <div className="mt-4 text-center">
                 <button
-                  onClick={() => navigate("/forgot-password-email")}
+                  onClick={() => navigate("/forgot-password")}
                   className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
                 >
                   <ArrowLeft className="h-4 w-4" />
