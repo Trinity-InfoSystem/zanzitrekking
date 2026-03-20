@@ -5,32 +5,19 @@
  */
 
 import { writeFileSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { dirname } from "path";
+import dotenv from "dotenv";
+import { routeConfig } from "../src/config/routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const distPath = join(__dirname, "../dist");
+dotenv.config({ path: join(__dirname, "../.env.production") });
 
 // Import route config (we'll inline the sitemap generation here)
-const BASE_URL = "https://booking.zanzisafaris.com";
-
-const routeConfig = {
-  home: { path: "/", priority: 1.0, changefreq: "daily" },
-  trips: { path: "/trips", priority: 0.9, changefreq: "daily" },
-  blog: { path: "/blog", priority: 0.8, changefreq: "daily" },
-  aboutUs: { path: "/about-us", priority: 0.8, changefreq: "monthly" },
-  contactUs: { path: "/contact-us", priority: 0.8, changefreq: "monthly" },
-  careers: { path: "/careers", priority: 0.7, changefreq: "weekly" },
-  googleReviews: { path: "/reviews/google", priority: 0.6, changefreq: "weekly" },
-  tripAdvisorReviews: { path: "/reviews/tripadvisor", priority: 0.6, changefreq: "weekly" },
-  safariBookingReviews: { path: "/reviews/safariBooking", priority: 0.6, changefreq: "weekly" },
-  getYourGuideReviews: { path: "/reviews/getYourGuide", priority: 0.6, changefreq: "weekly" },
-  termsOfService: { path: "/terms-of-service", priority: 0.3, changefreq: "monthly" },
-  privacyPolicy: { path: "/privacy-policy", priority: 0.3, changefreq: "monthly" },
-  cookiePolicy: { path: "/cookie-policy", priority: 0.3, changefreq: "monthly" },
-};
+const BASE_URL = process.env.VITE_FRONTEND_URL || "https://zanzisafaris.com";
+const API_URL = process.env.VITE_API_URL || "https://api.zanzisafaris.com/api";
 
 const escapeXml = (unsafe) => {
   return unsafe
@@ -41,14 +28,74 @@ const escapeXml = (unsafe) => {
     .replace(/'/g, "&apos;");
 };
 
-const generateSitemap = () => {
-  const staticRoutes = Object.values(routeConfig);
+const fetchDynamicUrls = async () => {
+  const today = new Date().toISOString().split("T")[0];
+  const dynamicUrls = [];
+
+  try {
+    const [tripsRes, blogsRes] = await Promise.all([
+      fetch(`${API_URL}/trips`),
+      fetch(`${API_URL}/blogs`),
+    ]);
+
+    if (!tripsRes.ok || !blogsRes.ok) {
+      throw new Error(
+        `Failed API responses: trips=${tripsRes.status}, blogs=${blogsRes.status}`,
+      );
+    }
+
+    const trips = await tripsRes.json();
+    const blogs = await blogsRes.json();
+
+    if (Array.isArray(trips)) {
+      for (const trip of trips) {
+        if (trip?._id) {
+          dynamicUrls.push({
+            loc: `${BASE_URL}/trip/details/${trip._id}`,
+            lastmod: today,
+            changefreq: "weekly",
+            priority: 0.8,
+          });
+        }
+      }
+    }
+
+    if (Array.isArray(blogs)) {
+      for (const blog of blogs) {
+        if (blog?._id) {
+          dynamicUrls.push({
+            loc: `${BASE_URL}/blog/${blog._id}`,
+            lastmod: today,
+            changefreq: "weekly",
+            priority: 0.7,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    // Do not fail the build if dynamic sitemap fetching fails.
+    console.warn(`⚠️ Dynamic sitemap fetch failed: ${error.message}`);
+  }
+
+  return dynamicUrls;
+};
+
+const generateSitemap = async () => {
+  const staticRoutes = Object.values(routeConfig).filter((route) => {
+    if (route.dynamic) {
+      return false;
+    }
+    const robots = route.metadata?.robots || "";
+    return !robots.includes("noindex");
+  });
   const urls = staticRoutes.map((route) => ({
     loc: `${BASE_URL}${route.path}`,
     lastmod: new Date().toISOString().split("T")[0],
     changefreq: route.changefreq || "monthly",
     priority: route.priority || 0.5,
   }));
+  const dynamicUrls = await fetchDynamicUrls();
+  const allUrls = [...urls, ...dynamicUrls];
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -57,7 +104,7 @@ const generateSitemap = () => {
         xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
-${urls
+${allUrls
   .map(
     (url) => `  <url>
     <loc>${escapeXml(url.loc)}</loc>
@@ -84,8 +131,11 @@ Disallow: /order-confirmation
 Disallow: /login
 Disallow: /register
 Disallow: /apply/
-Disallow: /job-application-success
+Disallow: /careers/application-success
 Disallow: /forgot-password-*
+Disallow: /my-bookings
+Disallow: /orders
+Disallow: /payment
 
 # Sitemap
 Sitemap: ${BASE_URL}/sitemap.xml
@@ -97,7 +147,7 @@ Crawl-delay: 1
 
 // Generate sitemap.xml
 try {
-  const sitemap = generateSitemap();
+  const sitemap = await generateSitemap();
   writeFileSync(join(distPath, "sitemap.xml"), sitemap, "utf-8");
   console.log("✅ Generated sitemap.xml");
 } catch (error) {

@@ -56,6 +56,8 @@ const SEO = ({ title: propTitle, description: propDescription, image: propImage,
         "@type": "PostalAddress",
         addressCountry: "TZ",
         addressLocality: "Arusha",
+        streetAddress: "Building No. 28, Azimio St",
+        postalCode: "23103",
       },
       contactPoint: {
         "@type": "ContactPoint",
@@ -64,9 +66,9 @@ const SEO = ({ title: propTitle, description: propDescription, image: propImage,
       },
       // ✅ Fill in your real social media URLs here
       sameAs: [
-        // "https://www.facebook.com/zanzisafaris",
-        // "https://www.instagram.com/zanzisafaris",
-        // "https://www.tiktok.com/@zanzisafaris",
+        " https://www.facebook.com/share/1D7By44kQk",
+        " https://www.instagram.com/zanzi_trekking_safaris?igsh=Zm9iYnpuMDE3c25j",
+        " https://www.tiktok.com/@zanzi_trekking_safaris?_r=1&_t=ZG-94qzqyZZx4a",
       ],
     };
 
