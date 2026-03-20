@@ -12,6 +12,7 @@ const {
 const { OAuth2Client } = require("google-auth-library");
 const axios = require("axios");
 const emailQueue = require("../../workers/emailQueue");
+const redis = require("../../redis");
 
 // ---------------------------------------------------------------------------
 // Cookie helpers — single source of truth for cookie config
@@ -85,6 +86,8 @@ class CustomerController {
       await customer.save();
 
       setAuthCookies(res, accessToken, refreshToken);
+      
+      await redis.del("dashboard:stats");
 
       // Return customer info directly — frontend no longer decodes tokens
       return responseReturn(res, 201, {

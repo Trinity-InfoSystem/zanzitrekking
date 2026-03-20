@@ -1,5 +1,5 @@
 const Order = require("../../models/order");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const Customer = require("../../models/customer");
 const Trip = require("../../models/trip");
 const Cart = require("../../models/cart");
@@ -12,20 +12,23 @@ const getDashboardStats = async (req, res) => {
     const startOfMonth = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      1
+      1,
     );
     const startOfLastMonth = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() - 1,
-      1
+      1,
     );
     const endOfLastMonth = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      0
+      0,
     );
-    const key=`dashboard:stats`
-
+    const key = `dashboard:stats`;
+    const cached = await redis.get(key);
+    if (cached) {
+      return responseReturn(res, 200, JSON.parse(cached));
+    }
     // Execute all independent queries in parallel for better performance
     const [
       totalRevenueResult,
@@ -114,7 +117,7 @@ const getDashboardStats = async (req, res) => {
               $gte: new Date(
                 currentDate.getFullYear() - 1,
                 currentDate.getMonth(),
-                1
+                1,
               ),
             },
           },
@@ -141,7 +144,7 @@ const getDashboardStats = async (req, res) => {
               $gte: new Date(
                 currentDate.getFullYear() - 1,
                 currentDate.getMonth(),
-                1
+                1,
               ),
             },
           },
@@ -248,12 +251,14 @@ const getDashboardStats = async (req, res) => {
       },
     };
 
-    await redis.set(key, JSON.stringify({stats }), "EX", 1800);
-    res.status(200).json({
+    const response = {
       success: true,
       message: "Dashboard statistics retrieved successfully",
       data: stats,
-    });
+    };
+
+    await redis.set(key, JSON.stringify(response), "EX", 1800);
+    res.status(200).json(response);
   } catch (error) {
     logger.error("Error fetching dashboard statistics:", error);
     res.status(500).json({

@@ -1,10 +1,10 @@
 const PartnerModel = require("../../models/partner");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
-const redis = require('../../redis');
+const redis = require("../../redis");
 
 class PartnerController {
   // Add Partner
@@ -102,7 +102,7 @@ class PartnerController {
             "..",
             "public",
             "uploads",
-            oldLogoFileName
+            oldLogoFileName,
           );
           try {
             await fs.promises.unlink(oldLogoPath);
@@ -118,7 +118,7 @@ class PartnerController {
       const updatedPartner = await PartnerModel.findByIdAndUpdate(
         partnerId,
         updateFields,
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       await redis.del(`home:partners`);
@@ -140,8 +140,12 @@ class PartnerController {
   // Get Partners
   get_partners = async (req, res) => {
     const { page, searchValue, parPage } = req.query;
-    const key=`home:partners` 
+    const key = `home:partners`;
     try {
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       let skipPage = "";
       if (parPage && page) {
         skipPage = +parPage * (+page - 1);
@@ -160,15 +164,14 @@ class PartnerController {
         .model("Partner")
         .countDocuments(query);
 
-      await redis.set(key, JSON.stringify({
+      const response = {
         totalPartners,
         partners,
-      }), "EX", 86400);
+      };
 
-      responseReturn(res, 200, {
-        totalPartners,
-        partners,
-      });
+      await redis.set(key, JSON.stringify(response), "EX", 86400);
+
+      responseReturn(res, 200, response);
     } catch (error) {
       responseReturn(res, 500, { error: "internal server error" });
     }
@@ -225,7 +228,7 @@ class PartnerController {
           "..",
           "public",
           "uploads",
-          oldLogoFileName
+          oldLogoFileName,
         );
 
         fs.unlink(oldLogoPath, (err) => {
