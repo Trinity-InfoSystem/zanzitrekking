@@ -61,7 +61,7 @@ const ForgotPasswordReset = () => {
       setEmail(location.state.email);
       setOtp(location.state.otp);
     } else {
-      navigate("/forgot-password-email", { replace: true });
+      navigate("/forgot-password", { replace: true });
     }
   }, [location.state, navigate]);
 
@@ -363,7 +363,7 @@ const ForgotPasswordReset = () => {
               <div className="mt-6 text-center">
                 <button
                   onClick={() =>
-                    navigate("/forgot-password-otp", {
+                    navigate("/forgot-password/otp", {
                       state: { email },
                       replace: true,
                     })

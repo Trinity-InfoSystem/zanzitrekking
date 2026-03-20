@@ -18,6 +18,7 @@ import {
 import AOS from "aos";
 import "aos/dist/aos.css";
 
+import SEO from "../components/SEO";
 const ContactUs = () => {
   useEffect(() => {
     AOS.init({
@@ -30,6 +31,7 @@ const ContactUs = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO />
       <Header />
 
       {/* Hero Section */}

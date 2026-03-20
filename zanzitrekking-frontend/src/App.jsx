@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import "./App.css";
 import { useDispatch, useSelector } from "react-redux";
@@ -69,7 +69,6 @@ import { init } from "@emailjs/browser";
 import "leaflet/dist/leaflet.css";
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
 import { getPdfs } from "./store/reducers/pdfReducer";
-import SEO from "./components/SEO";
 import { initRouteOptimizations } from "./utils/routeOptimization";
 import { hydrateAuth } from "./store/reducers/authReducer";
 import ChatBot from "./components/Chatbot/ChatBot";
@@ -150,7 +149,6 @@ function App() {
       }}
     >
       <ScrollToTop />
-      <SEO />
       <div>
         {/* ✅ Wrap Routes in Suspense with fallback */}
         <Suspense fallback={<RouteLoader />}>
@@ -164,16 +162,29 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
-              path="/forgot-password-email"
+              path="/forgot-password"
               element={<ForgotPasswordEmail />}
             />
             <Route
-              path="/forgot-password-otp"
+              path="/forgot-password/otp"
               element={<ForgotPasswordOTP />}
             />
             <Route
-              path="/forgot-password-reset"
+              path="/forgot-password/reset"
               element={<ForgotPasswordReset />}
+            />
+            {/* Backward-compatible redirects for old route paths */}
+            <Route
+              path="/forgot-password-email"
+              element={<Navigate to="/forgot-password" replace />}
+            />
+            <Route
+              path="/forgot-password-otp"
+              element={<Navigate to="/forgot-password/otp" replace />}
+            />
+            <Route
+              path="/forgot-password-reset"
+              element={<Navigate to="/forgot-password/reset" replace />}
             />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:blogId" element={<BlogPost />} />
@@ -181,20 +192,32 @@ function App() {
             <Route path="/careers/:jobId" element={<JobDetails />} />
             <Route path="/apply/:jobId" element={<ApplyToJob />} />
             <Route
-              path="/job-application-success"
+              path="/careers/application-success"
               element={<JobApplicationSuccess />}
+            />
+            <Route
+              path="/job-application-success"
+              element={<Navigate to="/careers/application-success" replace />}
             />
             <Route path="/payment" element={<Payment />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
             <Route path="/reviews/google" element={<GoogleReviews />} />
             <Route
-              path="/reviews/safariBooking"
+              path="/reviews/safaribooking"
               element={<SafariBookingReviews />}
             />
             <Route
-              path="/reviews/getYourGuide"
+              path="/reviews/safariBooking"
+              element={<Navigate to="/reviews/safaribooking" replace />}
+            />
+            <Route
+              path="/reviews/getyourguide"
               element={<GetYourGuideReviews />}
+            />
+            <Route
+              path="/reviews/getYourGuide"
+              element={<Navigate to="/reviews/getyourguide" replace />}
             />
             <Route
               path="/reviews/tripadvisor"

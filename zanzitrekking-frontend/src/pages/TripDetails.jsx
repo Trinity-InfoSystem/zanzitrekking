@@ -27,6 +27,7 @@ import TripHero from "../components/tripDetails/TripHero";
 import TripTabs from "../components/tripDetails/TripTabs";
 import TripActions from "../components/tripDetails/TripActions";
 import Reviews from "../components/reviews/Reviews";
+import SEO from "../components/SEO";
 
 const TripDetails = () => {
   const { tripId } = useParams();
@@ -184,9 +185,18 @@ const TripDetails = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50">
+      {trip?._id && (
+        <SEO
+          title={`${trip.mainTitle || trip.title} | Zanzi Safaris`}
+          description={trip.description || trip.overview}
+          image={trip.images?.[0] || trip.image}
+          type="trip"
+          data={trip}
+        />
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
-        
+
         .safari-page {
           font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }

@@ -84,7 +84,7 @@ Disallow: /order-confirmation
 Disallow: /login
 Disallow: /register
 Disallow: /apply/
-Disallow: /job-application-success
+Disallow: /careers/application-success
 Disallow: /forgot-password-*
 
 # Sitemap

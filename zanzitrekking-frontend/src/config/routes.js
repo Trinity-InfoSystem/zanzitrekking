@@ -336,6 +336,184 @@ export const routeConfig = {
     preload: false,
   },
 
+  getYourGuideReviews: {
+    path: "/reviews/getyourguide",
+    component: () => import("../pages/GetYourGuideReviews"),
+    priority: 0.6,
+    changefreq: "weekly",
+    metadata: {
+      title: "GetYourGuide Reviews | Traveler Testimonials | Zanzi Safaris",
+      description:
+        "Read verified GetYourGuide reviews from travelers who explored Tanzania with Zanzi Safaris.",
+      keywords:
+        "GetYourGuide reviews, Tanzania safari testimonials, traveler feedback",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "index, follow",
+    },
+    chunk: "static",
+    preload: false,
+  },
+
+  safariBookingReviews: {
+    path: "/reviews/safaribooking",
+    component: () => import("../pages/SafariBookingReviews"),
+    priority: 0.6,
+    changefreq: "weekly",
+    metadata: {
+      title: "SafariBookings Reviews | Customer Feedback | Zanzi Safaris",
+      description:
+        "Explore SafariBookings reviews and ratings from guests who booked their Tanzania adventures with us.",
+      keywords:
+        "SafariBookings reviews, safari ratings, Tanzania tour testimonials",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "index, follow",
+    },
+    chunk: "static",
+    preload: false,
+  },
+
+  forgotPasswordEmail: {
+    path: "/forgot-password",
+    component: () => import("../pages/ForgotPasswordEmail"),
+    priority: 0.2,
+    changefreq: "monthly",
+    metadata: {
+      title: "Forgot Password | Account Recovery | Zanzi Safaris",
+      description: "Recover your Zanzi Safaris account password securely.",
+      keywords: "forgot password, account recovery, reset password",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "auth",
+    preload: false,
+  },
+
+  forgotPasswordOTP: {
+    path: "/forgot-password/otp",
+    component: () => import("../pages/ForgotPasswordOTP"),
+    priority: 0.2,
+    changefreq: "monthly",
+    metadata: {
+      title: "Verify OTP | Password Recovery | Zanzi Safaris",
+      description: "Verify your one-time code to continue password reset.",
+      keywords: "otp verification, password reset code, account security",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "auth",
+    preload: false,
+  },
+
+  forgotPasswordReset: {
+    path: "/forgot-password/reset",
+    component: () => import("../pages/ForgotPasswordReset"),
+    priority: 0.2,
+    changefreq: "monthly",
+    metadata: {
+      title: "Reset Password | Account Security | Zanzi Safaris",
+      description: "Set a new password for your Zanzi Safaris account.",
+      keywords: "reset password, account security, new password",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "auth",
+    preload: false,
+  },
+
+  jobApplicationSuccess: {
+    path: "/careers/application-success",
+    component: () => import("../pages/JobApplicationSuccess"),
+    priority: 0.2,
+    changefreq: "monthly",
+    metadata: {
+      title: "Application Submitted | Careers | Zanzi Safaris",
+      description: "Your job application has been submitted successfully.",
+      keywords: "job application success, careers submission",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "careers",
+    preload: false,
+  },
+
+  myBookingRequests: {
+    path: "/my-bookings",
+    component: () => import("../pages/MyBookingRequests"),
+    priority: 0.2,
+    changefreq: "always",
+    metadata: {
+      title: "My Booking Requests | Zanzi Safaris",
+      description: "Manage your booking requests and availability updates.",
+      keywords: "my bookings, booking requests, customer dashboard",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "dashboard",
+    preload: false,
+    requiresAuth: true,
+  },
+
+  orderDetail: {
+    path: "/orders/:orderId",
+    component: () => import("../pages/OrderDetail"),
+    priority: 0.2,
+    changefreq: "always",
+    metadata: {
+      title: "Order Details | Zanzi Safaris",
+      description: "View your order details, payment status, and booking info.",
+      keywords: "order details, booking details, payment status",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "dashboard",
+    preload: false,
+    dynamic: true,
+    requiresAuth: true,
+  },
+
+  orders: {
+    path: "/orders",
+    component: () => import("../pages/Orders"),
+    priority: 0.2,
+    changefreq: "always",
+    metadata: {
+      title: "My Orders | Zanzi Safaris",
+      description: "View and manage all your orders and booking history.",
+      keywords: "orders, booking history, customer account",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "dashboard",
+    preload: false,
+    requiresAuth: true,
+  },
+
+  payment: {
+    path: "/payment",
+    component: () => import("../pages/Payment"),
+    priority: 0.2,
+    changefreq: "always",
+    metadata: {
+      title: "Payment | Complete Booking | Zanzi Safaris",
+      description: "Complete your payment securely to confirm your booking.",
+      keywords: "payment, secure checkout, booking payment",
+      image: "/images/newZanzi.jpg",
+      type: "website",
+      robots: "noindex, nofollow",
+    },
+    chunk: "checkout",
+    preload: false,
+  },
+
   // Legal pages
   termsOfService: {
     path: "/terms-of-service",

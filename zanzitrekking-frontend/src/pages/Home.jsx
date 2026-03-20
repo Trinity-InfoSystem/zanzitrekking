@@ -12,6 +12,7 @@ import SectionDivider from "../components/Home/SectionDivider";
 
 import { get_special_trips } from "../store/reducers/tripReducer";
 
+import SEO from "../components/SEO";
 // ✅ Helpers should live OUTSIDE the component rendering cycle to prevent memory leaks and prop recreation.
 const ensureArray = (data) => {
   if (Array.isArray(data)) return data;
@@ -50,6 +51,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO />
       {/* 🚀 SEO METADATA */}
       <Helmet>
         <title>Zanzi Trekking | Authentic Safaris & Tours</title>

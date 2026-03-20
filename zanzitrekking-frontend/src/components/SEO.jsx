@@ -220,30 +220,41 @@ const SEO = ({ title: propTitle, description: propDescription, image: propImage,
 
     const breadcrumbs = [{ "@type": "ListItem", position: 1, name: "Home", item: baseUrl }];
 
+    const nameMap = {
+      blog: "Blog",
+      careers: "Careers",
+      "about-us": "About Us",
+      "contact-us": "Contact Us",
+      trips: "Trips",
+      "privacy-policy": "Privacy Policy",
+      "terms-of-service": "Terms of Service",
+      "cookie-policy": "Cookie Policy",
+    };
+
+    const namespaceCandidates = new Set(["trip", "details", "reviews"]);
+
     let currentPath = "";
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
-      if (segment === "trip" || segment === "details") {
+      const nextSegmentExists = Boolean(pathSegments[index + 1]);
+      const hasMappedName = Boolean(nameMap[segment]);
+
+      // Skip namespace-like prefixes only when they are not meaningful pages.
+      if (namespaceCandidates.has(segment) && !hasMappedName && nextSegmentExists) {
         return;
       }
 
-      const nameMap = {
-        blog: "Blog",
-        careers: "Careers",
-        "about-us": "About Us",
-        "contact-us": "Contact Us",
-        trips: "Trips",
-        "privacy-policy": "Privacy Policy",
-        "terms-of-service": "Terms of Service",
-        "cookie-policy": "Cookie Policy",
-      };
+      const isMongoObjectId = /^[a-f0-9]{24}$/.test(segment);
+      const isLastSegment = index === pathSegments.length - 1;
 
-      const name = nameMap[segment] ||
-        segment.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      const name = (isMongoObjectId && isLastSegment)
+        ? title
+        : (nameMap[segment] ||
+          segment.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
 
       breadcrumbs.push({
         "@type": "ListItem",
-        position: index + 2,
+        position: breadcrumbs.length + 1,
         name,
         item: `${baseUrl}${currentPath}`,
       });

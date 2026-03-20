@@ -23,6 +23,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import { get_statistic_data } from "../store/reducers/homeReducer";
 import { IMAGES_URL } from "../utils/constants";
+import SEO from "../components/SEO";
 const AboutUs = () => {
   const dispatch = useDispatch();
   const { whoWeAre } = useSelector((state) => state.aboutUs);
@@ -44,6 +45,7 @@ const AboutUs = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO />
       <Header />
 
       {/* Hero Section */}

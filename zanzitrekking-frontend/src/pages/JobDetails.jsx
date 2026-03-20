@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { get_user_applications } from "../store/reducers/jobApplicationReducer";
+import SEO from "../components/SEO";
 
 const JobDetails = () => {
   const { jobId } = useParams();
@@ -146,6 +147,14 @@ const JobDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
+      {job?._id && (
+        <SEO
+          title={`${job.title} | Careers at Zanzi Safaris`}
+          description={job.description}
+          type="job"
+          data={job}
+        />
+      )}
       <Header categories={categories} />
 
       {/* Enhanced Hero Section */}

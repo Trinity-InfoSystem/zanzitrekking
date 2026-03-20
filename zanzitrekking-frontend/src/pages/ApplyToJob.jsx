@@ -86,7 +86,7 @@ const ApplyToJob = () => {
   useEffect(() => {
     if (successMessage) {
       // Navigate to success page with application and job data
-      navigate("/job-application-success", {
+      navigate("/careers/application-success", {
         state: {
           application: jobApplication || {},
           job,

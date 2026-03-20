@@ -36,7 +36,7 @@ const ForgotPasswordEmail = () => {
       toast.success(successMessage);
 
       if (successMessage.includes("OTP sent")) {
-        navigate("/forgot-password-otp", {
+        navigate("/forgot-password/otp", {
           state: { email },
           replace: true,
         });

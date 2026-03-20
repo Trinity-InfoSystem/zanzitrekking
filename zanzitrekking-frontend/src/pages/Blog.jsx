@@ -26,6 +26,7 @@ import GoogleReviewsWidget from "../components/GoogleReviewsWidget";
 import TripadvisorReviews from "../components/TripadvisorReviews";
 import Loader from "../components/Loader";
 
+import SEO from "../components/SEO";
 const Blog = () => {
   const [perPage, setPerPage] = useState(6);
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,6 +89,7 @@ const Blog = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO />
       <Header categories={categories} />
 
       {/* Enhanced Hero Section with Background Image */}

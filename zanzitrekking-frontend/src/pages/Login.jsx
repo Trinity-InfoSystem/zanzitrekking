@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "../utils/validationSchemas";
 
+import SEO from "../components/SEO";
 const Login = () => {
   const { loader, errorMessage, successMessage, userInfo } = useSelector(
     (state) => state.auth,
@@ -121,6 +122,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-white py-16 lg:py-20">
+      <SEO />
       {/* Loading Overlay */}
       {loader && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/10 backdrop-blur-sm">
@@ -275,7 +277,7 @@ const Login = () => {
                         Password
                       </label>
                       <Link
-                        to="/forgot-password-email"
+                        to="/forgot-password"
                         className="text-xs font-semibold text-primary-600 transition-colors hover:text-primary-700"
                       >
                         Forgot password?
