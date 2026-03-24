@@ -20,6 +20,7 @@ import api from "../../api/api";
 import RatingTemp from "./RatingTemp";
 import TripadvisorReviews from "../TripadvisorReviews";
 import GoogleReviewsWidget from "../GoogleReviewsWidget";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const Reviews = ({ tripId, orderId: propOrderId }) => {
   const [searchParams] = useSearchParams();
@@ -383,7 +384,7 @@ const Reviews = ({ tripId, orderId: propOrderId }) => {
                     <div className="relative flex-shrink-0">
                       {review.customerId?.image ? (
                         <img
-                          src={review.customerId.image}
+                          src={resolveMediaUrl(review.customerId.image)}
                           alt={review.customerId.name}
                           className="h-14 w-14 rounded-full object-cover ring-2 ring-neutral-200 transition-all md:h-16 md:w-16"
                         />

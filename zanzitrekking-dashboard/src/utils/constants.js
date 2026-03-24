@@ -12,19 +12,19 @@ export function getApiOrigin() {
   return base;
 }
 
-export const IMAGES_URL = `${getApiOrigin()}/public/uploads/`;
+export const IMAGES_URL = `${getApiOrigin()}/uploads/`;
 export const LIVE_IMAGE_DOWNLOAD_URL = `${getApiBaseUrl()}/api`;
 export const DOWNLOAD_URL = `${getApiBaseUrl()}/api`;
 
 /**
- * DB value → absolute URL (legacy full URL, /public/... path, or bare filename).
+ * DB value → absolute URL (legacy full URL, /uploads/..., /public/..., or bare filename).
  */
 export function resolveMediaUrl(stored) {
   if (stored == null || String(stored).trim() === "") return "";
   const s = String(stored).trim();
   if (/^https?:\/\//i.test(s)) return s;
   const origin = getApiOrigin();
-  if (s.startsWith("/public/")) {
+  if (s.startsWith("/uploads/") || s.startsWith("/public/")) {
     return origin ? `${origin}${s}` : s;
   }
   const file = s.split("/").pop().split("?")[0];

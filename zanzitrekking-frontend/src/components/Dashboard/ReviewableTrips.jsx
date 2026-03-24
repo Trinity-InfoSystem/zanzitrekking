@@ -16,6 +16,7 @@ import {
   clearMessage,
   getReviewableTrips,
 } from "../../store/reducers/reviewReducer";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const ReviewableTrips = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -139,7 +140,11 @@ const ReviewableTrips = () => {
             >
               <div className="relative h-56 overflow-hidden">
                 <img
-                  src={trip.tripImage || "/placeholder.svg"}
+                  src={
+                    trip.tripImage
+                      ? resolveMediaUrl(trip.tripImage)
+                      : "/placeholder.svg"
+                  }
                   alt={trip.tripTitle}
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />

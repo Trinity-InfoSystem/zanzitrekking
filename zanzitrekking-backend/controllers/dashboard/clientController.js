@@ -2,10 +2,12 @@ const ClientModel = require("../../models/client");
 const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
-const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
-const { publicUploadsRef } = require("../../utilities/storedAssetPath");
+const {
+  publicUploadsRef,
+  diskPathFromStoredUploadRef,
+} = require("../../utilities/storedAssetPath");
 
 class ClientController {
   // Add Client
@@ -62,22 +64,12 @@ class ClientController {
       const logoFile = req.file;
       if (logoFile) {
         // Delete old logo if it exists and was uploaded
-        if (existingClient.logo && existingClient.logo.includes("/public/uploads/")) {
-          const oldLogoFileName = path.basename(existingClient.logo);
-          const oldLogoPath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldLogoFileName
-          );
-          if (fs.existsSync(oldLogoPath)) {
-            try {
-              await fs.promises.unlink(oldLogoPath);
-            } catch (error) {
-              logger.error("Error deleting old logo:", error);
-            }
+        const oldLogoPath = diskPathFromStoredUploadRef(existingClient.logo);
+        if (oldLogoPath && fs.existsSync(oldLogoPath)) {
+          try {
+            await fs.promises.unlink(oldLogoPath);
+          } catch (error) {
+            logger.error("Error deleting old logo:", error);
           }
         }
         updateFields.logo = publicUploadsRef(logoFile.filename);
@@ -85,17 +77,9 @@ class ClientController {
       } else if (logoUrl !== undefined) {
         // If URL provided, use it and clear uploaded logo
         updateFields.logoUrl = logoUrl || null;
-        if (logoUrl && existingClient.logo && existingClient.logo.includes("/public/uploads/")) {
-          const oldLogoFileName = path.basename(existingClient.logo);
-          const oldLogoPath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldLogoFileName
-          );
-          if (fs.existsSync(oldLogoPath)) {
+        if (logoUrl && existingClient.logo) {
+          const oldLogoPath = diskPathFromStoredUploadRef(existingClient.logo);
+          if (oldLogoPath && fs.existsSync(oldLogoPath)) {
             try {
               await fs.promises.unlink(oldLogoPath);
             } catch (error) {
@@ -201,20 +185,9 @@ class ClientController {
         return responseReturn(res, 404, { error: "Client not found" });
       }
 
-      // Delete logo file if exists
-      if (client.logo && client.logo.includes("/public/uploads/")) {
-        const logoFileName = path.basename(client.logo);
-        const logoPath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          logoFileName
-        );
-        if (fs.existsSync(logoPath)) {
-          fs.unlinkSync(logoPath);
-        }
+      const logoPath = diskPathFromStoredUploadRef(client.logo);
+      if (logoPath && fs.existsSync(logoPath)) {
+        fs.unlinkSync(logoPath);
       }
 
       await ClientModel.findByIdAndDelete(clientId);
@@ -255,21 +228,10 @@ class ClientController {
 
       const clients = await ClientModel.find({ _id: { $in: clientIds } });
 
-      // Delete logo files
       clients.forEach((client) => {
-        if (client.logo && client.logo.includes("/public/uploads/")) {
-          const logoFileName = path.basename(client.logo);
-          const logoPath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            logoFileName
-          );
-          if (fs.existsSync(logoPath)) {
-            fs.unlinkSync(logoPath);
-          }
+        const logoPath = diskPathFromStoredUploadRef(client.logo);
+        if (logoPath && fs.existsSync(logoPath)) {
+          fs.unlinkSync(logoPath);
         }
       });
 

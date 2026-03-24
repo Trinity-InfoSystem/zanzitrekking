@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { resolveMediaUrl } from "../../../utils/imageUtils";
 import { useSelector } from "react-redux";
 import {
   Award,
@@ -130,8 +131,7 @@ const PartnersSection = () => {
                         <div className="relative h-48 overflow-hidden bg-neutral-50">
                           {partner.logo ? (
                             <img
-                              src={partner.logo}
-                              // optional: use resolveMediaUrl(partner.logo) when enabling partner logos
+                              src={resolveMediaUrl(partner.logo)}
                               alt={partner.name}
                               className="h-full w-full object-contain p-8 transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {

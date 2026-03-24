@@ -128,7 +128,8 @@ const Clients = () => {
 
   const getLogoUrl = (client) => {
     if (client.logo) return resolveMediaUrl(client.logo);
-    return client.logoUrl || null;
+    if (client.logoUrl) return resolveMediaUrl(client.logoUrl);
+    return null;
   };
 
   return (

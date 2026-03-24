@@ -4,10 +4,12 @@ const bcrypt = require('bcryptjs')
 const crypto = require('crypto')
 const { createAccessToken, createRefreshToken, verifyRefreshToken } = require('../utilities/tokenCreate')
 const fs = require('fs')
-const path = require('path')
 const emailQueue = require('../workers/emailQueue')
 const redis = require('../redis')
-const { publicUploadsRef } = require('../utilities/storedAssetPath')
+const {
+  publicUploadsRef,
+  diskPathFromStoredUploadRef,
+} = require('../utilities/storedAssetPath')
 
 // ---------------------------------------------------------------------------
 // Cookie helpers — single source of truth for cookie config
@@ -194,10 +196,8 @@ class AuthControllers {
     }
 
     try {
-      if (admin.image) {
-        const oldImagePath = path.resolve(
-          __dirname, '..', 'public', 'uploads', path.basename(admin.image)
-        )
+      const oldImagePath = diskPathFromStoredUploadRef(admin.image)
+      if (oldImagePath) {
         fs.unlink(oldImagePath, (err) => {
           if (err) console.warn('Could not delete old profile image:', err.message)
         })

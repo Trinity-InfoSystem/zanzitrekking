@@ -172,17 +172,22 @@ app.use(
   }),
 );
 
-// Uploads static files
+// Uploads static files (legacy URL /public/uploads/... and canonical /uploads/... both served from disk public/uploads/)
+const uploadsStaticOpts = {
+  maxAge: "1d",
+  etag: true,
+  lastModified: true,
+  setHeaders: (res) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  },
+};
 app.use(
   "/public/uploads",
-  express.static(path.join(__dirname, "public", "uploads"), {
-    maxAge: "1d",
-    etag: true,
-    lastModified: true,
-    setHeaders: (res) => {
-      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    },
-  }),
+  express.static(path.join(__dirname, "public", "uploads"), uploadsStaticOpts),
+);
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "public", "uploads"), uploadsStaticOpts),
 );
 
 // ============ SAFARI ANALYTICS ROUTES (BEFORE PROXY) ============

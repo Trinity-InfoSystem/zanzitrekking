@@ -2,7 +2,7 @@ import { getApiOrigin, IMAGES_URL } from "./constants";
 
 /**
  * Turn a DB-stored media reference into a browser-usable absolute URL.
- * Supports: legacy full http(s) URLs, paths like /public/uploads/file.jpg, or bare filenames.
+ * Supports: legacy full http(s) URLs, /uploads/..., legacy /public/uploads/..., or bare filenames.
  *
  * @param {string|null|undefined} stored
  * @returns {string}
@@ -12,7 +12,7 @@ export function resolveMediaUrl(stored) {
   const s = String(stored).trim();
   if (/^https?:\/\//i.test(s)) return s;
   const origin = getApiOrigin();
-  if (s.startsWith("/public/")) {
+  if (s.startsWith("/uploads/") || s.startsWith("/public/")) {
     return origin ? `${origin}${s}` : s;
   }
   const file = s.split("/").pop().split("?")[0];

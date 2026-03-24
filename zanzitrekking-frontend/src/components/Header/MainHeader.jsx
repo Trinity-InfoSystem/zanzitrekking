@@ -15,6 +15,8 @@ import {
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { resolveMediaUrl } from "../../utils/imageUtils";
+
 const MainHeader = ({
   isScrolled,
   showTopBar,
@@ -219,7 +221,7 @@ const EnhancedNavItemWithSubmenu = ({ item, pathname, totalTripsCount }) => {
                 >
                   <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg shadow-sm ring-1 ring-neutral-200 transition-all group-hover:shadow-md group-hover:ring-neutral-300">
                     <img
-                      src={`${subItem.image}`}
+                      src={resolveMediaUrl(subItem.image)}
                       alt={subItem.label}
                       className="h-full w-full object-cover transition-transform group-hover:scale-110"
                     />

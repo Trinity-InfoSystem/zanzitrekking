@@ -56,7 +56,11 @@ const BlogPost = () => {
             blogPost.mainParagraph ||
             blogPost.excerpt
           }
-          image={blogPost.image || blogPost.coverImage || blogPost.mainImage}
+          image={(() => {
+            const raw =
+              blogPost.mainImage || blogPost.coverImage || blogPost.image;
+            return raw ? resolveMediaUrl(raw) : undefined;
+          })()}
           type="blog"
           data={blogPost}
         />

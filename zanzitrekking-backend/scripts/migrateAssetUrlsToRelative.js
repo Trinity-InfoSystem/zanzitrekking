@@ -1,6 +1,7 @@
 /**
  * One-time migration: rewrite self-hosted asset fields from absolute http(s) URLs
- * to path-only values like /public/uploads/file.jpg or /public/uploads/cv_files/file.pdf
+ * to path-only values like /uploads/file.jpg or /uploads/cv_files/file.pdf
+ * (also rewrites legacy /public/uploads/... → /uploads/...)
  *
  * Usage (from zanzitrekking-backend):
  *   DB_URL="your-uri" node scripts/migrateAssetUrlsToRelative.js --dry-run
@@ -44,14 +45,29 @@ function shouldPreserveExternalUrl(url) {
  * @param {string|null|undefined} value
  * @returns {string|null|undefined}
  */
+function toUploadsPath(pathname) {
+  if (pathname.startsWith("/public/uploads/")) {
+    return pathname.replace(/^\/public\/uploads/, "/uploads");
+  }
+  return pathname;
+}
+
 function normalizeUrl(value) {
   if (value == null || typeof value !== "string") return value;
   const s = value.trim();
   if (s === "") return s;
-  if (!/^https?:\/\//i.test(s)) return s;
+  if (!/^https?:\/\//i.test(s)) {
+    if (s.startsWith("/public/uploads/")) {
+      return toUploadsPath(s);
+    }
+    return s;
+  }
   if (shouldPreserveExternalUrl(s)) return s;
   try {
     const pathname = new URL(s).pathname;
+    if (pathname.startsWith("/public/uploads/") || pathname.startsWith("/uploads/")) {
+      return toUploadsPath(pathname);
+    }
     if (pathname.startsWith("/public/")) return pathname;
   } catch {
     return s;

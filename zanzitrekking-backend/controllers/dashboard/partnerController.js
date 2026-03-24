@@ -5,7 +5,10 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
-const { publicUploadsRef } = require("../../utilities/storedAssetPath");
+const {
+  publicUploadsRef,
+  diskPathFromStoredUploadRef,
+} = require("../../utilities/storedAssetPath");
 
 class PartnerController {
   // Add Partner
@@ -92,16 +95,8 @@ class PartnerController {
       const logoFile = req.file;
       if (logoFile) {
         // Delete old logo if it exists
-        if (existingPartner.logo) {
-          const oldLogoFileName = path.basename(existingPartner.logo);
-          const oldLogoPath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldLogoFileName
-          );
+        const oldLogoPath = diskPathFromStoredUploadRef(existingPartner.logo);
+        if (oldLogoPath) {
           try {
             await fs.promises.unlink(oldLogoPath);
             logger.info("Deleted old logo:", oldLogoPath);
@@ -214,18 +209,8 @@ class PartnerController {
         return responseReturn(res, 404, { error: "Partner Not Found" });
       }
 
-      // Delete the logo if it exists
-      if (partner.logo) {
-        const oldLogoFileName = path.basename(partner.logo);
-        const oldLogoPath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          oldLogoFileName
-        );
-
+      const oldLogoPath = diskPathFromStoredUploadRef(partner.logo);
+      if (oldLogoPath) {
         fs.unlink(oldLogoPath, (err) => {
           if (err) {
             logger.error(`Error deleting old logo: ${err.message}`);

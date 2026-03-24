@@ -189,7 +189,11 @@ const TripDetails = () => {
         <SEO
           title={`${trip.mainTitle || trip.title} | Zanzi Safaris`}
           description={trip.description || trip.overview}
-          image={trip.images?.[0] || trip.image}
+          image={(() => {
+            const raw =
+              trip.mainImage || trip.images?.[0] || trip.image;
+            return raw ? resolveMediaUrl(raw) : undefined;
+          })()}
           type="trip"
           data={trip}
         />

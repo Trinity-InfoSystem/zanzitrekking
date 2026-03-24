@@ -19,6 +19,7 @@ import Search from "../components/Search";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { adminReviewSchema } from "../../utils/validationSchemas";
+import { resolveMediaUrl } from "../../utils/constants";
 
 // Confirm Modal
 const ConfirmModal = ({ open, onConfirm, onCancel, message }) => {
@@ -506,7 +507,7 @@ const Reviews = () => {
                         <div className="flex items-center space-x-3">
                           {review.customerId?.image ? (
                             <img
-                              src={review.customerId.image}
+                              src={resolveMediaUrl(review.customerId.image)}
                               alt={review.customerId.name}
                               className="h-10 w-10 rounded-full object-cover ring-2 ring-primary-200"
                             />

@@ -133,7 +133,8 @@ const Achievements = () => {
 
   const getImageUrl = (achievement) => {
     if (achievement.image) return resolveMediaUrl(achievement.image);
-    return achievement.imageUrl || null;
+    if (achievement.imageUrl) return resolveMediaUrl(achievement.imageUrl);
+    return null;
   };
 
   return (
