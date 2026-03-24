@@ -6,6 +6,7 @@ const emailQueue = require("../../workers/emailQueue");
 const {
   generateApplicationConfirmationEmail,
 } = require("../../utilities/jobApplicationEmailTemplates");
+const { publicCvFileRef } = require("../../utilities/storedAssetPath");
 
 class JobApplicationControllers {
   apply_to_job = async (req, res) => {
@@ -65,10 +66,6 @@ class JobApplicationControllers {
         });
       }
 
-      // Create file path
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/cv_files/`;
-      const cvFilePath = `${basePath}${file.filename}`;
-
       // Create application
       const application = await JobApplication.create({
         jobId,
@@ -78,7 +75,7 @@ class JobApplicationControllers {
         email,
         phone,
         additionalDetails: additionalDetails || "",
-        cvFile: cvFilePath,
+        cvFile: publicCvFileRef(file.filename),
         cvOriginalName: file.originalname,
         status: "pending",
       });

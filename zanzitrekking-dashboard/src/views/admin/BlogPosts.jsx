@@ -13,7 +13,6 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
 import BlogPostSearchBar from "./BlogPostSearchBar";
 import BlogPostTable from "./BlogPostTable";
 import SortSelect from "../components/SortSelect";
@@ -100,7 +99,6 @@ const BlogPosts = () => {
               <BlogPostTable
                 blogPosts={blogPosts}
                 startIndex={startIndex}
-                IMAGES_URL={IMAGES_URL}
                 deleteBlogPost={deleteBlogPost}
                 role={role}
               />

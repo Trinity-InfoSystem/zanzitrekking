@@ -19,7 +19,7 @@ import {
   TreePine,
   Users,
 } from "lucide-react";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 // Icon mapping
 const iconMap = {
@@ -216,7 +216,7 @@ const AchievementsSection = () => {
                     <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center">
                       {cert.image && (
                         <img
-                          src={IMAGES_URL + cert.image.split("/").pop()}
+                          src={resolveMediaUrl(cert.image)}
                           alt={cert.name}
                           className="h-full w-full object-contain"
                           onError={(e) => {
@@ -263,7 +263,7 @@ const AchievementsSection = () => {
                     <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center">
                       {award.image && (
                         <img
-                          src={IMAGES_URL + award.image.split("/").pop()}
+                          src={resolveMediaUrl(award.image)}
                           alt={award.title}
                           className="h-full w-full object-contain"
                           onError={(e) => {
@@ -372,7 +372,7 @@ const AchievementsSection = () => {
                     >
                       {company.logo && (
                         <img
-                          src={IMAGES_URL + company.logo.split("/").pop()}
+                          src={resolveMediaUrl(company.logo)}
                           alt={company.name}
                           className="h-16 w-auto"
                           onError={(e) => {

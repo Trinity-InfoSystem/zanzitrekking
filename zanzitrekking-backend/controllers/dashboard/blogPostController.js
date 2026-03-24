@@ -4,12 +4,12 @@ const Customer = require("../../models/customer");
 const Admin = require("../../models/admin");
 
 const { responseReturn } = require("../../utilities/response");
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const fs = require("fs");
 const path = require("path");
 class blogPostController {
   add_blogPost = async (req, res) => {
     try {
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
       const contentType = req.body.contentType || "structured";
 
       // Find files in the array by their fieldname
@@ -51,9 +51,9 @@ class blogPostController {
         creatorBio: req.body.creatorBio,
         contentType: contentType,
         creatorImage: creatorImage
-          ? `${basePath}${creatorImage.filename}`
+          ? publicUploadsRef(creatorImage.filename)
           : null,
-        mainImage: mainImage ? `${basePath}${mainImage.filename}` : null,
+        mainImage: mainImage ? publicUploadsRef(mainImage.filename) : null,
         creatorSocialLinks: socialLinks,
         category: categoryValue, // Optional category field
       };
@@ -64,8 +64,8 @@ class blogPostController {
       } else {
         // Structured content
         const relatedImagesPaths = [
-          relatedImage1 ? `${basePath}${relatedImage1.filename}` : null,
-          relatedImage2 ? `${basePath}${relatedImage2.filename}` : null,
+          relatedImage1 ? publicUploadsRef(relatedImage1.filename) : null,
+          relatedImage2 ? publicUploadsRef(relatedImage2.filename) : null,
         ];
 
         blogPostData.mainParagraph = req.body.mainParagraph;
@@ -333,7 +333,6 @@ class blogPostController {
       }
 
       const imagePathsToDelete = [];
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       if (req.files) {
         const imageFields = {
@@ -356,7 +355,7 @@ class blogPostController {
           }
 
           const fieldName = fieldConfig.field || file.fieldname;
-          const newImagePath = `${basePath}${file.filename}`;
+          const newImagePath = publicUploadsRef(file.filename);
 
           let existingPath;
           if (fieldName.includes(".")) {

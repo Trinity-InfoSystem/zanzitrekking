@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import { formatPrice, getStartingPrice } from "../../utils/pricing";
 const FeatureTrip = ({ trips }) => {
   const sliderRef = useRef(null);
@@ -183,8 +183,7 @@ const FeatureTrip = ({ trips }) => {
                                 playsInline
                                 src={
                                   trip.mainVideo
-                                    ? IMAGES_URL +
-                                      trip.mainVideo.split("/").pop()
+                                    ? resolveMediaUrl(trip.mainVideo)
                                     : ""
                                 }
                               >
@@ -196,8 +195,7 @@ const FeatureTrip = ({ trips }) => {
                               <img
                                 src={
                                   trip.mainImage
-                                    ? IMAGES_URL +
-                                      trip.mainImage.split("/").pop()
+                                    ? resolveMediaUrl(trip.mainImage)
                                     : "/placeholder.jpg"
                                 }
                                 alt={trip.mainTitle}

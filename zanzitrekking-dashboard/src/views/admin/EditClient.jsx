@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 
 const EditClient = () => {
   const navigate = useNavigate();
@@ -47,10 +47,7 @@ const EditClient = () => {
         order: client.order || 0,
       });
       if (client.logo) {
-        const logoUrl = client.logo.startsWith("http")
-          ? client.logo
-          : `${IMAGES_URL}${client.logo.split("/").pop()}`;
-        setLogoPreview(logoUrl);
+        setLogoPreview(resolveMediaUrl(client.logo));
       } else if (client.logoUrl) {
         setLogoPreview(client.logoUrl);
       }

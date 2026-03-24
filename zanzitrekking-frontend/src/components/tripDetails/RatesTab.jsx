@@ -156,16 +156,6 @@ const MobilePricingCard = ({
 const RatesTab = ({ trip }) => {
   const { pricingType, regularPrices, seasons, discount } = trip;
 
-  const memoizedRegularGroups = useMemo(
-    () => (pricingType === "yearRound" && regularPrices ? getAllGroupSizes(regularPrices) : []),
-    [pricingType, regularPrices]
-  );
-
-  const memoizedSeasonalGroups = useMemo(
-    () => (pricingType === "seasonal" && seasons ? seasons.map(s => getAllGroupSizes(s.rates || {})) : []),
-    [pricingType, seasons]
-  );
-
   const categories = [
     {
       key: "standard",
@@ -210,6 +200,75 @@ const RatesTab = ({ trip }) => {
       icon: Crown,
     },
   ];
+
+  const baseGroupSizes = [
+    { key: "onePerson", label: "Solo", number: 1 },
+    { key: "twoPerson", label: "Couple", number: 2 },
+    { key: "threePerson", label: "3 People", number: 3 },
+    { key: "fourPerson", label: "4 People", number: 4 },
+    { key: "fiveOrMorePerson", label: "5+ People", number: 5 },
+  ];
+
+  const getDynamicGroupSizes = (categoryPrices) => {
+    if (!categoryPrices) {return [];}
+
+    const availableGroups = baseGroupSizes.filter(
+      (group) => categoryPrices[group.key] && categoryPrices[group.key] > 0,
+    );
+
+    if (availableGroups.length === 0) {return [];}
+
+    return availableGroups.map((group, index) => {
+      const isLastGroup = index === availableGroups.length - 1;
+      const isLastBaseGroup = group.key === "fiveOrMorePerson";
+
+      if (isLastGroup && !isLastBaseGroup) {
+        return {
+          ...group,
+          label: `${group.number}+`,
+        };
+      }
+
+      return group;
+    });
+  };
+
+  const getAllGroupSizes = (prices) => {
+    const allGroups = new Set();
+    categories.forEach((category) => {
+      const categoryPrices = prices[category.key];
+      if (categoryPrices) {
+        const groupSizes = getDynamicGroupSizes(categoryPrices);
+        groupSizes.forEach((group) => allGroups.add(group.key));
+      }
+    });
+
+    return baseGroupSizes
+      .filter((group) => allGroups.has(group.key))
+      .map((group, index, array) => {
+        const isLastGroup = index === array.length - 1;
+        const isLastBaseGroup = group.key === "fiveOrMorePerson";
+
+        if (isLastGroup && !isLastBaseGroup) {
+          return {
+            ...group,
+            label: `${group.number}+`,
+          };
+        }
+
+        return group;
+      });
+  };
+
+  const memoizedRegularGroups = useMemo(
+    () => (pricingType === "yearRound" && regularPrices ? getAllGroupSizes(regularPrices) : []),
+    [pricingType, regularPrices]
+  );
+
+  const memoizedSeasonalGroups = useMemo(
+    () => (pricingType === "seasonal" && seasons ? seasons.map(s => getAllGroupSizes(s.rates || {})) : []),
+    [pricingType, seasons]
+  );
 
   const [selectedCurrency, setSelectedCurrency] = useState("USD");
   const [exchangeRates, setExchangeRates] = useState(null);
@@ -284,65 +343,6 @@ const RatesTab = ({ trip }) => {
   const selectedCurrencyObj = currencies.find(
     (c) => c.code === selectedCurrency,
   );
-
-  const baseGroupSizes = [
-    { key: "onePerson", label: "Solo", number: 1 },
-    { key: "twoPerson", label: "Couple", number: 2 },
-    { key: "threePerson", label: "3 People", number: 3 },
-    { key: "fourPerson", label: "4 People", number: 4 },
-    { key: "fiveOrMorePerson", label: "5+ People", number: 5 },
-  ];
-
-  const getDynamicGroupSizes = (categoryPrices) => {
-    if (!categoryPrices) {return [];}
-
-    const availableGroups = baseGroupSizes.filter(
-      (group) => categoryPrices[group.key] && categoryPrices[group.key] > 0,
-    );
-
-    if (availableGroups.length === 0) {return [];}
-
-    return availableGroups.map((group, index) => {
-      const isLastGroup = index === availableGroups.length - 1;
-      const isLastBaseGroup = group.key === "fiveOrMorePerson";
-
-      if (isLastGroup && !isLastBaseGroup) {
-        return {
-          ...group,
-          label: `${group.number}+`,
-        };
-      }
-
-      return group;
-    });
-  };
-
-  const getAllGroupSizes = (prices) => {
-    const allGroups = new Set();
-    categories.forEach((category) => {
-      const categoryPrices = prices[category.key];
-      if (categoryPrices) {
-        const groupSizes = getDynamicGroupSizes(categoryPrices);
-        groupSizes.forEach((group) => allGroups.add(group.key));
-      }
-    });
-
-    return baseGroupSizes
-      .filter((group) => allGroups.has(group.key))
-      .map((group, index, array) => {
-        const isLastGroup = index === array.length - 1;
-        const isLastBaseGroup = group.key === "fiveOrMorePerson";
-
-        if (isLastGroup && !isLastBaseGroup) {
-          return {
-            ...group,
-            label: `${group.number}+`,
-          };
-        }
-
-        return group;
-      });
-  };
 
   const trustIndicators = [
     {

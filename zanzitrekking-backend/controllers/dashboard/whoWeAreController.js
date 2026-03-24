@@ -3,6 +3,7 @@ const logger = require('./../../utilities/logger');
 const Trip = require("../../models/trip");
 const Order = require("../../models/order");
 const { responseReturn } = require("../../utilities/response");
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const path = require("path");
 const fs = require("fs");
 const redis = require('../../redis');
@@ -48,8 +49,7 @@ class WhoWeAreController {
       });
 
       // Process new images
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-      const newImages = this.processImages(files, basePath);
+      const newImages = this.processImages(files);
 
       // If no existing record, create new one
       if (!existingWhoWeAre) {
@@ -145,10 +145,10 @@ class WhoWeAreController {
     return null;
   }
 
-  processImages(files, basePath) {
+  processImages(files) {
     if (!files) return {};
     return files.reduce((acc, file) => {
-      acc[file.fieldname] = `${basePath}${file.filename}`;
+      acc[file.fieldname] = publicUploadsRef(file.filename);
       return acc;
     }, {});
   }

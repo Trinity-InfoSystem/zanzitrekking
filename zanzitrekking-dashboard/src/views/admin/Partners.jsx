@@ -25,7 +25,7 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isAdmin, isEditor } from "../../utils/roleVerification";
 
 // ConfirmModal component
@@ -280,7 +280,7 @@ const Partners = () => {
                       <div className="h-12 w-12 overflow-hidden rounded-lg ring-2 ring-primary-200">
                         {partner.logo ? (
                           <img
-                            src={partner.logo}
+                            src={resolveMediaUrl(partner.logo)}
                             alt={partner.name}
                             className="h-full w-full object-cover"
                           />

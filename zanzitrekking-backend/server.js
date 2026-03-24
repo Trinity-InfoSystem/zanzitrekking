@@ -30,13 +30,15 @@ const server = http.createServer(app);
 // This allows Express to read X-Forwarded-Proto header and correctly set req.protocol to 'https'
 // Trust only the first proxy hop to prevent IP-based rate limiting bypass
 // Set to 1 to trust only the first proxy (nginx/reverse proxy)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Security headers with Helmet.js
-app.use(helmet({
-  contentSecurityPolicy: false, // Adjust based on your needs
-  crossOriginEmbedderPolicy: false
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Adjust based on your needs
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 // Home routes
 const homeRouter = require("./routes/home/homeRoutes");
@@ -81,32 +83,34 @@ const orderRouter = require("./routes/home/orderRoutes");
 // CORS_ORIGINS is required - no fallback to prevent hardcoded origins
 const corsOriginsEnv = process.env.CORS_ORIGINS;
 if (!corsOriginsEnv) {
-  logger.error('CORS_ORIGINS environment variable is required but not set');
-  throw new Error('CORS_ORIGINS environment variable is required. Please set it in your .env file.');
+  logger.error("CORS_ORIGINS environment variable is required but not set");
+  throw new Error(
+    "CORS_ORIGINS environment variable is required. Please set it in your .env file.",
+  );
 }
 const allowedOrigins = corsOriginsEnv
-  .split(',')
-  .map(origin => origin.trim())
+  .split(",")
+  .map((origin) => origin.trim())
   .filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile appToo many requests, please try again later.s or curl requests) in development
     if (!origin) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         // In production, log but allow (some legitimate requests may not have origin)
-        logger.warn('CORS: Request with no origin in production');
+        logger.warn("CORS: Request with no origin in production");
         return callback(null, true);
       }
       return callback(null, true);
     }
 
     // Normalize origin by removing trailing slash
-    const normalizedOrigin = origin.replace(/\/$/, '');
-    
+    const normalizedOrigin = origin.replace(/\/$/, "");
+
     // Check if origin matches any allowed origin
-    const isAllowed = allowedOrigins.some(allowed => {
-      const normalizedAllowed = allowed.replace(/\/$/, '');
+    const isAllowed = allowedOrigins.some((allowed) => {
+      const normalizedAllowed = allowed.replace(/\/$/, "");
       return normalizedOrigin === normalizedAllowed;
     });
 
@@ -140,31 +144,33 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 
 // Rate limiting - protect against DDoS and brute force attacks
-// Configure rate limiter to work with trust proxy setting
+// In development, skip: a single page load + React Strict Mode can exceed 100 req/15min
+// and block every API (429), which looks like "no data" in the UI.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs (production)
   // Use a custom key generator that respects trust proxy
   keyGenerator: (req) => {
     // When trust proxy is enabled, use X-Forwarded-For header if available
     // Otherwise fall back to req.ip or req.connection.remoteAddress
-    return req.ip || req.connection.remoteAddress || 'unknown';
+    return req.ip || req.connection.remoteAddress || "unknown";
   },
-  // Skip rate limiting for successful requests (optional)
   skipSuccessfulRequests: false,
-  // Skip rate limiting for failed requests (optional)
   skipFailedRequests: false,
-  // Standard headers for rate limit info
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== "production",
 });
-app.use('/api', limiter);
+app.use("/api", limiter);
 // Public static files
-app.use("/public", express.static(path.join(__dirname, "public"), {
-  setHeaders: (res) => {
-    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-  }
-}));
+app.use(
+  "/public",
+  express.static(path.join(__dirname, "public"), {
+    setHeaders: (res) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  }),
+);
 
 // Uploads static files
 app.use(
@@ -175,8 +181,8 @@ app.use(
     lastModified: true,
     setHeaders: (res) => {
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    }
-  })
+    },
+  }),
 );
 
 // ============ SAFARI ANALYTICS ROUTES (BEFORE PROXY) ============
@@ -252,12 +258,13 @@ app.get("/api/download-file/:filename", handleFileDownload);
 
 // Global error handling middleware - must be after all routes
 app.use((err, req, res, next) => {
-  logger.error('Error:', err);
+  logger.error("Error:", err);
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    error:
+      process.env.NODE_ENV === "production"
+        ? "Internal server error"
+        : err.message,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 

@@ -9,7 +9,7 @@ import {
   send_message,
   set_sent_message,
 } from "../../store/reducers/chatReducer";
-import { API_URL } from "../../utils/constants";
+import { getApiOrigin } from "../../utils/constants";
 import ChatHeader from "./Chat/ChatHeader";
 import ChatMessage from "./Chat/ChatMessage";
 import ChatInput from "./Chat/ChatInput";
@@ -84,7 +84,7 @@ const Chat = () => {
   useEffect(() => {
     if (userInfo?._id) {
       try {
-        socket.current = io(API_URL, {
+        socket.current = io(getApiOrigin(), {
           transports: ["websocket", "polling"],
           withCredentials: true,
           cors: {

@@ -9,7 +9,6 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import { IMAGES_URL } from "../../../utils/constants";
 
 const PartnersSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -132,7 +131,7 @@ const PartnersSection = () => {
                           {partner.logo ? (
                             <img
                               src={partner.logo}
-                              // src={IMAGES_URL + partner.logo.split("/").pop()}
+                              // optional: use resolveMediaUrl(partner.logo) when enabling partner logos
                               alt={partner.name}
                               className="h-full w-full object-contain p-8 transition-transform duration-300 group-hover:scale-105"
                               onError={(e) => {

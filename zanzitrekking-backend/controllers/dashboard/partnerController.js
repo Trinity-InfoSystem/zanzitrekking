@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 
 class PartnerController {
   // Add Partner
@@ -24,7 +25,6 @@ class PartnerController {
       // Extract the logo file
       const logoFile = req.file;
       const logo = logoFile ? logoFile.filename : null;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Create new partner object
       const newPartner = {
@@ -36,7 +36,7 @@ class PartnerController {
         website: website || "",
         description: description || "",
         order: parseInt(order) || 0,
-        logo: logo ? `${basePath}${logo}` : null,
+        logo: logo ? publicUploadsRef(logo) : null,
       };
 
       // Create the partner in the database
@@ -76,8 +76,6 @@ class PartnerController {
         return responseReturn(res, 404, { error: "Partner not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
       // Prepare update fields
       const updateFields = {
         name: name || existingPartner.name,
@@ -111,7 +109,7 @@ class PartnerController {
             logger.error(`Error deleting old logo: ${err.message}`);
           }
         }
-        updateFields.logo = `${basePath}${logoFile.filename}`;
+        updateFields.logo = publicUploadsRef(logoFile.filename);
       }
 
       // Update the partner

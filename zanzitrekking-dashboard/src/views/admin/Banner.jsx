@@ -12,7 +12,7 @@ import {
 } from "../../store/Reducers/bannerReducer";
 import toast from "react-hot-toast";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isViewer } from "../../utils/roleVerification";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -221,7 +221,7 @@ const Banner = () => {
                               sharedVideoUrl
                                 ? sharedVideoUrl.includes("blob:")
                                   ? sharedVideoUrl
-                                  : IMAGES_URL + sharedVideoUrl.split("/").pop()
+                                  : resolveMediaUrl(sharedVideoUrl)
                                 : ""
                             }
                             className="h-full w-full object-cover transition-all duration-300 group-hover/shared-video:scale-110"
@@ -250,8 +250,7 @@ const Banner = () => {
                                 openVideoModal(
                                   sharedVideoUrl.includes("blob:")
                                     ? sharedVideoUrl
-                                    : IMAGES_URL +
-                                        sharedVideoUrl.split("/").pop(),
+                                    : resolveMediaUrl(sharedVideoUrl),
                                 );
                               }}
                               data-play-button
@@ -297,7 +296,7 @@ const Banner = () => {
                     const titleError = errors.banners?.[index]?.title;
                     const bannerImageUrl = banner?.banners?.[index]?.image;
                     let imageName = bannerImageUrl
-                      ? IMAGES_URL + bannerImageUrl.split("/").pop()
+                      ? resolveMediaUrl(bannerImageUrl)
                       : null;
                     const previewUrl = bannerItem?.image instanceof File
                       ? URL.createObjectURL(bannerItem.image)
@@ -484,7 +483,7 @@ const Banner = () => {
                     {banners.map((bannerItem, index) => {
                       const bannerImageUrl = banner?.banners?.[index]?.image;
                       let imageName = bannerImageUrl
-                        ? IMAGES_URL + bannerImageUrl.split("/").pop()
+                        ? resolveMediaUrl(bannerImageUrl)
                         : null;
                       const previewUrl = bannerItem?.image instanceof File
                         ? URL.createObjectURL(bannerItem.image)

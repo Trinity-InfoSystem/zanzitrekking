@@ -6,6 +6,7 @@ const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
 const { delPattern } = require('../../utilities/cache');
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 
 class AchievementController {
   // Add Achievement
@@ -25,10 +26,9 @@ class AchievementController {
 
       // Extract the image file if uploaded
       const imageFile = req.file;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Use uploaded file or URL
-      const image = imageFile ? `${basePath}${imageFile.filename}` : null;
+      const image = imageFile ? publicUploadsRef(imageFile.filename) : null;
 
       const newAchievement = {
         name,
@@ -78,8 +78,6 @@ class AchievementController {
         return responseReturn(res, 404, { error: "Achievement not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
       const updateFields = {
         name: name || existingAchievement.name,
         fullName: fullName || existingAchievement.fullName,
@@ -113,7 +111,7 @@ class AchievementController {
             }
           }
         }
-        updateFields.image = `${basePath}${imageFile.filename}`;
+        updateFields.image = publicUploadsRef(imageFile.filename);
         updateFields.imageUrl = null; // Clear URL if file uploaded
       } else if (imageUrl !== undefined) {
         // If URL provided, use it and clear uploaded image

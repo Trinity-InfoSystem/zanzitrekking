@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 
 class ClientController {
   // Add Client
@@ -14,10 +15,9 @@ class ClientController {
 
       // Extract the logo file if uploaded
       const logoFile = req.file;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Use uploaded file or URL
-      const logo = logoFile ? `${basePath}${logoFile.filename}` : null;
+      const logo = logoFile ? publicUploadsRef(logoFile.filename) : null;
 
       const newClient = {
         name,
@@ -52,8 +52,6 @@ class ClientController {
         return responseReturn(res, 404, { error: "Client not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
       const updateFields = {
         name: name || existingClient.name,
         website: website || existingClient.website,
@@ -82,7 +80,7 @@ class ClientController {
             }
           }
         }
-        updateFields.logo = `${basePath}${logoFile.filename}`;
+        updateFields.logo = publicUploadsRef(logoFile.filename);
         updateFields.logoUrl = null; // Clear URL if file uploaded
       } else if (logoUrl !== undefined) {
         // If URL provided, use it and clear uploaded logo

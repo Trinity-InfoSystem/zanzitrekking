@@ -4,7 +4,7 @@ import { TagIcon, TagsIcon, XIcon, BabyIcon } from "lucide-react";
 import { DatePicker } from "./DatePicker";
 import { TravelersCounter } from "./TravelersCounter";
 import { ChildrenAgesInput } from "./ChildrenAgesInput";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import toast from "react-hot-toast";
 
 export const CartItem = ({
@@ -24,7 +24,7 @@ export const CartItem = ({
   onChildrenAgesChange,
 }) => {
   const imageName = trip.mainImage
-    ? IMAGES_URL + trip.mainImage.split("/").pop()
+    ? resolveMediaUrl(trip.mainImage)
     : "/placeholder.svg";
   
   

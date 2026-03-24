@@ -14,7 +14,7 @@ import {
   Sun,
   Utensils,
 } from "lucide-react";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const DayByDayTab = ({ days = [] }) => {
   const [expandedDays, setExpandedDays] = useState(days?.length > 0 ? [0] : []);
@@ -188,7 +188,7 @@ const DayByDayTab = ({ days = [] }) => {
       {/* Days List */}
       {days.map((day, index) => {
         const imageName = day.image
-          ? IMAGES_URL + day.image.split("/").pop()
+          ? resolveMediaUrl(day.image)
           : "/placeholder.svg";
 
         return (
@@ -339,7 +339,7 @@ const DayByDayTab = ({ days = [] }) => {
                                     className="relative flex-shrink-0 overflow-hidden rounded-md shadow-sm transition-transform hover:scale-105"
                                   >
                                     <img
-                                      src={IMAGES_URL + image.split("/").pop()}
+                                      src={resolveMediaUrl(image)}
                                       alt={`${hotel.name} - Image ${imgIndex + 1}`}
                                       className="h-20 w-20 object-cover"
                                       loading="lazy"

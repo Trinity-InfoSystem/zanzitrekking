@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { FaRegComment } from "react-icons/fa6";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import GoogleReviewsWidget from "../components/GoogleReviewsWidget";
@@ -345,7 +345,7 @@ const Blog = () => {
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                   {blogPosts.map((post, index) => {
                     const imageName = post.mainImage
-                      ? IMAGES_URL + post.mainImage.split("/").pop()
+                      ? resolveMediaUrl(post.mainImage)
                       : "https://images.unsplash.com/photo-1523805009345-7448845a9e53?w=800&h=600";
                     return (
                       <BlogCard

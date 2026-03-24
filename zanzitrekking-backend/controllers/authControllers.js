@@ -7,6 +7,7 @@ const fs = require('fs')
 const path = require('path')
 const emailQueue = require('../workers/emailQueue')
 const redis = require('../redis')
+const { publicUploadsRef } = require('../utilities/storedAssetPath')
 
 // ---------------------------------------------------------------------------
 // Cookie helpers — single source of truth for cookie config
@@ -202,7 +203,7 @@ class AuthControllers {
         })
       }
 
-      const updatedImagePath = `${req.protocol}://${req.get('host')}/public/uploads/${file.filename}`
+      const updatedImagePath = publicUploadsRef(file.filename)
 
       const updatedAdmin = await Admin.findByIdAndUpdate(
         admin._id,

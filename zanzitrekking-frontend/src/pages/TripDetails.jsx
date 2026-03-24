@@ -12,7 +12,7 @@ import OverviewTab from "../components/tripDetails/OverviewTab";
 import DayByDayTab from "../components/tripDetails/DayByDayTab";
 import RatesTab from "../components/tripDetails/RatesTab";
 import InclusionsTab from "../components/tripDetails/InclusionsTab";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import {
   add_to_cart,
   add_to_wishlist,
@@ -180,7 +180,7 @@ const TripDetails = () => {
   }
 
   const imageName = trip.mainImage
-    ? IMAGES_URL + trip.mainImage.split("/").pop()
+    ? resolveMediaUrl(trip.mainImage)
     : "/placeholder.svg";
 
   return (

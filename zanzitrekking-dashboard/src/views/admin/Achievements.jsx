@@ -24,7 +24,7 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isAdmin, isEditor } from "../../utils/roleVerification";
 
 // ConfirmModal component
@@ -132,15 +132,8 @@ const Achievements = () => {
   };
 
   const getImageUrl = (achievement) => {
-    if (achievement.image) {
-      return achievement.image.startsWith("http")
-        ? achievement.image
-        : `${IMAGES_URL}${achievement.image.split("/").pop()}`;
-    }
-    if (achievement.imageUrl) {
-      return achievement.imageUrl;
-    }
-    return null;
+    if (achievement.image) return resolveMediaUrl(achievement.image);
+    return achievement.imageUrl || null;
   };
 
   return (

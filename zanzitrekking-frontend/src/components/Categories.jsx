@@ -15,7 +15,7 @@ import {
   Users,
   Waves,
 } from "lucide-react";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 
 const Categories = () => {
   const { categories, totalTrips } = useSelector((state) => state.home);
@@ -164,7 +164,7 @@ const Categories = () => {
                   <div className="relative h-56 overflow-hidden">
                     {category.image ? (
                       <img
-                        src={IMAGES_URL + category.image.split("/").pop()}
+                        src={resolveMediaUrl(category.image)}
                         alt={category.name}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"

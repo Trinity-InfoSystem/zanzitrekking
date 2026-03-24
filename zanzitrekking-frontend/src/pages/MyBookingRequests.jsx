@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { clearMessage, getMyRequests, deleteRequest } from "../store/reducers/urgentBookingRequestReducer";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import toast from "react-hot-toast";
 import { Copy,Trash  } from "lucide-react";
 
@@ -123,7 +123,7 @@ const MyBookingRequests = () => {
   const RequestCard = ({ req }) => {
     const trip = req.tripId || {};
     const imageName = trip.mainImage
-      ? IMAGES_URL + trip.mainImage.split("/").pop()
+      ? resolveMediaUrl(trip.mainImage)
       : "/placeholder.svg";
     const style = statusStyles[req.status] || statusStyles.pending;
 

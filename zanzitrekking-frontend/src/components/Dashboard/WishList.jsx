@@ -18,7 +18,7 @@ import {
   remove_wishlist_trip,
 } from "../../store/reducers/cardReducer";
 import toast from "react-hot-toast";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import { formatDateForAPI } from "../../utils/dateUtils";
 
 const Wishlist = () => {
@@ -237,7 +237,7 @@ const Wishlist = () => {
             const isRemoving = removingId === trip._id;
             const isCartLoading = loadingCartId === actualTripId;
             const imageName = trip.mainImage
-              ? IMAGES_URL + trip.mainImage.split("/").pop()
+              ? resolveMediaUrl(trip.mainImage)
               : "/placeholder.svg";
 
             return (

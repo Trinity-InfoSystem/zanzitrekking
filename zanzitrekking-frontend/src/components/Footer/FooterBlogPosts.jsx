@@ -1,4 +1,4 @@
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import BlogPost from "./BlogPost";
 import { BookOpen } from "lucide-react";
 
@@ -33,7 +33,7 @@ const FooterBlogPosts = ({ blogPosts }) => {
         {latestTwo.length > 0 ? (
           latestTwo.map((post) => {
             const imageName = post.mainImage
-              ? IMAGES_URL + post.mainImage.split("/").pop()
+              ? resolveMediaUrl(post.mainImage)
               : "/placeholder.svg";
             return (
               <BlogPost
