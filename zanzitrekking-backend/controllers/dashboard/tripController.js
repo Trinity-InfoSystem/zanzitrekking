@@ -5,10 +5,35 @@ const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 const redis = require("../../redis");
 const { delPattern } = require('../../utilities/cache');
 const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const crypto = require("crypto");
+
+const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+
+const generateUniqueSlug = async ({ model, base, excludeId }) => {
+  const baseSlug = slugify(base || "", { lower: true, strict: true });
+  if (!baseSlug) return "";
+
+  let slug = baseSlug;
+  let counter = 2;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const query = { slug };
+    if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+      query._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
+    }
+
+    const exists = await model.findOne(query).select("_id").lean();
+    if (!exists) return slug;
+
+    slug = `${baseSlug}-${counter}`;
+    counter += 1;
+  }
+};
 
 const resolveCategoryData = async (categoryValue) => {
   if (!categoryValue) {
@@ -221,6 +246,11 @@ class TripController {
         newTrip.seasons = parsedSeasons;
       }
 
+      newTrip.slug = await generateUniqueSlug({
+        model: TripModel,
+        base: mainTitle,
+      });
+
       const createdTrip = await TripModel.create(newTrip);
       await Promise.allSettled([
         redis.del("home:categories"),
@@ -336,6 +366,14 @@ class TripController {
         inclusions: parsedInclusions,
         exclusions: parsedExclusions,
       };
+
+      if (mainTitle && mainTitle !== existingTrip.mainTitle) {
+        updateFields.slug = await generateUniqueSlug({
+          model: TripModel,
+          base: mainTitle,
+          excludeId: tripId,
+        });
+      }
 
       // Resolve category ID - save only ObjectId reference
       let categoryObjectId = existingTrip.category; // Keep existing if not changing
@@ -493,6 +531,7 @@ class TripController {
       await Promise.allSettled([
         redis.del("home:categories"),
         redis.del(`home:trip:${tripId}`),
+        existingTrip.slug ? redis.del(`home:trip:${existingTrip.slug}`) : null,
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
         delPattern("home:trips:list:*"),
@@ -654,16 +693,24 @@ class TripController {
   get_trip = async (req, res) => {
     const { tripId } = req.params;
     try {
-      const key = `home:trip:${tripId}`;
+      const trip = isMongoObjectId(tripId)
+        ? await mongoose
+            .model("Trip")
+            .findById(tripId)
+            .populate("category")
+            .populate("days.accommodation")
+        : await mongoose
+            .model("Trip")
+            .findOne({ slug: tripId })
+            .populate("category")
+            .populate("days.accommodation");
 
-      const trip = await mongoose
-        .model("Trip")
-        .findById(tripId)
-        .populate("category")
-        .populate("days.accommodation");
       if (!trip) {
         return responseReturn(res, 404, { error: "No Trip Found" });
       }
+
+      const cacheKeyId = trip.slug || trip._id.toString();
+      const key = `home:trip:${cacheKeyId}`;
 
       await redis.set(key, JSON.stringify(trip), "EX", 172800);
       return responseReturn(res, 202, { trip });
@@ -757,6 +804,7 @@ class TripController {
       await Promise.allSettled([
         redis.del("home:categories"),
         redis.del(`home:trip:${tripId}`),
+        trip.slug ? redis.del(`home:trip:${trip.slug}`) : null,
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
         delPattern("home:trips:list:*"),
@@ -1167,10 +1215,18 @@ class TripController {
   delete_trips = async (req, res) => {
     const { ids } = req.body;
     try {
+      const tripsToDelete = await TripModel.find({ _id: { $in: ids } })
+        .select("_id slug")
+        .lean();
+
       const deletedTrips = await TripModel.deleteMany({ _id: { $in: ids } });
+
       await Promise.allSettled([
         redis.del('home:categories'),
-        ...ids.map(id => delPattern(`home:trip:${id}`)),
+        ...ids.map((id) => delPattern(`home:trip:${id}`)),
+        ...tripsToDelete
+          .filter((t) => t.slug)
+          .map((t) => delPattern(`home:trip:${t.slug}`)),
         delPattern("home:trips:list:*"),
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
@@ -1189,3 +1245,8 @@ class TripController {
 }
 
 module.exports = new TripController();
+
+/*
+  NOTE: The below legacy definitions were duplicated earlier in this file.
+  They have been replaced above to support slug-based detail URLs and cache invalidation.
+*/

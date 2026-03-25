@@ -38,7 +38,7 @@ const FooterBlogPosts = ({ blogPosts }) => {
             return (
               <BlogPost
                 key={post._id}
-                id={post._id}
+                slug={post.slug}
                 image={imageName}
                 title={post.mainTitle}
                 date={formatCustomDate(post.createdAt)}

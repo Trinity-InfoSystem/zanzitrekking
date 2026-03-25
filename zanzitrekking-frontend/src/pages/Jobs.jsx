@@ -378,7 +378,7 @@ const Jobs = () => {
                         )}
 
                         <Link
-                          to={`/careers/${job._id}`}
+                          to={`/careers/${job.slug}`}
                           className={`group/btn inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl ${
                             hasApplied
                               ? "bg-gradient-to-r from-neutral-700 to-neutral-800 hover:from-neutral-800 hover:to-neutral-900"

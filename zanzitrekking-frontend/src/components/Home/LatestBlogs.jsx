@@ -76,7 +76,7 @@ const LatestBlogs = () => {
               return (
                 <Link
                   key={post._id}
-                  to={`/blog/${post._id}`}
+                  to={`/blog/${post.slug}`}
                   className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft transition-all hover:border-primary-200 hover:shadow-soft-md"
                   data-aos="fade-up"
                   data-aos-delay={index * 100}

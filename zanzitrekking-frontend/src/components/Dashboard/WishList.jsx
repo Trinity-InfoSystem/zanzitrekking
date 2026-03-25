@@ -272,7 +272,7 @@ const Wishlist = () => {
                     </button>
 
                     <Link
-                      to={`/trip/details/${trip.tripId || trip._id}`}
+                      to={`/trip/details/${trip.slug}`}
                       className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/90 text-primary-600 shadow-soft backdrop-blur-sm transition-all hover:bg-primary-600 hover:text-white"
                     >
                       <FaEye className="h-4 w-4" />
@@ -303,7 +303,7 @@ const Wishlist = () => {
                 <div className="p-5">
                   <h3 className="mb-3 line-clamp-2 text-lg font-bold text-primary-800">
                     <Link
-                      to={`/trip/details/${trip.tripId || trip._id}`}
+                      to={`/trip/details/${trip.slug}`}
                       className="transition-colors hover:text-primary-600"
                     >
                       {trip.mainTitle}
@@ -360,7 +360,7 @@ const Wishlist = () => {
                     </div>
 
                     <Link
-                      to={`/trip/details/${trip.tripId || trip._id}`}
+                      to={`/trip/details/${trip.slug}`}
                       className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-soft transition-all hover:bg-primary-700 hover:shadow-soft-md"
                     >
                       View Details

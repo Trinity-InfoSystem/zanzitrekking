@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar } from "lucide-react";
 
-const BlogPost = ({ id, image, title, date }) => {
+const BlogPost = ({ slug, image, title, date }) => {
   return (
     <Link
-      to={`/blog/${id}`}
+      to={`/blog/${slug}`}
       className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white transition-all duration-300 hover:border-primary-300 hover:shadow-lg"
     >
       <div className="aspect-video overflow-hidden bg-neutral-100">

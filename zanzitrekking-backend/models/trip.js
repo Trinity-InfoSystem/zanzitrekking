@@ -50,6 +50,7 @@ const tripSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    slug: { type: String, unique: true, index: true },
     overview: {
       type: String,
     },

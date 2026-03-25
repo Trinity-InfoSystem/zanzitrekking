@@ -290,13 +290,19 @@ const CareerHistory = () => {
 
                       <div className="flex flex-col items-end gap-4">
                         {getStatusBadge(application.status)}
-                        <Link
-                          to={`/careers/${application.jobId?._id}`}
-                          className="group/btn inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-                        >
-                          View Details
-                          <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                        </Link>
+                        {application.jobId?.slug ? (
+                          <Link
+                            to={`/careers/${application.jobId.slug}`}
+                            className="group/btn inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                          >
+                            View Details
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                          </Link>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-100 px-6 py-3 text-sm font-semibold text-neutral-500">
+                            View Details
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

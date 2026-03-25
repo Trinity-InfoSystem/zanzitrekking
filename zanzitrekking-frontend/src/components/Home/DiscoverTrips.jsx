@@ -295,7 +295,7 @@ const DiscoverTrips = () => {
                 className="group relative overflow-hidden rounded-3xl border border-neutral-200/50 bg-white shadow-xl transition-all duration-500 hover:-translate-y-2 hover:border-transparent hover:shadow-2xl"
                 data-aos="zoom-in"
                 data-aos-delay={index * 100}
-                onClick={() => navigate(`/trip/details/${trip._id}`)}
+                onClick={() => navigate(`/trip/details/${trip.slug}`)}
               >
                 {/* Image Section */}
                 <div className="relative h-64 overflow-hidden">

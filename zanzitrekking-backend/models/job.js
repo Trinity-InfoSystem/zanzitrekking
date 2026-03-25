@@ -6,6 +6,7 @@ const jobSchema = new Schema(
       type: String,
       required: true,
     },
+    slug: { type: String, unique: true, index: true },
     description: {
       type: String,
       default: "",

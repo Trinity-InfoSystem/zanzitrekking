@@ -41,7 +41,7 @@ export const routeConfig = {
 
   // Trip details - Dynamic route
   tripDetails: {
-    path: "/trip/details/:tripId",
+    path: "/trip/details/:slug",
     component: () => import("../pages/TripDetails"),
     priority: 0.8,
     changefreq: "weekly",
@@ -85,7 +85,7 @@ export const routeConfig = {
 
   // Blog post - Dynamic route
   blogPost: {
-    path: "/blog/:blogId",
+    path: "/blog/:slug",
     component: () => import("../pages/BlogPost"),
     priority: 0.7,
     changefreq: "weekly",
@@ -126,7 +126,7 @@ export const routeConfig = {
 
   // Job details - Dynamic route
   jobDetails: {
-    path: "/careers/:jobId",
+    path: "/careers/:slug",
     component: () => import("../pages/JobDetails"),
     priority: 0.6,
     changefreq: "weekly",

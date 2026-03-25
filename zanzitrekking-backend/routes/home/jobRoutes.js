@@ -84,7 +84,10 @@ router.get("/job/:jobId", async (req, res) => {
     const Job = require("../../models/job");
     const { jobId } = req.params;
 
-    const job = await Job.findById(jobId).populate("createdBy", "name email");
+    const isObjectId = /^[a-f\d]{24}$/i.test(String(jobId || ""));
+    const job = isObjectId
+      ? await Job.findById(jobId).populate("createdBy", "name email")
+      : await Job.findOne({ slug: jobId }).populate("createdBy", "name email");
 
     if (!job) {
       return res.status(404).json({ error: "Job Not Found" });

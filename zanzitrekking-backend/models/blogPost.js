@@ -8,6 +8,7 @@ const blogPostSchema = new Schema(
       type: String,
       required: true,
     },
+    slug: { type: String, unique: true, index: true },
     creatorName: {
       type: String,
       required: true,

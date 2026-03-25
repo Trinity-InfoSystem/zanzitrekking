@@ -2,16 +2,47 @@ const Job = require("../../models/job");
 const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const redis = require('../../redis');
+const crypto = require("crypto");
+const mongoose = require("mongoose");
+const slugify = require("slugify");
+
+const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+
+const generateUniqueSlug = async ({ model, base, excludeId }) => {
+  const baseSlug = slugify(base || "", { lower: true, strict: true });
+  if (!baseSlug) return "";
+
+  let slug = baseSlug;
+  let counter = 2;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const query = { slug };
+    if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+      query._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
+    }
+
+    const exists = await model.findOne(query).select("_id").lean();
+    if (!exists) return slug;
+
+    slug = `${baseSlug}-${counter}`;
+    counter += 1;
+  }
+};
 
 class JobControllers {
   get_one_job = async (req, res) => {
     const { jobId } = req.params;
-    const key = `home:job:${jobId}`
     try {
-      const job = await Job.findById(jobId).populate("createdBy", "name email");
+      const job = isMongoObjectId(jobId)
+        ? await Job.findById(jobId).populate("createdBy", "name email")
+        : await Job.findOne({ slug: jobId }).populate("createdBy", "name email");
       if (!job) {
         return responseReturn(res, 404, { error: "Job Not Found" });
       }
+
+      const cacheKeyId = job.slug || job._id.toString();
+      const key = `home:job:${cacheKeyId}`;
       await redis.set(key, JSON.stringify(job), "EX", 43200);
       return responseReturn(res, 200, {
         message: "Job Fetch Successful",
@@ -76,7 +107,10 @@ class JobControllers {
             .map((req) => req.trim())
             .filter((req) => req.length > 0);
         } else if (Array.isArray(requirements)) {
-          requirementsArray = requirements;
+          requirementsArray = requirements
+            .filter((req) => typeof req === "string")
+            .map((req) => req.trim())
+            .filter((req) => req.length > 0);
         }
       }
 
@@ -98,6 +132,7 @@ class JobControllers {
       // Build job data based on content type
       const jobData = {
         title,
+        slug: await generateUniqueSlug({ model: Job, base: title }),
         contentType: finalContentType,
         htmlContent: finalContentType === "html" ? htmlContent : "",
         description: finalContentType === "html" ? "" : (description || ""),
@@ -120,7 +155,8 @@ class JobControllers {
           error: "Job couldn't be created",
         });
       }
-      await redis.del(`home:job:${job._id}`)
+      await redis.del(`home:job:${job._id}`);
+      if (job.slug) await redis.del(`home:job:${job.slug}`);
       return responseReturn(res, 201, {
         message: "Job Successfully created",
         job,
@@ -222,6 +258,11 @@ class JobControllers {
           .populate("createdBy", "name email");
         const totalJobs = await Job.find(query).countDocuments();
 
+        const responseData = {
+          totalJobs,
+          jobs,
+          message: "Jobs successfully fetched",
+        };
         await redis.set(key, JSON.stringify(responseData), "EX", 43200);
         return responseReturn(res, 200, {
           totalJobs,
@@ -297,7 +338,10 @@ class JobControllers {
             .map((req) => req.trim())
             .filter((req) => req.length > 0);
         } else if (Array.isArray(requirements)) {
-          requirementsArray = requirements;
+          requirementsArray = requirements
+            .filter((req) => typeof req === "string")
+            .map((req) => req.trim())
+            .filter((req) => req.length > 0);
         }
       }
 
@@ -325,6 +369,14 @@ class JobControllers {
         isActive: activeStatus,
       };
 
+      if (title && title !== existingJob.title) {
+        updateFields.slug = await generateUniqueSlug({
+          model: Job,
+          base: title,
+          excludeId: jobId,
+        });
+      }
+
       // Include structured fields for both content types
       // For HTML content, these fields are optional but can still be provided
       updateFields.requirements = finalContentType === "structured" ? requirementsArray : [];
@@ -342,6 +394,8 @@ class JobControllers {
         return responseReturn(res, 404, { error: "Job not found" });
       }
       await redis.del(`home:job:${jobId}`);
+      if (existingJob.slug) await redis.del(`home:job:${existingJob.slug}`);
+      if (updatedJob.slug) await redis.del(`home:job:${updatedJob.slug}`);
 
       return responseReturn(res, 200, {
         message: "Job successfully updated",
@@ -363,6 +417,7 @@ class JobControllers {
         return responseReturn(res, 404, { error: "Job not found" });
       }
       await redis.del(`home:job:${jobId}`);
+      if (deletedJob.slug) await redis.del(`home:job:${deletedJob.slug}`);
 
       return responseReturn(res, 200, {
         message: "Job deleted successfully",
