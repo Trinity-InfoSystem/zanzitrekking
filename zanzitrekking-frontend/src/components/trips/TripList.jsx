@@ -16,7 +16,7 @@ import {
   ShoppingCart,
   Star,
 } from "lucide-react";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const PRICE_CATEGORIES = ["standard", "midRange", "luxury"];
 const PERSON_TYPES = [
@@ -33,7 +33,7 @@ const formatPrice = (price) => {
 
 const getImageUrl = (mainImage) => {
   return mainImage
-    ? IMAGES_URL + mainImage.split("/").pop()
+    ? resolveMediaUrl(mainImage)
     : "/placeholder.svg";
 };
 

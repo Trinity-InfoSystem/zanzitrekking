@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from "../../../utils/constants";
+
 const CustomerItem = ({ customer, isActive, onClick }) => {
   // Format time dynamically
   const formatTime = (dateString) => {
@@ -41,7 +43,7 @@ const CustomerItem = ({ customer, isActive, onClick }) => {
       <div className="relative">
         {customer.image ? (
           <img
-            src={customer.image}
+            src={resolveMediaUrl(customer.image)}
             alt={customer.name}
             className={`h-12 w-12 rounded-full object-cover ring-2 transition-all duration-200 ${isActive ? "ring-white" : "ring-primary-200 group-hover:ring-secondary"}`}
             onError={(e) => {

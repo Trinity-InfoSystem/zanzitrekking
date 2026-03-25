@@ -8,7 +8,7 @@ import {
   getOrderById,
   resetOrderCreationStatus,
 } from "../store/reducers/orderReducer";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import QRCodeDisplay from "../components/QRCodeDisplay";
 
 import SEO from "../components/SEO";
@@ -577,7 +577,7 @@ const OrderConfirmation = () => {
                       <img
                         src={
                           item.mainImage
-                            ? IMAGES_URL + item.mainImage.split("/").pop()
+                            ? resolveMediaUrl(item.mainImage)
                             : "/placeholder.svg"
                         }
                         alt={item.mainTitle}

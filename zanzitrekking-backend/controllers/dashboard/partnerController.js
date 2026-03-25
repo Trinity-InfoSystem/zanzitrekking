@@ -5,6 +5,10 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
+const {
+  publicUploadsRef,
+  diskPathFromStoredUploadRef,
+} = require("../../utilities/storedAssetPath");
 
 class PartnerController {
   // Add Partner
@@ -24,7 +28,6 @@ class PartnerController {
       // Extract the logo file
       const logoFile = req.file;
       const logo = logoFile ? logoFile.filename : null;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Create new partner object
       const newPartner = {
@@ -36,7 +39,7 @@ class PartnerController {
         website: website || "",
         description: description || "",
         order: parseInt(order) || 0,
-        logo: logo ? `${basePath}${logo}` : null,
+        logo: logo ? publicUploadsRef(logo) : null,
       };
 
       // Create the partner in the database
@@ -76,8 +79,6 @@ class PartnerController {
         return responseReturn(res, 404, { error: "Partner not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
       // Prepare update fields
       const updateFields = {
         name: name || existingPartner.name,
@@ -94,16 +95,8 @@ class PartnerController {
       const logoFile = req.file;
       if (logoFile) {
         // Delete old logo if it exists
-        if (existingPartner.logo) {
-          const oldLogoFileName = path.basename(existingPartner.logo);
-          const oldLogoPath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldLogoFileName
-          );
+        const oldLogoPath = diskPathFromStoredUploadRef(existingPartner.logo);
+        if (oldLogoPath) {
           try {
             await fs.promises.unlink(oldLogoPath);
             logger.info("Deleted old logo:", oldLogoPath);
@@ -111,7 +104,7 @@ class PartnerController {
             logger.error(`Error deleting old logo: ${err.message}`);
           }
         }
-        updateFields.logo = `${basePath}${logoFile.filename}`;
+        updateFields.logo = publicUploadsRef(logoFile.filename);
       }
 
       // Update the partner
@@ -216,18 +209,8 @@ class PartnerController {
         return responseReturn(res, 404, { error: "Partner Not Found" });
       }
 
-      // Delete the logo if it exists
-      if (partner.logo) {
-        const oldLogoFileName = path.basename(partner.logo);
-        const oldLogoPath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          oldLogoFileName
-        );
-
+      const oldLogoPath = diskPathFromStoredUploadRef(partner.logo);
+      if (oldLogoPath) {
         fs.unlink(oldLogoPath, (err) => {
           if (err) {
             logger.error(`Error deleting old logo: ${err.message}`);

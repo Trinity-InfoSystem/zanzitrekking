@@ -30,7 +30,7 @@ import {
 import { overrideStyle } from "../../utils/utilis";
 import { PropagateLoader } from "react-spinners";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./quill-custom.css";
@@ -321,7 +321,7 @@ const BlogPostForm = () => {
                 src={
                   previews[imageKey].startsWith("blob:")
                     ? previews[imageKey]
-                    : IMAGES_URL + previews[imageKey].split("/").pop()
+                    : resolveMediaUrl(previews[imageKey])
                 }
                 alt={`${label} Preview`}
                 className="h-full w-full object-cover transition-all duration-300 group-hover:scale-110"

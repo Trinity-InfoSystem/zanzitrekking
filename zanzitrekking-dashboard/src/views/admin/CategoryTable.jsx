@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaEdit, FaTrash } from "react-icons/fa";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isAdmin, isEditor } from "../../utils/roleVerification";
 
 const CategoryTable = ({
@@ -41,7 +41,7 @@ const CategoryTable = ({
         <tbody className="divide-y divide-primary-100">
           {categories.map((d, i) => {
             let imageName = d.image
-              ? IMAGES_URL + d.image.split("/").pop()
+              ? resolveMediaUrl(d.image)
               : "/placeholder.svg";
             return (
               <tr

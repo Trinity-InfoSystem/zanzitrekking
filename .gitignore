@@ -95,3 +95,7 @@ coverage/
 
 # Local Development Data
 .docker
+
+# MongoDB dumps (can be large; may contain production data)
+zanzitrekking-backend/dump-atlas*/
+zanzitrekking-backend/dump-local-migrated*/

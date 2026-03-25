@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const OrderSummary = ({ 
   cart_trips, 
@@ -97,7 +97,7 @@ const OrderSummary = ({
               <img
                 src={
                   trip.mainImage
-                    ? IMAGES_URL + trip.mainImage.split("/").pop()
+                    ? resolveMediaUrl(trip.mainImage)
                     : "/placeholder.svg"
                 }
                 alt={trip.mainTitle}

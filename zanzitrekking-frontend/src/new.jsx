@@ -18,7 +18,7 @@ import {
   Sun,
   Utensils,
 } from "lucide-react";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const DayByDayTab = ({ days = [] }) => {
   const [expandedDays, setExpandedDays] = useState(days?.length > 0 ? [0] : []);
@@ -239,7 +239,7 @@ const DayByDayTab = ({ days = [] }) => {
       <div className="safari-itinerary space-y-5">
         {days.map((day, index) => {
           const imageName = day.image
-            ? IMAGES_URL + day.image.split("/").pop()
+            ? resolveMediaUrl(day.image)
             : "/placeholder.svg";
 
           return (
@@ -398,7 +398,7 @@ const DayByDayTab = ({ days = [] }) => {
                                     >
                                       <img
                                         src={
-                                          IMAGES_URL + image.split("/").pop()
+                                          resolveMediaUrl(image)
                                         }
                                         alt={`${hotel.name} - Image ${imgIndex + 1}`}
                                         className="h-24 w-24 object-cover"

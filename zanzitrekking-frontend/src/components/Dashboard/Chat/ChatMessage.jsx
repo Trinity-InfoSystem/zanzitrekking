@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaDownload, FaTrash } from "react-icons/fa";
 import { API_URL } from "../../../utils/constants";
+import { resolveMediaUrl } from "../../../utils/imageUtils";
 import { useDispatch } from "react-redux";
 import { delete_message } from "../../../store/reducers/chatReducer";
 import toast from "react-hot-toast";
@@ -97,7 +98,7 @@ const ChatMessage = ({ message, isCurrentUser }) => {
         {isImage && message.attachment && (
           <div className="mt-2">
             <img
-              src={`${API_URL  }/public${  message.attachment}`}
+              src={resolveMediaUrl(message.attachment)}
               alt="Attachment"
               className="max-h-48 rounded object-cover"
             />

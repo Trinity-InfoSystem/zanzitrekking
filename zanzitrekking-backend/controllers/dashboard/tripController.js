@@ -7,6 +7,7 @@ const path = require("path");
 const mongoose = require("mongoose");
 const redis = require("../../redis");
 const { delPattern } = require('../../utilities/cache');
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const crypto = require("crypto");
 
 const resolveCategoryData = async (categoryValue) => {
@@ -146,7 +147,6 @@ class TripController {
       );
       const mainImage = mainImageFile ? mainImageFile.filename : null;
       const mainVideo = mainVideoFile ? mainVideoFile.filename : null;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Process days
       const tripDays = [];
@@ -170,7 +170,7 @@ class TripController {
           title: dayData.title,
           overview: dayData.overview || "",
           mainDestination: dayData.mainDestination,
-          image: dayImageFile ? `${basePath}${dayImageFile.filename}` : null,
+          image: dayImageFile ? publicUploadsRef(dayImageFile.filename) : null,
           accommodation: accommodationIds,
           meals: dayData.meals || [],
         });
@@ -270,8 +270,6 @@ class TripController {
       if (!existingTrip) {
         return responseReturn(res, 404, { error: "Trip not found" });
       }
-
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Parse JSON data for category-specific inclusions and exclusions
       const parsedInclusions = JSON.parse(
@@ -421,7 +419,7 @@ class TripController {
             logger.error(`Error deleting old main video: ${err.message}`);
           }
         }
-        updateFields.mainVideo = `${basePath}${mainVideoFile.filename}`;
+        updateFields.mainVideo = publicUploadsRef(mainVideoFile.filename);
       }
 
       // Process days
@@ -473,7 +471,7 @@ class TripController {
               logger.error(`Error deleting old day image: ${err.message}`);
             }
           }
-          updatedDay.image = `${basePath}${dayImageFile.filename}`;
+          updatedDay.image = publicUploadsRef(dayImageFile.filename);
         } else if (existingDay) {
           updatedDay.image = existingDay.image;
         }

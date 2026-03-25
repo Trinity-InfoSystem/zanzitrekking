@@ -17,7 +17,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 
 const Banner = () => {
   const dispatch = useDispatch();
@@ -93,9 +93,8 @@ const Banner = () => {
       .catch(() => setIsLoading(false));
   }, [dispatch]);
 
-  // ✅ SIMPLIFIED: Just extract filename and prepend IMAGES_URL
   const sharedVideoUrl = banner?.sharedVideo
-    ? IMAGES_URL + banner.sharedVideo.split("/").pop()
+    ? resolveMediaUrl(banner.sharedVideo)
     : null;
 
   useEffect(() => {
@@ -168,8 +167,7 @@ const Banner = () => {
               <img
                 src={
                   banner.banners[activeIndex]?.image
-                    ? IMAGES_URL +
-                      banner.banners[activeIndex].image.split("/").pop() // ✅ SIMPLIFIED
+                    ? resolveMediaUrl(banner.banners[activeIndex].image)
                     : "/placeholder.jpg"
                 }
                 alt={banner.banners[activeIndex]?.title || "Banner"}

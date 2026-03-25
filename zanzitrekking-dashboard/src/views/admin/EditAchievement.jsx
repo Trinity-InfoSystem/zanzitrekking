@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 
 const EditAchievement = () => {
   const navigate = useNavigate();
@@ -89,10 +89,7 @@ const EditAchievement = () => {
         order: achievement.order || 0,
       });
       if (achievement.image) {
-        const imageUrl = achievement.image.startsWith("http")
-          ? achievement.image
-          : `${IMAGES_URL}${achievement.image.split("/").pop()}`;
-        setImagePreview(imageUrl);
+        setImagePreview(resolveMediaUrl(achievement.image));
       } else if (achievement.imageUrl) {
         setImagePreview(achievement.imageUrl);
       }

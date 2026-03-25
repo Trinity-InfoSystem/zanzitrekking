@@ -22,7 +22,7 @@ import {
 import AOS from "aos";
 import "aos/dist/aos.css";
 import { get_statistic_data } from "../store/reducers/homeReducer";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import SEO from "../components/SEO";
 const AboutUs = () => {
   const dispatch = useDispatch();
@@ -342,7 +342,7 @@ const TeamMemberCard = ({ image, delay }) => {
     >
       <div className="aspect-[3/4] overflow-hidden">
         <img
-          src={IMAGES_URL + image.split("/").pop()} // ✅ UPDATED - Simple logic
+          src={resolveMediaUrl(image)}
           alt="Team Member"
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "react-router-dom";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import {
   ArrowRight,
   Award,
@@ -165,7 +165,7 @@ export const AboutUsHero = ({ whoWeAre, statisticData }) => {
               <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
                 {["image1", "image2", "image3"].map((img, index) => {
                   const imageName = whoWeAre[img]
-                    ? IMAGES_URL + whoWeAre[img].split("/").pop()
+                    ? resolveMediaUrl(whoWeAre[img])
                     : "/placeholder.svg?height=400&width=300";
                   return (
                     <div key={index} className="group">

@@ -3,6 +3,8 @@ const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
+
 class BannerController {
   create_banner = async (req, res) => {
     try {
@@ -15,8 +17,7 @@ class BannerController {
 
       // Handle shared video
       const sharedVideoFile = files.find((f) => f.fieldname === 'sharedVideo');
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-      const sharedVideo = sharedVideoFile ? `${basePath}${sharedVideoFile.filename}` : null;
+      const sharedVideo = sharedVideoFile ? publicUploadsRef(sharedVideoFile.filename) : null;
 
       // Handle new banners creation
       let bannerData = [];
@@ -30,7 +31,7 @@ class BannerController {
         return {
           title: banner.title,
           description: banner.description,
-          image: imageFile ? `${basePath}${imageFile.filename}` : null,
+          image: imageFile ? publicUploadsRef(imageFile.filename) : null,
         };
       });
 
@@ -63,8 +64,6 @@ class BannerController {
       if (!existingBanner) {
         return responseReturn(res, 404, { error: "No existing banners found" });
       }
-
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Handle shared video update
       const sharedVideoFile = files.find((f) => f.fieldname === 'sharedVideo');
@@ -127,7 +126,7 @@ class BannerController {
             }
           }
 
-          newImage = `${basePath}${imageFile.filename}`;
+          newImage = publicUploadsRef(imageFile.filename);
         }
 
         return {

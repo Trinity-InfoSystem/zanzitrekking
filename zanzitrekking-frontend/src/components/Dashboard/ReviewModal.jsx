@@ -13,6 +13,7 @@ import {
   clearMessage,
   createReview,
 } from "../../store/reducers/reviewReducer";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const ReviewModal = ({
   isOpen,
@@ -136,7 +137,9 @@ const ReviewModal = ({
             <div className="flex items-center gap-3">
               <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200">
                 <img
-                  src={tripImage || "/placeholder.svg"}
+                  src={
+                    tripImage ? resolveMediaUrl(tripImage) : "/placeholder.svg"
+                  }
                   alt={tripTitle}
                   className="h-full w-full object-cover"
                 />

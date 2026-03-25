@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import BlogContent from "../components/BlogPost/BlogContent";
 import BlogComments from "../components/BlogPost/BlogComments";
 import { ArrowLeft, BookOpen, Calendar } from "lucide-react";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import GoogleReviewsWidget from "../components/GoogleReviewsWidget";
@@ -43,7 +43,7 @@ const BlogPost = () => {
   };
 
   const blogImage = blogPost?.mainImage
-    ? IMAGES_URL + blogPost.mainImage.split("/").pop()
+    ? resolveMediaUrl(blogPost.mainImage)
     : "https://images.unsplash.com/photo-1523805009345-7448845a9e53?w=1920&h=600&fit=crop";
 
   return (
@@ -56,7 +56,11 @@ const BlogPost = () => {
             blogPost.mainParagraph ||
             blogPost.excerpt
           }
-          image={blogPost.image || blogPost.coverImage || blogPost.mainImage}
+          image={(() => {
+            const raw =
+              blogPost.mainImage || blogPost.coverImage || blogPost.image;
+            return raw ? resolveMediaUrl(raw) : undefined;
+          })()}
           type="blog"
           data={blogPost}
         />

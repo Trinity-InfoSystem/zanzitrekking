@@ -2,10 +2,13 @@ const AchievementModel = require("../../models/achievement");
 const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
-const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
 const { delPattern } = require('../../utilities/cache');
+const {
+  publicUploadsRef,
+  diskPathFromStoredUploadRef,
+} = require("../../utilities/storedAssetPath");
 
 class AchievementController {
   // Add Achievement
@@ -25,10 +28,9 @@ class AchievementController {
 
       // Extract the image file if uploaded
       const imageFile = req.file;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Use uploaded file or URL
-      const image = imageFile ? `${basePath}${imageFile.filename}` : null;
+      const image = imageFile ? publicUploadsRef(imageFile.filename) : null;
 
       const newAchievement = {
         name,
@@ -78,8 +80,6 @@ class AchievementController {
         return responseReturn(res, 404, { error: "Achievement not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
       const updateFields = {
         name: name || existingAchievement.name,
         fullName: fullName || existingAchievement.fullName,
@@ -95,42 +95,28 @@ class AchievementController {
       const imageFile = req.file;
       if (imageFile) {
         // Delete old image if it exists and was uploaded
-        if (existingAchievement.image && existingAchievement.image.includes("/public/uploads/")) {
-          const oldImageFileName = path.basename(existingAchievement.image);
-          const oldImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldImageFileName
-          );
-          if (fs.existsSync(oldImagePath)) {
-            try {
-              await fs.promises.unlink(oldImagePath);
-            } catch (error) {
-              logger.error("Error deleting old image:", error);
-            }
+        const oldImgPath = diskPathFromStoredUploadRef(
+          existingAchievement.image,
+        );
+        if (oldImgPath && fs.existsSync(oldImgPath)) {
+          try {
+            await fs.promises.unlink(oldImgPath);
+          } catch (error) {
+            logger.error("Error deleting old image:", error);
           }
         }
-        updateFields.image = `${basePath}${imageFile.filename}`;
+        updateFields.image = publicUploadsRef(imageFile.filename);
         updateFields.imageUrl = null; // Clear URL if file uploaded
       } else if (imageUrl !== undefined) {
         // If URL provided, use it and clear uploaded image
         updateFields.imageUrl = imageUrl || null;
-        if (imageUrl && existingAchievement.image && existingAchievement.image.includes("/public/uploads/")) {
-          const oldImageFileName = path.basename(existingAchievement.image);
-          const oldImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldImageFileName
+        if (imageUrl && existingAchievement.image) {
+          const oldImgPath = diskPathFromStoredUploadRef(
+            existingAchievement.image,
           );
-          if (fs.existsSync(oldImagePath)) {
+          if (oldImgPath && fs.existsSync(oldImgPath)) {
             try {
-              await fs.promises.unlink(oldImagePath);
+              await fs.promises.unlink(oldImgPath);
             } catch (error) {
               logger.error("Error deleting old image:", error);
             }
@@ -244,20 +230,9 @@ class AchievementController {
         return responseReturn(res, 404, { error: "Achievement not found" });
       }
 
-      // Delete image file if exists
-      if (achievement.image && achievement.image.includes("/public/uploads/")) {
-        const imageFileName = path.basename(achievement.image);
-        const imagePath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          imageFileName
-        );
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
+      const imagePath = diskPathFromStoredUploadRef(achievement.image);
+      if (imagePath && fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
       }
 
       await AchievementModel.findByIdAndDelete(achievementId);
@@ -300,21 +275,10 @@ class AchievementController {
         _id: { $in: achievementIds },
       });
 
-      // Delete image files
       achievements.forEach((achievement) => {
-        if (achievement.image && achievement.image.includes("/public/uploads/")) {
-          const imageFileName = path.basename(achievement.image);
-          const imagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            imageFileName
-          );
-          if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath);
-          }
+        const imagePath = diskPathFromStoredUploadRef(achievement.image);
+        if (imagePath && fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
         }
       });
 

@@ -14,7 +14,7 @@ import {
   Tag,
 } from "lucide-react";
 import { get_trips } from "../../store/reducers/tripReducer";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import "aos/dist/aos.css";
 
 const DiscoverTrips = () => {
@@ -155,7 +155,7 @@ const DiscoverTrips = () => {
 
   const getImageUrl = (mainImage) => {
     if (!mainImage) {return "/placeholder.jpg";}
-    return IMAGES_URL + mainImage.split("/").pop();
+    return resolveMediaUrl(mainImage);
   };
 
   const getDestinationName = (trip) => {

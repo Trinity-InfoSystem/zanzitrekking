@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useParams } from "react-router-dom";
 import { get_orders_details } from "../../store/reducers/orderReducer";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import {
   ArrowLeft,
   Calendar,
@@ -190,7 +191,11 @@ const OrderDetails = () => {
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-neutral-200">
                       <img
                         className="h-full w-full object-cover"
-                        src={item.mainImage || item.tripId?.mainImage || "/placeholder.svg"}
+                        src={
+                          resolveMediaUrl(
+                            item.mainImage || item.tripId?.mainImage,
+                          ) || "/placeholder.svg"
+                        }
                         alt={item.mainTitle || item.tripId?.mainTitle || "Trip"}
                       />
                     </div>

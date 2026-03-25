@@ -2,6 +2,7 @@ const Accommodation = require("../../models/accommodation");
 const logger = require('./../../utilities/logger');
 const { responseReturn } = require("../../utilities/response");
 const StringSimilarity = require("../../utilities/stringSimilarity");
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 
 class AccommodationControllers {
   // Adding new accommodation
@@ -32,8 +33,7 @@ class AccommodationControllers {
       // Prepare images array if files are uploaded
       let images = [];
       if (files && files.length > 0) {
-        const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-        images = files.map((file) => `${basePath}${file.filename}`);
+        images = files.map((file) => publicUploadsRef(file.filename));
       }
 
       // Prepare amenities and contact
@@ -226,8 +226,7 @@ class AccommodationControllers {
 
       // If images are uploaded, update the images array
       if (files && files.length > 0) {
-        const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-        const newImages = files.map((file) => `${basePath}${file.filename}`);
+        const newImages = files.map((file) => publicUploadsRef(file.filename));
         accommodation.images = [...(accommodation.images || []), ...newImages];
       }
 

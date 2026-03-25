@@ -1,19 +1,27 @@
-import { IMAGES_URL } from "./constants";
+import { getApiOrigin, IMAGES_URL } from "./constants";
 
 /**
- * Refactors an image URL by extracting the filename and prepending the base images URL.
- * If the image is invalid or missing, returns a placeholder image path.
+ * Turn a DB-stored media reference into a browser-usable absolute URL.
+ * Supports: legacy full http(s) URLs, /uploads/..., legacy /public/uploads/..., or bare filenames.
  *
- * @param {string|null|undefined} image - The original image path or URL
- * @returns {string} The refactored image URL or a placeholder if image is invalid
- *
- * @example
- * refectorImage('/uploads/image.jpg')
- * // Returns: 'https://api.zanzisafaris.com/public/uploads/image.jpg'
- *
- * @example
- * refectorImage(null)
- * // Returns: '/placeholder.svg'
+ * @param {string|null|undefined} stored
+ * @returns {string}
+ */
+export function resolveMediaUrl(stored) {
+  if (stored == null || String(stored).trim() === "") return "";
+  const s = String(stored).trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  const origin = getApiOrigin();
+  if (s.startsWith("/uploads/") || s.startsWith("/public/")) {
+    return origin ? `${origin}${s}` : s;
+  }
+  const file = s.split("/").pop().split("?")[0];
+  return file ? `${IMAGES_URL}${file}` : "";
+}
+
+/**
+ * @param {string|null|undefined} image
+ * @returns {string}
  */
 export const refectorImage = (image) =>
-  image ? IMAGES_URL + image.split("/").pop() : "/placeholder.svg";
+  image ? resolveMediaUrl(image) : "/placeholder.svg";

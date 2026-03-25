@@ -24,7 +24,7 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isAdmin, isEditor } from "../../utils/roleVerification";
 
 // ConfirmModal component
@@ -127,14 +127,8 @@ const Clients = () => {
   };
 
   const getLogoUrl = (client) => {
-    if (client.logo) {
-      return client.logo.startsWith("http")
-        ? client.logo
-        : `${IMAGES_URL}${client.logo.split("/").pop()}`;
-    }
-    if (client.logoUrl) {
-      return client.logoUrl;
-    }
+    if (client.logo) return resolveMediaUrl(client.logo);
+    if (client.logoUrl) return resolveMediaUrl(client.logoUrl);
     return null;
   };
 

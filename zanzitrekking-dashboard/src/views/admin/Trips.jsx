@@ -23,7 +23,7 @@ import toast from "react-hot-toast";
 import { PropagateLoader } from "react-spinners";
 import { overrideStyle } from "../../utils/utilis";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isAdmin, isEditor } from "../../utils/roleVerification";
 import SortSelect from "../components/SortSelect";
 
@@ -240,7 +240,7 @@ const Trips = () => {
                 <tbody className="divide-y divide-primary-100">
                   {trips.map((trip, i) => {
                     let imageName = trip.mainImage
-                      ? IMAGES_URL + trip.mainImage.split("/").pop()
+                      ? resolveMediaUrl(trip.mainImage)
                       : "/placeholder.svg";
                     return (
                       <tr

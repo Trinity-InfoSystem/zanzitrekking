@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from "../../../utils/constants";
+
 const AdminItem = ({ admin, isActive, onClick }) => {
   return (
     <div
@@ -12,7 +14,7 @@ const AdminItem = ({ admin, isActive, onClick }) => {
         <div className="relative">
           {admin.image ? (
             <img
-              src={admin.image}
+              src={resolveMediaUrl(admin.image)}
               alt={admin.name}
               className={`h-10 w-10 rounded-full object-cover ${isActive ? "ring-2 ring-white" : "ring-2 ring-primary-200"}`}
             />

@@ -1,4 +1,5 @@
 import { FaTimes } from "react-icons/fa";
+import { resolveMediaUrl } from "../../utils/constants";
 
 const CustomerModal = ({ showModal, selectedCustomer, onClose }) => {
   if (!showModal || !selectedCustomer) return null;
@@ -55,7 +56,7 @@ const CustomerModal = ({ showModal, selectedCustomer, onClose }) => {
               </h3>
               <div className="flex items-center space-x-3">
                 <img
-                  src={selectedCustomer.assignedAdmin.image}
+                  src={resolveMediaUrl(selectedCustomer.assignedAdmin.image)}
                   alt={selectedCustomer.assignedAdmin.name}
                   className="h-12 w-12 rounded-full object-cover ring-2 ring-secondary"
                 />

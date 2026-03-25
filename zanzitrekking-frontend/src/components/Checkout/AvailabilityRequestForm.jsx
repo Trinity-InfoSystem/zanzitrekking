@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearMessage, createUrgentBookingRequest } from "../../store/reducers/urgentBookingRequestReducer";
 import toast from "react-hot-toast";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 import { AlertCircle, Calendar, Package, Send, Users } from "lucide-react";
 import { parse } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -315,8 +315,7 @@ const AvailabilityRequestForm = ({
                 <img
                   src={
                     blockedTrip.trip.mainImage
-                      ? IMAGES_URL +
-                        blockedTrip.trip.mainImage.split("/").pop()
+                      ? resolveMediaUrl(blockedTrip.trip.mainImage)
                       : "/placeholder.svg"
                   }
                   alt={blockedTrip.trip.mainTitle}

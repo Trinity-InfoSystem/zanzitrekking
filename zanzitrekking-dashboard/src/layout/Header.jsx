@@ -2,7 +2,7 @@
 
 import { FaList, FaSearch } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/constants";
 
 const Header = ({ setShowSidebar }) => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -10,7 +10,7 @@ const Header = ({ setShowSidebar }) => {
   let imageName = userInfo?.image
     ? userInfo?.image.startsWith("https://ui-avatars.com")
       ? userInfo?.image
-      : IMAGES_URL + userInfo?.image.split("/").pop()
+      : resolveMediaUrl(userInfo?.image)
     : "/images/admin.png";
 
   return (

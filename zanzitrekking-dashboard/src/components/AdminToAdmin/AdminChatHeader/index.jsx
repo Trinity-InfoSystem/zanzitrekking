@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from "../../../utils/constants";
+
 const AdminChatHeader = ({ admin, conversationId, messageCount }) => {
   return (
     <div className="border-b border-primary-100 bg-gradient-to-r from-primary-50 via-white to-secondary-50 px-6 py-4">
@@ -6,7 +8,7 @@ const AdminChatHeader = ({ admin, conversationId, messageCount }) => {
           <div>
             {admin.image ? (
               <img
-                src={admin.image}
+                src={resolveMediaUrl(admin.image)}
                 alt={admin.name}
                 className="h-12 w-12 rounded-full object-cover shadow-nature-soft ring-2 ring-primary/60"
               />

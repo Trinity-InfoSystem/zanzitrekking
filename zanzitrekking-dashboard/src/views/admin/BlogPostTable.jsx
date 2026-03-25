@@ -8,11 +8,11 @@ import {
   delete_blogPost_comment,
 } from "../../store/Reducers/blogPostReducer";
 import toast from "react-hot-toast";
+import { resolveMediaUrl } from "../../utils/constants";
 
 const BlogPostTable = ({
   blogPosts,
   startIndex,
-  IMAGES_URL,
   deleteBlogPost,
   role,
 }) => {
@@ -108,7 +108,7 @@ const BlogPostTable = ({
           <tbody className="divide-y divide-primary-100 bg-white">
             {blogPosts.map((blogPost, i) => {
               let imageName = blogPost?.mainImage
-                ? IMAGES_URL + blogPost?.mainImage.split("/").pop()
+                ? resolveMediaUrl(blogPost.mainImage)
                 : "/placeholder.svg";
               return (
                 <tr

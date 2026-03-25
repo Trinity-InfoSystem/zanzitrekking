@@ -2,6 +2,7 @@
 
 import { ChevronDown, Filter, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const SearchBar = ({
   showSearchBar,
@@ -142,7 +143,7 @@ const SearchBar = ({
                                 {cat.image && (
                                   <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg">
                                     <img
-                                      src={cat.image}
+                                      src={resolveMediaUrl(cat.image)}
                                       alt={cat.name}
                                       className="h-full w-full object-cover"
                                     />

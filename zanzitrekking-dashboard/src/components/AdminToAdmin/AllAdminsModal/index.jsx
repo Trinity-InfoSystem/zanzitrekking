@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FaTimes, FaComments, FaUser } from "react-icons/fa";
 import { get_all_admins } from "../../../store/Reducers/adminToAdminReducer";
+import { resolveMediaUrl } from "../../../utils/constants";
 
 const AllAdminsModal = ({ isOpen, onClose, onSelectAdmin }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,7 +75,7 @@ const AllAdminsModal = ({ isOpen, onClose, onSelectAdmin }) => {
                   <div className="flex items-center space-x-3">
                     {admin.image ? (
                       <img
-                        src={admin.image}
+                        src={resolveMediaUrl(admin.image)}
                         alt={admin.name}
                         className="h-10 w-10 rounded-full object-cover"
                       />

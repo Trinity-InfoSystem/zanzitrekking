@@ -20,7 +20,7 @@ import {
 } from "../../store/Reducers/whoWeAreReducer";
 import toast from "react-hot-toast";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isViewer } from "../../utils/roleVerification";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -333,8 +333,7 @@ const WhoWeAre = () => {
                     {["image1", "image2", "image3"].map((field, index) => {
                       const ImageIconComponent = imageLabels[index].icon;
                       let imageName = previewUrls[field]
-                        ? IMAGES_URL +
-                          previewUrls[field].split("/").pop()
+                        ? resolveMediaUrl(previewUrls[field])
                         : "/placeholder.svg";
 
                       return (

@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import HeaderText from "./HeaderText";
-import { IMAGES_URL } from "../../utils/constants";
+import { resolveMediaUrl } from "../../utils/constants";
 import { isViewer } from "../../utils/roleVerification";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -146,7 +146,7 @@ const Profile = () => {
   }, [successMessage, errorMessage, dispatch]);
 
   let imageName = userInfo?.image
-    ? IMAGES_URL + userInfo?.image.split("/").pop()
+    ? resolveMediaUrl(userInfo?.image)
     : "/images/admin.png";
 
   return (

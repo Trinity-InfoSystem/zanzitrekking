@@ -5,6 +5,7 @@ const StringSimilarity = require("../../utilities/stringSimilarity");
 const fs = require("fs");
 const path = require("path");
 const redis = require('../../redis');
+const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 
 class CategoryControllers {
   get_one_category = async (req, res) => {
@@ -49,12 +50,11 @@ class CategoryControllers {
       }
 
       const fileName = req.file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
       // Create the category
       let category = await Category.create({
         name: req.body.name,
-        image: `${basePath}${fileName}`,
+        image: publicUploadsRef(fileName),
       });
 
       if (!category) {
@@ -214,8 +214,7 @@ class CategoryControllers {
 
         // Set the new image path
         const fileName = req.file.filename;
-        const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-        updateFields.image = `${basePath}${fileName}`;
+        updateFields.image = publicUploadsRef(fileName);
       }
 
       // Update the category
@@ -286,10 +285,9 @@ class CategoryControllers {
 
       // Update the category image
       const fileName = req.file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
       const updatedCategory = await Category.findByIdAndUpdate(
         categoryId,
-        { image: `${basePath}${fileName}` },
+        { image: publicUploadsRef(fileName) },
         { new: true }
       );
 

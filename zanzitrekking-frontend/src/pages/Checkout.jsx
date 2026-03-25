@@ -14,7 +14,7 @@ import {
 } from "../store/reducers/orderReducer";
 import { clear_cart, clearMessage } from "../store/reducers/cardReducer";
 import { get_trip } from "../store/reducers/tripReducer";
-import { IMAGES_URL } from "../utils/constants";
+import { resolveMediaUrl } from "../utils/imageUtils";
 import toast from "react-hot-toast";
 import {
   checkBookingEligibility,
@@ -1242,8 +1242,7 @@ const Checkout = () => {
                                 <img
                                   src={
                                     trip.mainImage
-                                      ? IMAGES_URL +
-                                        trip.mainImage.split("/").pop()
+                                      ? resolveMediaUrl(trip.mainImage)
                                       : "/placeholder.svg"
                                   }
                                   alt={trip.mainTitle}

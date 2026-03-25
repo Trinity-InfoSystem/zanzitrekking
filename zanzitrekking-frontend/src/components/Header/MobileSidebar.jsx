@@ -28,6 +28,7 @@ import { useEffect, useState } from "react";
 import { FaTiktok } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { resolveMediaUrl } from "../../utils/imageUtils";
 
 const languages = [
   { code: "en", name: "English", flag: "🇬🇧", nativeName: "English" },
@@ -375,7 +376,7 @@ const MobileNavItem = ({
                   {category?.image && (
                     <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded">
                       <img
-                        src={category.image}
+                        src={resolveMediaUrl(category.image)}
                         alt={category.name}
                         className="h-full w-full object-cover"
                       />
