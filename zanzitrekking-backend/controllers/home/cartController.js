@@ -460,6 +460,7 @@ class WishlistController {
         travelersNumber: parseInt(travelersNumber) || 1,
         mainTitle,
         mainImage,
+        mainImageThumbnail:trip.mainImageThumbnail,
         discount: discount || 0,
         pricingType: trip.pricingType,
         regularPrices: trip.regularPrices,
@@ -866,6 +867,7 @@ class WishlistController {
         // This ensures required fields are always present
         const wishlistMainTitle = mainTitle || trip.mainTitle;
         const wishlistMainImage = mainImage || trip.mainImage;
+        const wishlistMainImageThumbnail = trip.mainImageThumbnail;
         const wishlistDays = days !== undefined ? days : (trip.days ? trip.days.length : 0);
         
         // Validate required fields
@@ -909,6 +911,7 @@ class WishlistController {
           discount: discount !== undefined ? discount : (trip.discount || 0),
           rating: rating !== undefined ? rating : (trip.rating || 0),
           mainImage: wishlistMainImage,
+          mainImageThumbnail: wishlistMainImageThumbnail,
           days: wishlistDays,
           mainDestination: destinationForWishlist,
           pricingType: pricingType,
@@ -1022,6 +1025,7 @@ class WishlistController {
         travelersNumber: parseInt(travelersNumber) || 1,
         mainTitle: wishlistItem.mainTitle,
         mainImage: wishlistItem.mainImage,
+        mainImageThumbnail: wishlistItem.mainImageThumbnail,
         discount: wishlistItem.discount || 0,
         pricingType: wishlistItem.pricingType,
         regularPrices: wishlistItem.regularPrices,

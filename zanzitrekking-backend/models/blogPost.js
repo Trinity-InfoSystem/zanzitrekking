@@ -20,6 +20,9 @@ const blogPostSchema = new Schema(
     mainImage: {
       type: String,
     },
+    mainImageThumbnail: {
+      type: String,
+    },
     // Content type flag: 'structured' or 'html'
     contentType: {
       type: String,
@@ -62,6 +65,12 @@ const blogPostSchema = new Schema(
       image2: {
         type: String,
       },
+      image1Thumbnail: {
+        type: String,
+      },
+      image2Thumbnail: {
+        type: String,
+      },
       paragraph: {
         type: String,
       },
@@ -88,6 +97,9 @@ const blogPostSchema = new Schema(
       },
     ],
     creatorImage: {
+      type: String,
+    },
+    creatorImageThumbnail: {
       type: String,
     },
     creatorBio: {

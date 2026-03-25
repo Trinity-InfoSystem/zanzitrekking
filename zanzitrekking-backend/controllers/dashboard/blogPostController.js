@@ -6,25 +6,38 @@ const Admin = require("../../models/admin");
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
 const path = require("path");
+const { thumbnailGenerator } = require("../../utilities/multerUpload");
 class blogPostController {
   add_blogPost = async (req, res) => {
     try {
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
       const contentType = req.body.contentType || "structured";
 
       // Find files in the array by their fieldname
       const mainImage = req.files?.find(
         (file) => file.fieldname === "mainImage"
       );
+      const mainImageThumbnail = mainImage
+        ? await thumbnailGenerator(mainImage.path)
+        : null;
       const creatorImage = req.files?.find(
         (file) => file.fieldname === "creatorImage"
       );
+      const creatorImageThumbnail = creatorImage
+        ? await thumbnailGenerator(creatorImage.path)
+        : null;
       const relatedImage1 = req.files?.find(
         (file) => file.fieldname === "relatedImages[image1]"
       );
+      const relatedImage1Thumbnail = relatedImage1
+        ? await thumbnailGenerator(relatedImage1.path)
+        : null;
       const relatedImage2 = req.files?.find(
         (file) => file.fieldname === "relatedImages[image2]"
       );
+      const relatedImage2Thumbnail = relatedImage2
+        ? await thumbnailGenerator(relatedImage2.path)
+        : null;
 
       // Prepare social links from request body
       const socialLinks = {
@@ -53,7 +66,11 @@ class blogPostController {
         creatorImage: creatorImage
           ? `${basePath}${creatorImage.filename}`
           : null,
+        creatorImageThumbnail: creatorImageThumbnail
+          ? `${basePath}${creatorImageThumbnail}`
+          : null,
         mainImage: mainImage ? `${basePath}${mainImage.filename}` : null,
+        mainImageThumbnail : mainImageThumbnail? `${basePath}${mainImageThumbnail}`: null,
         creatorSocialLinks: socialLinks,
         category: categoryValue, // Optional category field
       };
@@ -65,7 +82,9 @@ class blogPostController {
         // Structured content
         const relatedImagesPaths = [
           relatedImage1 ? `${basePath}${relatedImage1.filename}` : null,
+          relatedImage1Thumbnail ? `${basePath}${relatedImage1Thumbnail}` : null,
           relatedImage2 ? `${basePath}${relatedImage2.filename}` : null,
+          relatedImage2Thumbnail ? `${basePath}${relatedImage2Thumbnail}` : null,
         ];
 
         blogPostData.mainParagraph = req.body.mainParagraph;
@@ -79,7 +98,9 @@ class blogPostController {
           title: req.body.relatedImages?.title || null,
           paragraph: req.body.relatedImages?.paragraph || null,
           image1: relatedImagesPaths[0],
-          image2: relatedImagesPaths[1],
+          image1Thumbnail: relatedImagesPaths[1],
+          image2: relatedImagesPaths[2],
+          image2Thumbnail: relatedImagesPaths[3],
         };
       }
 
@@ -333,7 +354,7 @@ class blogPostController {
       }
 
       const imagePathsToDelete = [];
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       if (req.files) {
         const imageFields = {
@@ -342,7 +363,7 @@ class blogPostController {
           "relatedImages[image1]": {
             field: "relatedImages.image1",
             single: true,
-          },
+          },  
           "relatedImages[image2]": {
             field: "relatedImages.image2",
             single: true,
@@ -357,36 +378,16 @@ class blogPostController {
 
           const fieldName = fieldConfig.field || file.fieldname;
           const newImagePath = `${basePath}${file.filename}`;
+          
+          const newThumbnailPath = await thumbnailGenerator(path.join(__dirname, 'public', newImagePath))
 
-          let existingPath;
-          if (fieldName.includes(".")) {
-            const [parent, child] = fieldName.split(".");
-            existingPath = blogPost[parent]?.[child];
-          } else {
-            existingPath = blogPost[fieldName];
+          if (blogPost[fieldName]) {
+            imagePathsToDelete.push(path.join(__dirname, 'public', blogPost[fieldName]))
+            imagePathsToDelete.push(path.join(__dirname, 'public', blogPost[`${fieldName}Thumbnail`]))
           }
 
-          if (existingPath) {
-            const oldPath = path.resolve(
-              __dirname,
-              "..",
-              "..",
-              "public",
-              "uploads",
-              path.basename(existingPath)
-            );
-            imagePathsToDelete.push(oldPath);
-          }
-
-          if (fieldName.includes(".")) {
-            const [parent, child] = fieldName.split(".");
-            if (!updatedData[parent]) {
-              updatedData[parent] = { ...blogPost[parent] };
-            }
-            updatedData[parent][child] = newImagePath;
-          } else {
-            updatedData[fieldName] = newImagePath;
-          }
+          updatedData[fieldName] = newImagePath;
+          updatedData[`${fieldName}Thumbnail`] = newThumbnailPath;
         }
       }
 
@@ -400,13 +401,15 @@ class blogPostController {
         return responseReturn(res, 500, { error: "Blog post update failed." });
       }
 
-      imagePathsToDelete.forEach((oldImagePath) => {
-        fs.unlink(oldImagePath, (err) => {
-          if (err) {
-            // Error deleting old image
-          }
-        });
-      });
+        await Promise.allSettled(
+          imagePathsToDelete.map(filePath => 
+            fs.promises.unlink(filePath).catch(err => {
+              if (err.code !== 'ENOENT') {
+                console.error(`Error deleting ${filePath}:`, err.message);
+              }
+            })
+          )
+        );
 
       responseReturn(res, 200, {
         message: "Blog post updated successfully",
@@ -427,69 +430,38 @@ class blogPostController {
       const imagePaths = [];
 
       // Add main image
-      if (blogPost.mainImage) {
-        imagePaths.push(
-          path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            path.basename(blogPost.mainImage)
-          )
-        );
+      if(blogPost.mainImage){
+        imagePaths.push(path.join(__dirname, "public", blogPost.mainImage));
+        imagePaths.push(path.join(__dirname, "public", blogPost.mainImageThumbnail));
       }
 
       // Add related images
       if (blogPost.relatedImages) {
         if (blogPost.relatedImages.image1) {
-          imagePaths.push(
-            path.resolve(
-              __dirname,
-              "..",
-              "..",
-              "public",
-              "uploads",
-              path.basename(blogPost.relatedImages.image1)
-            )
-          );
+          imagePaths.push(path.join(__dirname, "public", blogPost.relatedImages.image1));
+          imagePaths.push(path.join(__dirname, "public", blogPost.relatedImages.image1Thumbnail));
         }
         if (blogPost.relatedImages.image2) {
-          imagePaths.push(
-            path.resolve(
-              __dirname,
-              "..",
-              "..",
-              "public",
-              "uploads",
-              path.basename(blogPost.relatedImages.image2)
-            )
-          );
+          imagePaths.push(path.join(__dirname, "public", blogPost.relatedImages.image2));
+          imagePaths.push(path.join(__dirname, "public", blogPost.relatedImages.image2Thumbnail));
         }
       }
 
       // Add creator image
       if (blogPost.creatorImage) {
-        imagePaths.push(
-          path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            path.basename(blogPost.creatorImage)
-          )
-        );
+        imagePaths.push(path.join(__dirname, "public", blogPost.creatorImage));
+        imagePaths.push(path.join(__dirname, "public", blogPost.creatorImageThumbnail));
       }
-
-      // Delete all collected images
-      imagePaths.forEach((filePath) => {
-        fs.unlink(filePath, (err) => {
-          if (err) {
-            // Error deleting file
-          }
-        });
-      });
+      
+      await Promise.allSettled(
+        imagePaths.map(filePath => 
+          fs.promises.unlink(filePath).catch(err => {
+            if (err.code !== 'ENOENT') {
+              console.error(`Error deleting ${filePath}:`, err.message);
+            }
+          })
+        )
+    );
 
       // Delete the blog post from the database
       await blogPostModel.findByIdAndDelete(blogPostId);

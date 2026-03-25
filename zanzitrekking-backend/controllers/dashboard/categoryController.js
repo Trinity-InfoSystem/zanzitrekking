@@ -5,6 +5,8 @@ const StringSimilarity = require("../../utilities/stringSimilarity");
 const fs = require("fs");
 const path = require("path");
 const redis = require('../../redis');
+const { thumbnailGenerator } = require("../../utilities/multerUpload");
+const debug = require('debug')('app:category');
 
 class CategoryControllers {
   get_one_category = async (req, res) => {
@@ -49,12 +51,16 @@ class CategoryControllers {
       }
 
       const fileName = req.file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
+      const imageThumbnail=fileName
+        ? await thumbnailGenerator(fileName.path)
+        : null;
 
       // Create the category
       let category = await Category.create({
         name: req.body.name,
         image: `${basePath}${fileName}`,
+        imageThumbnail:imageThumbnail? `${basePath}${imageThumbnail}` : null,
       });
 
       if (!category) {
@@ -187,35 +193,40 @@ class CategoryControllers {
         if (existingCategory.image) {
           // Extract the filename from the existing image URL
           const oldImageFileName = path.basename(existingCategory.image);
+          const oldImageThumbnailName = path.basename(existingCategory.imageThumbnail);
 
-          // Construct the absolute path for the old image relative to the project root
-          const oldImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldImageFileName
-          );
+          // Construct the path for the old image relative to the project root in an array
+          const filesToDelete = [
+            path.join(__dirname,"public",oldImageFileName),
+            path.join(__dirname,"public",oldImageThumbnailName)
+          ];
 
           // Log the old image path for debugging
-          logger.info(`Attempting to delete file at: ${oldImagePath}`);
+          debug(`Attempting to delete file at: ${filesToDelete[0]}`);
+          debug(`Attempting to delete file at: ${filesToDelete[1]}`);
 
-          // Try to delete the old image
-          fs.unlink(oldImagePath, (err) => {
-            if (err) {
-              logger.error(`Error deleting old image: ${err.message}`);
-              // Handle the error or continue
-            } else {
-              logger.info(`Successfully deleted old image: ${oldImagePath}`);
-            }
-          });
+
+          // Try to delete the old image and thumbnail
+          await Promise.allSettled(
+            filesToDelete.map(async (filepath) => {
+              try {
+                await fs.unlink(filepath);
+                debug('Successfully deleted old image: %s', path.basename(filepath));
+              } catch (e) {
+                debug('Error deleting old image: %s (%s)', path.basename(filepath), e.code === 'ENOENT' ? 'Not found' : e.message);
+              }
+            })
+          );
         }
 
         // Set the new image path
         const fileName = req.file.filename;
-        const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+        const basePath = `uploads/`;
+        const imageThumbnail=fileName
+        ? await thumbnailGenerator(fileName.path)
+        : null;
         updateFields.image = `${basePath}${fileName}`;
+        updateFields.imageThumbnail = imageThumbnail? `${basePath}${imageThumbnail}` : null;
       }
 
       // Update the category
@@ -256,40 +267,42 @@ class CategoryControllers {
 
       // Check if the file exists and delete it
       if (existingCategory.image) {
-        // Extract the filename from the existing image URL
-        const oldImageFileName = path.basename(existingCategory.image);
+
 
         // Construct the absolute path for the old image relative to the project root
         // Adjust path to match the 'public/uploads' directory
-        const oldImagePath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          oldImageFileName
-        );
+        const filesToDelete = [
+            path.join(__dirname,"public",path.basename(existingCategory.image)),
+            path.join(__dirname,"public",path.basename(existingCategory.imageThumbnail))
+          ];
 
         // Log the old image path for debugging
-        logger.info(`Attempting to delete file at: ${oldImagePath}`);
+        debug(`Attempting to delete file at: ${filesToDelete[0]}`);
+        debug(`Attempting to delete file at: ${filesToDelete[1]}`);
 
         // Try to delete the old image
-        fs.unlink(oldImagePath, (err) => {
-          if (err) {
-            logger.error(`Error deleting old image: ${err.message}`);
-            // Handle the error or continue
-          } else {
-            logger.info(`Successfully deleted old image: ${oldImagePath}`);
-          }
-        });
+        await Promise.allSettled(
+            filesToDelete.map(async (filepath) => {
+              try {
+                await fs.unlink(filepath);
+                debug('Successfully deleted old image: %s', path.basename(filepath));
+              } catch (e) {
+                debug('Error deleting old image: %s (%s)', path.basename(filepath), e.code === 'ENOENT' ? 'Not found' : e.message);
+              }
+            })
+          );
       }
 
       // Update the category image
       const fileName = req.file.filename;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
+      const imageThumbnail=fileName
+        ? await thumbnailGenerator(fileName.path)
+        : null;
       const updatedCategory = await Category.findByIdAndUpdate(
         categoryId,
         { image: `${basePath}${fileName}` },
+        { imageThumbnail: imageThumbnail? `${basePath}${imageThumbnail}` : null},
         { new: true }
       );
 
@@ -319,31 +332,31 @@ class CategoryControllers {
 
       // Check if the category has an image to delete
       if (existingCategory.image) {
-        // Extract the filename from the existing image URL
-        const oldImageFileName = path.basename(existingCategory.image);
-
         // Construct the absolute path for the old image relative to the project root
-        const oldImagePath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          oldImageFileName
-        );
+        const filesToDelete = [
+          path.join(__dirname, "public", path.basename(existingCategory.image)),
+          path.join(__dirname, "public", path.basename(existingCategory.imageThumbnail))
+        ];
 
         // Log the old image path for debugging
-        logger.info(`Attempting to delete file at: ${oldImagePath}`);
+        debug(`Attempting to delete file at: ${filesToDelete[0]}`);
+        debug(`Attempting to delete file at: ${filesToDelete[1]}`);
 
         // Try to delete the old image
-        fs.unlink(oldImagePath, (err) => {
-          if (err) {
-            logger.error(`Error deleting old image: ${err.message}`);
-            // Handle the error or continue
-          } else {
-            logger.info(`Successfully deleted old image: ${oldImagePath}`);
-          }
-        });
+        await Promise.allSettled(
+          filesToDelete.map(async (filePath) => {
+            try {
+              await fs.unlink(filePath);
+              debug(`Successfully deleted: ${filePath}`);
+            } catch (err) {
+              if (err.code === 'ENOENT') {
+                debug(`File not found, skipping: ${filePath}`);
+              } else {
+                debug(`Error deleting file ${filePath}: ${err.message}`);
+              }
+            }
+          })
+        );
       }
 
       // Proceed to delete the category

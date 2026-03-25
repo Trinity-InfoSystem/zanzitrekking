@@ -6,6 +6,8 @@ const path = require("path");
 const mongoose = require("mongoose");
 const redis = require('../../redis');
 const { delPattern } = require('../../utilities/cache');
+const { thumbnailGenerator } = require("../../utilities/multerUpload");
+const debug = require('debug')('app:achievement');
 
 class AchievementController {
   // Add Achievement
@@ -25,16 +27,20 @@ class AchievementController {
 
       // Extract the image file if uploaded
       const imageFile = req.file;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       // Use uploaded file or URL
       const image = imageFile ? `${basePath}${imageFile.filename}` : null;
+      const imageThumbnail=imageFile
+        ? await thumbnailGenerator(imageFile.path)
+        : null;
 
       const newAchievement = {
         name,
         fullName,
         status,
         image: image || null,
+        imageThumbnail:imageThumbnail? `${basePath}${imageThumbnail}` : null,
         imageUrl: imageUrl || null,
         icon: icon || null,
         color: color || "bg-primary-50",
@@ -78,7 +84,7 @@ class AchievementController {
         return responseReturn(res, 404, { error: "Achievement not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       const updateFields = {
         name: name || existingAchievement.name,
@@ -97,23 +103,32 @@ class AchievementController {
         // Delete old image if it exists and was uploaded
         if (existingAchievement.image && existingAchievement.image.includes("/public/uploads/")) {
           const oldImageFileName = path.basename(existingAchievement.image);
-          const oldImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldImageFileName
+          const oldImageThumbnailFileName = path.basename(existingAchievement.imageThumbnail);
+                    
+          const paths = [
+            path.join(__dirname, "public", oldImageFileName),
+            path.join(__dirname, "public",oldImageThumbnailFileName)
+          ];
+
+          await Promise.allSettled(
+            paths.map(async (filePath) => {
+              try {
+                await fs.unlink(filePath);
+                debug(`Successfully deleted: ${filePath}`);
+              } catch (err) {
+                if (err.code === 'ENOENT') {
+                  debug(`File not found, skipping: ${filePath}`);
+                } else {
+                  debug(`Error deleting file ${filePath}: ${err.message}`);
+                }
+              }
+            })
           );
-          if (fs.existsSync(oldImagePath)) {
-            try {
-              await fs.promises.unlink(oldImagePath);
-            } catch (error) {
-              logger.error("Error deleting old image:", error);
-            }
-          }
         }
         updateFields.image = `${basePath}${imageFile.filename}`;
+        updateFields.imageThumbnail = imageFile
+          ? await thumbnailGenerator(imageFile.path)
+          : null;
         updateFields.imageUrl = null; // Clear URL if file uploaded
       } else if (imageUrl !== undefined) {
         // If URL provided, use it and clear uploaded image
@@ -304,17 +319,16 @@ class AchievementController {
       achievements.forEach((achievement) => {
         if (achievement.image && achievement.image.includes("/public/uploads/")) {
           const imageFileName = path.basename(achievement.image);
-          const imagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            imageFileName
-          );
-          if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath);
-          }
+          const baseName = path.parse(imageFileName).name;
+
+          const imagePath = path.join(__dirname, "public", imageFileName);
+          const thumbPath = path.join(__dirname, "public",`${baseName}_thumb.webp`);
+
+          [imagePath, thumbPath].forEach((filePath) => {
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          });
         }
       });
 

@@ -8,6 +8,8 @@ const mongoose = require("mongoose");
 const redis = require("../../redis");
 const { delPattern } = require('../../utilities/cache');
 const crypto = require("crypto");
+const { thumbnailGenerator } = require("../../utilities/multerUpload");
+const debug = require('debug')('app:trip');
 
 const resolveCategoryData = async (categoryValue) => {
   if (!categoryValue) {
@@ -144,9 +146,14 @@ class TripController {
       const mainVideoFile = req.files.find(
         (file) => file.fieldname === "mainVideo"
       );
+      const mainImageThumbnailFile = mainImageFile
+        ? await thumbnailGenerator(mainImageFile.path)
+        : null;
+
       const mainImage = mainImageFile ? mainImageFile.filename : null;
+      const mainImageThumbnail = mainImageThumbnailFile? mainImageThumbnailFile : null
       const mainVideo = mainVideoFile ? mainVideoFile.filename : null;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       // Process days
       const tripDays = [];
@@ -156,6 +163,9 @@ class TripController {
         const dayImageFile = req.files.find(
           (file) => file.fieldname === `dayImage_${i}`
         );
+        const dayImageFileThumbnail=dayImageFile
+        ? await thumbnailGenerator(dayImageFile.path)
+        : null ;
         const dayData = parsedDaysData[i];
 
         // Store accommodation IDs (references) instead of full objects
@@ -171,6 +181,7 @@ class TripController {
           overview: dayData.overview || "",
           mainDestination: dayData.mainDestination,
           image: dayImageFile ? `${basePath}${dayImageFile.filename}` : null,
+          imageThumbnail: dayImageFileThumbnail? `${basePath}${dayImageFileThumbnail}` : null,
           accommodation: accommodationIds,
           meals: dayData.meals || [],
         });
@@ -208,6 +219,7 @@ class TripController {
         inclusions,
         exclusions,
         mainImage: mainImage ? `${basePath}${mainImage}` : null,
+        mainImageThumbnail: mainImageThumbnail ?`${basePath}${mainImageThumbnail}` :null,
         mainVideo: mainVideo ? `${basePath}${mainVideo}` : null,
         discount: parseFloat(discount) || 0,
         pricingType,
@@ -271,7 +283,7 @@ class TripController {
         return responseReturn(res, 404, { error: "Trip not found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       // Parse JSON data for category-specific inclusions and exclusions
       const parsedInclusions = JSON.parse(
@@ -376,26 +388,36 @@ class TripController {
       const mainImageFile = req.files.find(
         (file) => file.fieldname === "mainImage"
       );
+      const mainImageThumbnail = mainImageFile
+        ? await thumbnailGenerator(mainImageFile.path)
+        : null;
+
       if (mainImageFile) {
         // Delete old image if it exists
         if (existingTrip.mainImage) {
           const oldImageFileName = path.basename(existingTrip.mainImage);
-          const oldImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldImageFileName
-          );
-          try {
-            await fs.promises.unlink(oldImagePath);
-            logger.info("Deleted old main image:", oldImagePath);
-          } catch (err) {
-            logger.error(`Error deleting old main image: ${err.message}`);
-          }
+          const oldImageThumbnailFileName = path.basename(existingTrip.mainImageThumbnail);
+          
+          const paths = [
+            path.join(__dirname, "public", oldImageFileName),
+            path.join(__dirname, "public", oldImageThumbnailFileName)
+          ];
+
+          const results = await Promise.allSettled(paths.map(p => fs.promises.unlink(p)));
+
+          results.forEach((result, i) => {
+            const fileName = path.basename(paths[i]);
+            if (result.status === 'fulfilled') {
+              debug(`Successfully deleted: ${fileName}`);
+            } else if (result.reason.code !== 'ENOENT') {
+              debug(`Failed to delete ${fileName}: ${result.reason.message}`);
+            }
+          });
         }
         updateFields.mainImage = `${basePath}${mainImageFile.filename}`;
+        updateFields.mainImageThumbnail = mainImageThumbnail
+          ? `${basePath}${mainImageThumbnail}`
+          : null;
       }
 
       // Handle main video
@@ -453,29 +475,40 @@ class TripController {
           meals: dayData.meals || (existingDay ? existingDay.meals : []),
         };
 
+        const dayImageThumbnail = dayImageFile
+        ? await thumbnailGenerator(dayImageFile.path)
+        : null;
+
         // Handle day image
         if (dayImageFile) {
           // Delete old day image if it exists
           if (existingDay && existingDay.image) {
             const oldDayImageFileName = path.basename(existingDay.image);
-            const oldDayImagePath = path.resolve(
-              __dirname,
-              "..",
-              "..",
-              "public",
-              "uploads",
-              oldDayImageFileName
-            );
-            try {
-              await fs.promises.unlink(oldDayImagePath);
-              logger.info("Deleted old day image:", oldDayImagePath);
-            } catch (err) {
-              logger.error(`Error deleting old day image: ${err.message}`);
-            }
+            const oldDayImageThumbnailFileName = path.basename(existingDay.imageThumbnail);
+
+            const filesToDelete = [
+              path.join(__dirname, "public",oldDayImageFileName),
+              path.join(__dirname, "public",oldDayImageThumbnailFileName)
+            ];
+
+            const results = await Promise.allSettled(filesToDelete.map(file => fs.promises.unlink(file)));
+
+            results.forEach((result, index) => {
+              const deletedFile = path.basename(filesToDelete[index]);
+              if (result.status === 'fulfilled') {
+                debug(`Deleted file: ${deletedFile}`);
+              } else if (result.reason.code !== 'ENOENT') {
+                debug(`Error deleting file ${deletedFile}: ${result.reason.message}`);
+              }
+            });
           }
           updatedDay.image = `${basePath}${dayImageFile.filename}`;
+          updatedDay.imageThumbnail = dayImageThumbnail
+            ? `${basePath}${dayImageThumbnail}`
+            : null;
         } else if (existingDay) {
           updatedDay.image = existingDay.image;
+          updatedDay.imageThumbnail = existingDay.imageThumbnail ?? null;
         }
 
         updatedDays.push(updatedDay);
@@ -682,77 +715,49 @@ class TripController {
       if (!trip) {
         return responseReturn(res, 404, { error: "Trip Not Found" });
       }
+      const pathsToDelete = [];
 
-      // Delete the main image if it exists
+      // Delete the main image and its thumbnail if it exists
       if (trip.mainImage) {
         const oldMainImageFileName = path.basename(trip.mainImage);
-        const oldMainImagePath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          oldMainImageFileName
+        const oldMainImageThumbnailFileName = path.basename(trip.mainImageThumbnail);
+
+        pathsToDelete.push(
+          path.join(__dirname, "public", oldMainImageFileName),
+          path.join(__dirname, "public", oldMainImageThumbnailFileName)
         );
-
-        fs.unlink(oldMainImagePath, (err) => {
-          if (err) {
-            logger.error(`Error deleting old main image: ${err.message}`);
-          } else {
-            logger.info(
-              `Successfully deleted old main image: ${oldMainImagePath}`
-            );
-          }
-        });
       }
-
       // Delete the main video if it exists
       if (trip.mainVideo) {
         const oldMainVideoFileName = path.basename(trip.mainVideo);
-        const oldMainVideoPath = path.resolve(
-          __dirname,
-          "..",
-          "..",
-          "public",
-          "uploads",
-          oldMainVideoFileName
-        );
-
-        fs.unlink(oldMainVideoPath, (err) => {
-          if (err) {
-            logger.error(`Error deleting old main video: ${err.message}`);
-          } else {
-            logger.info(
-              `Successfully deleted old main video: ${oldMainVideoPath}`
-            );
-          }
-        });
+        pathsToDelete.push(path.join(__dirname, "public",oldMainVideoFileName));
       }
 
       // Delete each day's image if it exists
       for (const day of trip.days) {
         if (day.image) {
           const oldDayImageFileName = path.basename(day.image);
-          const oldDayImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldDayImageFileName
-          );
+          const oldDayImageThumbnailFileName = path.basename(day.imageThumbnail);
 
-          fs.unlink(oldDayImagePath, (err) => {
-            if (err) {
-              logger.error(`Error deleting old day image: ${err.message}`);
-            } else {
-              logger.info(
-                `Successfully deleted old day image: ${oldDayImagePath}`
-              );
-            }
-          });
+          pathsToDelete.push(
+            path.join(__dirname, "public",oldDayImageFileName),
+            path.join(__dirname, "public",oldDayImageThumbnailFileName)
+          );
         }
       }
+      // Delete all paths
+      const deletionResults = await Promise.allSettled(
+        pathsToDelete.map((filePath) => fs.unlink(filePath))
+      );
+      deletionResults.forEach((result, index) => { 
+        const name = path.basename(pathsToDelete[index]);
+        if (result.status === "fulfilled") {
+          debug(`Deleted file: ${name}`, { tripId });
+        } else {
+          const reason = result.reason?.code === "ENOENT" ? "Not found" : result.reason?.message;
+          debug(`Failed to delete file: ${name}`, { tripId, reason });
+        }
+      }); 
 
       // Now that all images are deleted, proceed to remove the trip
       await TripModel.findByIdAndDelete(tripId);

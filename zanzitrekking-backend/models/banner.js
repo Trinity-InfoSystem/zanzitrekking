@@ -4,6 +4,7 @@ const bannerItemSchema = new Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   image: { type: String, required: false },
+  imageThumbnail: { type: String, required: false },
   video: { type: String, required: false },
 });
 

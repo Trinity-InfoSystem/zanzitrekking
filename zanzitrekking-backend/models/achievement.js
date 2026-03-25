@@ -21,6 +21,10 @@ const achievementSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    imageThumbnail: {
+      type: String,
+      default: null,
+    },
     imageUrl: {
       type: String,
       default: null,

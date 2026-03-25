@@ -16,7 +16,31 @@ const FILE_TYPE_MAP = {
   "video/webm": "webm",
   "application/msword": "doc",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    "docx",
+  "docx",
+};
+
+const thumbnailGenerator = async (filePath, size = 300) => {
+  const ext = path.extname(filePath);
+  const base = filePath.replace(ext, "");
+
+  const thumbPath = `${base}_thumb.webp`;
+
+  try {
+    await sharp(filePath)
+      .resize({
+        height: size,
+        fit: "contain",
+      })
+      .toFormat("webp")
+      .toFile(thumbPath);
+
+    const segments = thumbPath.split("/");
+
+    // Return only file name
+    return segments.at(-1);
+  } catch (e) {
+    return null;
+  }
 };
 
 // Create separate storage configurations for images and PDFs
@@ -161,6 +185,7 @@ const cvFileFilter = (req, file, cb) => {
 
 // Export both configurations
 module.exports = {
+  thumbnailGenerator,
   // For general uploads (images and PDFs)
   uploadOptions: multer({
     storage: imageStorage,

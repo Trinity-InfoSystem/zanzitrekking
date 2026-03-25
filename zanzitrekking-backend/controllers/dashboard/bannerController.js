@@ -15,7 +15,7 @@ class BannerController {
 
       // Handle shared video
       const sharedVideoFile = files.find((f) => f.fieldname === 'sharedVideo');
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
       const sharedVideo = sharedVideoFile ? `${basePath}${sharedVideoFile.filename}` : null;
 
       // Handle new banners creation
@@ -26,11 +26,15 @@ class BannerController {
         const imageFile = files.find(
           (f) => f.fieldname === `banners[${index}][image]`
         );
+        const imageThumbnail= imageFile
+          ? thumbnailGenerator(imageFile.path)
+          : null;
 
         return {
           title: banner.title,
           description: banner.description,
           image: imageFile ? `${basePath}${imageFile.filename}` : null,
+          imageThumbnail: imageThumbnail? `${basePath}${imageThumbnail}` : null,
         };
       });
 
@@ -64,7 +68,7 @@ class BannerController {
         return responseReturn(res, 404, { error: "No existing banners found" });
       }
 
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       // Handle shared video update
       const sharedVideoFile = files.find((f) => f.fieldname === 'sharedVideo');
@@ -97,6 +101,7 @@ class BannerController {
       // Process each banner (update title, description, and image if provided)
       const updatedBanners = banners.map((banner, index) => {
         const existingImage = existingBanner.banners[index]?.image;
+        const existingImageThumbnail = existingBanner.banners[index]?.imageThumbnail;
 
         // Check if there's an image file for the current banner
         const imageFile = files.find(
@@ -104,36 +109,40 @@ class BannerController {
         );
 
         let newImage = existingImage;
+        let newImageThumbnail = existingImageThumbnail;
 
         // Handle image update
         if (imageFile) {
           // Delete the old image if it's being replaced
           if (existingImage) {
-            const oldImagePath = path.join(
-              __dirname,
-              "..",
-              "public",
-              "uploads",
-              existingImage.split("/uploads/")[1]
-            );
+            const paths = [
+              path.join(__dirname,"public",existingImage.split("/uploads/")[1]),
+              path.join(__dirname,"public",existingImageThumbnail.split("/uploads/")[1])
+            ];
 
-            // Check if the old image exists, then delete it
-            if (fs.existsSync(oldImagePath)) {
-              try {
-                fs.unlinkSync(oldImagePath); // Delete the old image
-              } catch (error) {
-                logger.error("Error deleting old image:", error);
-              }
-            }
+            // Attempt to delete files; ignore if they don't exist (ENOENT)
+            Promise.allSettled(
+              paths.map((filePath) =>
+                fs.promises.unlink(filePath).catch((err) => {
+                  if (err.code !== "ENOENT") {
+                    logger.error(`Error deleting file ${filePath}:`, err);
+                  }
+                })
+              )
+            );
           }
 
           newImage = `${basePath}${imageFile.filename}`;
+          newImageThumbnail = newImage
+            ? thumbnailGenerator(newImage)
+            : null;
         }
 
         return {
           title: banner.title,
           description: banner.description,
           image: newImage,
+          imageThumbnail: newImageThumbnail,
         };
       });
 

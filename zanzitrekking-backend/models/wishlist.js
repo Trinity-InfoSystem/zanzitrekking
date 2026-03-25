@@ -70,6 +70,9 @@ const wishlistSchema = new Schema(
       type: String,
       required: true,
     },
+    mainImageThumbnail: {
+      type: String,
+    },
     days: {
       type: Number,
       required: true,

@@ -11,6 +11,9 @@ const categorySchema = new Schema(
       required: true,
       default: "",
     },
+    imageThumbnail: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

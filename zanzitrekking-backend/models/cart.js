@@ -61,6 +61,9 @@ const cartSchema = new Schema(
       type: String,
       required: true,
     },
+    mainImageThumbnail: {
+      type: String,
+    },
     startingDate: {
       type: Date,
       required: true,
