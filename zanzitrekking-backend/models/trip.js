@@ -59,6 +59,9 @@ const tripSchema = new mongoose.Schema(
     mainImage: {
       type: String,
     },
+    mainImageThumbnail: {
+      type: String,
+    },
     mainVideo: {
       type: String,
     },
@@ -136,6 +139,9 @@ const tripSchema = new mongoose.Schema(
         image: {
           type: String,
         },
+        thumbnail: {
+          type: String,
+        },
         mainDestination: {
           name: { type: String },
           location: {
@@ -155,7 +161,7 @@ const tripSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 tripSchema.index({

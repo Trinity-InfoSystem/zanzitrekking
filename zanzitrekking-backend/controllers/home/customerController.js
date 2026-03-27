@@ -66,7 +66,9 @@ class CustomerController {
 
       const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
       if (!admin) {
-        return responseReturn(res, 500, { error: "No admin available for support" });
+        return responseReturn(res, 500, {
+          error: "No admin available for support",
+        });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -86,7 +88,7 @@ class CustomerController {
       await customer.save();
 
       setAuthCookies(res, accessToken, refreshToken);
-      
+
       await redis.del("dashboard:stats");
 
       // Return customer info directly — frontend no longer decodes tokens
@@ -108,7 +110,7 @@ class CustomerController {
 
     try {
       const customer = await Customer.findOne({ email }).select(
-        "+password +refreshToken"
+        "+password +refreshToken",
       );
       if (!customer) {
         return responseReturn(res, 404, { error: "Email doesn't exist" });
@@ -120,7 +122,10 @@ class CustomerController {
         });
       }
 
-      const isPasswordCorrect = await bcrypt.compare(password, customer.password);
+      const isPasswordCorrect = await bcrypt.compare(
+        password,
+        customer.password,
+      );
       if (!isPasswordCorrect) {
         return responseReturn(res, 400, { error: "Incorrect Password" });
       }
@@ -136,7 +141,9 @@ class CustomerController {
 
       // Fetch clean customer object (without sensitive fields) for response
       const customerData = await Customer.findById(customer.id)
-        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .select(
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        )
         .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
@@ -201,7 +208,9 @@ class CustomerController {
       }
 
       const customer = await Customer.findById(decoded.sub)
-        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .select(
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        )
         .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
@@ -231,10 +240,14 @@ class CustomerController {
       const { success, data, error } = await verifyRefreshToken(token);
 
       if (!success || !data?.sub) {
-        return responseReturn(res, 403, { error: error || "Invalid refresh token" });
+        return responseReturn(res, 403, {
+          error: error || "Invalid refresh token",
+        });
       }
 
-      const customer = await Customer.findById(data.sub).select("+refreshToken");
+      const customer = await Customer.findById(data.sub).select(
+        "+refreshToken",
+      );
       if (!customer || customer.refreshToken !== token) {
         // Token reuse detected or customer deleted
         clearAuthCookies(res);
@@ -277,9 +290,15 @@ class CustomerController {
       } else if (access_token) {
         const { data: userInfo } = await axios.get(
           "https://www.googleapis.com/oauth2/v3/userinfo",
-          { headers: { Authorization: `Bearer ${access_token}` } }
+          {
+            headers: { Authorization: `Bearer ${access_token}` },
+          },
         );
-        payload = { email: userInfo.email, name: userInfo.name, sub: userInfo.sub };
+        payload = {
+          email: userInfo.email,
+          name: userInfo.name,
+          sub: userInfo.sub,
+        };
       } else {
         return responseReturn(res, 400, {
           error: "Either tokenId or access_token must be provided",
@@ -290,7 +309,9 @@ class CustomerController {
 
       const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
       if (!admin) {
-        return responseReturn(res, 500, { error: "No admin available for support" });
+        return responseReturn(res, 500, {
+          error: "No admin available for support",
+        });
       }
 
       let customer = await Customer.findOne({ email });
@@ -320,7 +341,9 @@ class CustomerController {
       setAuthCookies(res, accessToken, refreshToken);
 
       const customerData = await Customer.findById(customer.id)
-        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .select(
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        )
         .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
@@ -335,7 +358,8 @@ class CustomerController {
       }
       return responseReturn(res, 500, {
         error: "Internal server error",
-        details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   };
@@ -349,14 +373,18 @@ class CustomerController {
 
       const { data } = await axios.get(
         `https://graph.facebook.com/v12.0/${userID}`,
-        { params: { fields: "id,name,email", access_token: accessToken } }
+        {
+          params: { fields: "id,name,email", access_token: accessToken },
+        },
       );
 
       const { email, name, id: facebookId } = data;
 
       const admin = await Admin.findOne().sort({ activeChatSessions: 1 });
       if (!admin) {
-        return responseReturn(res, 500, { error: "No admin available for support" });
+        return responseReturn(res, 500, {
+          error: "No admin available for support",
+        });
       }
 
       let customer = await Customer.findOne({ email });
@@ -385,7 +413,9 @@ class CustomerController {
       setAuthCookies(res, newAccessToken, refreshToken);
 
       const customerData = await Customer.findById(customer.id)
-        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .select(
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        )
         .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
@@ -407,7 +437,9 @@ class CustomerController {
 
     try {
       const customer = await Customer.findById(customerId)
-        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .select(
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        )
         .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
@@ -428,7 +460,9 @@ class CustomerController {
   getAllCustomers = async (req, res) => {
     try {
       const customers = await Customer.find({})
-        .select("-password -refreshToken -resetPasswordOTP -resetPasswordExpires")
+        .select(
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        )
         .populate({ path: "assignedAdmin", select: "name email image role" })
         .lean();
 
@@ -478,7 +512,8 @@ class CustomerController {
         page: parseInt(page),
         limit: parseInt(parPage),
         sort: sortOptions,
-        select: "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
+        select:
+          "-password -refreshToken -resetPasswordOTP -resetPasswordExpires",
         populate: { path: "assignedAdmin", select: "name email image role" },
         lean: true,
         ...(collation && { collation }),
@@ -665,7 +700,8 @@ class CustomerController {
       clearAuthCookies(res);
 
       return responseReturn(res, 200, {
-        message: "Password reset successfully. Please log in with your new password.",
+        message:
+          "Password reset successfully. Please log in with your new password.",
       });
     } catch (error) {
       logger.error("reset_password error:", error);

@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const redis = require("../../redis");
 const { delPattern } = require("../../utilities/cache");
 const crypto = require("crypto");
+const { thumbnailGenerator } = require("../../utilities/multerUpload");
 
 const resolveCategoryData = async (categoryValue) => {
   if (!categoryValue) {
@@ -144,8 +145,12 @@ class TripController {
         (file) => file.fieldname === "mainVideo",
       );
       const mainImage = mainImageFile ? mainImageFile.filename : null;
+      const mainImageThumbnail = mainImageFile
+        ? await thumbnailGenerator(mainImageFile.path)
+        : null;
+
       const mainVideo = mainVideoFile ? mainVideoFile.filename : null;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `uploads/`;
 
       // Process days
       const tripDays = [];
@@ -155,6 +160,11 @@ class TripController {
         const dayImageFile = req.files.find(
           (file) => file.fieldname === `dayImage_${i}`,
         );
+
+        const thumbnail = dayImageFile
+          ? await thumbnailGenerator(dayImageFile.path)
+          : null;
+
         const dayData = parsedDaysData[i];
 
         // Store accommodation IDs (references) instead of full objects
@@ -170,6 +180,7 @@ class TripController {
           overview: dayData.overview || "",
           mainDestination: dayData.mainDestination,
           image: dayImageFile ? `${basePath}${dayImageFile.filename}` : null,
+          thumbnail: thumbnail ? `${basePath}${thumbnail}` : null,
           accommodation: accommodationIds,
           meals: dayData.meals || [],
         });
@@ -207,6 +218,9 @@ class TripController {
         inclusions,
         exclusions,
         mainImage: mainImage ? `${basePath}${mainImage}` : null,
+        mainImageThumbnail: mainImageThumbnail
+          ? `${basePath}${mainImageThumbnail}`
+          : null,
         mainVideo: mainVideo ? `${basePath}${mainVideo}` : null,
         discount: parseFloat(discount) || 0,
         pricingType,
@@ -390,6 +404,10 @@ class TripController {
           );
           try {
             await fs.promises.unlink(oldImagePath);
+
+            if (existingTrip.mainImageThumbnail) {
+              await fs.promises.unlink(oldImagePath);
+            }
             logger.info("Deleted old main image:", oldImagePath);
           } catch (err) {
             logger.error(`Error deleting old main image: ${err.message}`);

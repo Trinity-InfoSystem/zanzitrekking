@@ -1,6 +1,6 @@
 /**
  * File Handler Middleware
- * 
+ *
  * This module handles file download operations with security checks.
  * Extracted from server.js for better code organization.
  */
@@ -12,7 +12,7 @@ const logger = require("../utilities/logger");
 /**
  * File download endpoint handler
  * Handles secure file downloads from multiple possible locations
- * 
+ *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
@@ -94,7 +94,7 @@ function handleFileDownload(req, res) {
       logger.warn(`File not found: ${filename}`, debugInfo);
       return res.status(404).json({
         error: "File not found",
-        ...(process.env.NODE_ENV === 'development' && { debug: debugInfo })
+        ...(process.env.NODE_ENV === "development" && { debug: debugInfo }),
       });
     }
 
@@ -149,7 +149,7 @@ function handleFileDownload(req, res) {
     res.setHeader("Content-Type", contentType);
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${downloadName}"`
+      `attachment; filename="${downloadName}"`,
     );
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Content-Length", fileStats.size);
