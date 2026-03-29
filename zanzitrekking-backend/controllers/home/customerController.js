@@ -17,6 +17,7 @@ const emailQueue = require("../../workers/emailQueue");
 // Cookie helpers — single source of truth for cookie config
 // ---------------------------------------------------------------------------
 const COOKIE_BASE = {
+  path: "/",
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "None" : "Strict",
@@ -187,12 +188,12 @@ class CustomerController {
         return responseReturn(res, 401, { error: "Not authenticated" });
       }
 
-      // Re-use the existing auth middleware pattern — verify token inline
-      // (or wire this through your auth middleware if preferred)
+      // Must use the same secret as utilities/tokenCreate.js (createAccessToken).
+      // customerJwtMiddleware uses SECRET — JWT_SECRET is a different value and would always fail here.
       const jwt = require("jsonwebtoken");
       let decoded;
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET);
+        decoded = jwt.verify(token, process.env.SECRET);
       } catch (_) {
         return responseReturn(res, 401, { error: "Not authenticated" });
       }

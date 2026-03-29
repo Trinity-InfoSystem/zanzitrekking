@@ -350,7 +350,7 @@ const Blog = () => {
                     return (
                       <BlogCard
                         key={post._id}
-                        id={post._id}
+                        slug={post.slug}
                         date={post.creationDate}
                         image={imageName}
                         title={post.mainTitle}
@@ -456,7 +456,7 @@ const Blog = () => {
 };
 
 const BlogCard = ({
-  id,
+  slug,
   date,
   image,
   title,
@@ -476,7 +476,7 @@ const BlogCard = ({
 
   return (
     <Link
-      to={`/blog/${id}`}
+      to={`/blog/${slug}`}
       className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft transition-all hover:border-primary-200 hover:shadow-soft-md"
       data-aos="fade-up"
       data-aos-delay={delay}

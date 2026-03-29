@@ -45,7 +45,9 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // List of endpoints that should not trigger token refresh
+    // Endpoints that must NOT trigger refresh on 401 (login/register flows, refresh itself).
+    // Note: /customer/me is NOT listed — if the access cookie expired but refresh is valid,
+    // we need refresh + retry so hydrateAuth can restore the session.
     const authEndpoints = [
       "/customer/customer-login",
       "/customer/customer-register",
@@ -55,7 +57,6 @@ api.interceptors.response.use(
       "/customer/reset-password",
       "/customer/google-login",
       "/customer/facebook-login",
-      "/customer/me",
       "/customer/logout",
     ];
 
@@ -76,7 +77,12 @@ api.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            // Cookie-based auth: token is often null; never send "Bearer null"
+            if (token) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            } else if (originalRequest.headers?.Authorization) {
+              delete originalRequest.headers.Authorization;
+            }
             return api(originalRequest);
           })
           .catch((err) => {
@@ -108,10 +114,19 @@ api.interceptors.response.use(
         // Process queued requests with error
         processQueue(refreshError, null);
 
-        // Clear auth cookies on the backend and local Redux state
+        // GET /customer/me is the session probe (hydrateAuth). For visitors with no cookies,
+        // /customer/me returns 401, refresh fails — that is "not logged in", not "must redirect".
+        // Forcing /login here breaks every first visit to the public site.
+        const isSessionProbe =
+          originalRequest.url?.includes("/customer/me") ?? false;
+
+        if (isSessionProbe) {
+          return Promise.reject(error);
+        }
+
+        // Authenticated flows: refresh failed — clear session and send user to login
         await store.dispatch(customer_logout());
 
-        // Redirect to login if not already there
         if (window.location.pathname !== "/login") {
           window.location.href = "/login";
         }

@@ -155,7 +155,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/trips" element={<Trips />} />
-            <Route path="/trip/details/:tripId" element={<TripDetails />} />
+            <Route path="/trip/details/:slug" element={<TripDetails />} />
             <Route path="/cart" element={<Card />} />
             <Route path="/contact-us" element={<ContactUs />} />
             <Route path="/about-us" element={<AboutUs />} />
@@ -187,9 +187,9 @@ function App() {
               element={<Navigate to="/forgot-password/reset" replace />}
             />
             <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:blogId" element={<BlogPost />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/careers" element={<Jobs />} />
-            <Route path="/careers/:jobId" element={<JobDetails />} />
+            <Route path="/careers/:slug" element={<JobDetails />} />
             <Route path="/apply/:jobId" element={<ApplyToJob />} />
             <Route
               path="/careers/application-success"

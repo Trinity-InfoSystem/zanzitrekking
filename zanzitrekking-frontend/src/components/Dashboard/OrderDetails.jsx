@@ -200,12 +200,18 @@ const OrderDetails = () => {
                       />
                     </div>
                     <div className="flex flex-col justify-center">
-                      <Link
-                        to={`/trip/details/${item.tripId?._id || item.tripId || ""}`}
-                        className="text-sm font-semibold text-primary-800 hover:text-primary-600"
-                      >
-                        {item.mainTitle || item.tripId?.mainTitle || "Trip"}
-                      </Link>
+                      {item.tripId?.slug ? (
+                        <Link
+                          to={`/trip/details/${item.tripId.slug}`}
+                          className="text-sm font-semibold text-primary-800 hover:text-primary-600"
+                        >
+                          {item.mainTitle || item.tripId?.mainTitle || "Trip"}
+                        </Link>
+                      ) : (
+                        <span className="text-sm font-semibold text-primary-800">
+                          {item.mainTitle || item.tripId?.mainTitle || "Trip"}
+                        </span>
+                      )}
                       <p className="mt-1 text-xs text-text-light">
                         Travelers: {item.travelersNumber || 1}
                       </p>

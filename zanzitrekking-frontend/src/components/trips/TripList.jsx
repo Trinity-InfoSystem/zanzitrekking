@@ -117,7 +117,7 @@ const TripImage = ({
 
   const handleImageClick = (e) => {
     if (e.target === e.currentTarget || e.target.tagName === "IMG") {
-      navigate(`/trip/details/${trip._id}`);
+      navigate(`/trip/details/${trip.slug}`);
     }
   };
 
@@ -186,7 +186,7 @@ const TripImage = ({
         </button>
 
         <Link
-          to={`/trip/details/${trip._id}`}
+          to={`/trip/details/${trip.slug}`}
           onClick={(e) => e.stopPropagation()}
           className="group/btn flex h-10 w-10 items-center justify-center rounded-xl bg-white/95 text-neutral-700 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-neutral-900 hover:text-white hover:shadow-neutral-900/30 active:scale-95"
           aria-label="View trip details"
@@ -348,7 +348,7 @@ const TripList = ({ styles, trips, onAddToCart }) => {
 
             <h3 className="mb-3 line-clamp-2 text-xl font-bold leading-tight text-neutral-900 transition-colors duration-300 group-hover/card:text-emerald-600">
               <Link
-                to={`/trip/details/${trip._id}`}
+                to={`/trip/details/${trip.slug}`}
                 className="decoration-2 underline-offset-4 hover:underline"
               >
                 {trip.mainTitle}
@@ -385,7 +385,7 @@ const TripList = ({ styles, trips, onAddToCart }) => {
               />
 
               <Link
-                to={`/trip/details/${trip._id}`}
+                to={`/trip/details/${trip.slug}`}
                 className="group/btn inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-600/30 active:scale-95"
               >
                 <span>View Details</span>

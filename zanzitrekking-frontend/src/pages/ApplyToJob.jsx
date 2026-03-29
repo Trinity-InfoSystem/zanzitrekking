@@ -237,7 +237,7 @@ const ApplyToJob = () => {
           <div className="mx-auto max-w-4xl">
             <div>
               <Link
-                to={`/careers/${jobId}`}
+                to={`/careers/${job.slug}`}
                 className="group mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white/90 backdrop-blur-md transition-all hover:bg-white/20 hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
@@ -448,7 +448,7 @@ const ApplyToJob = () => {
 
               <div className="flex gap-4 pt-4">
                 <Link
-                  to={`/careers/${jobId}`}
+                  to={`/careers/${job.slug}`}
                   className="rounded-xl border-2 border-neutral-300 bg-white px-8 py-3.5 font-bold text-neutral-700 transition-all hover:border-neutral-400 hover:bg-neutral-50"
                 >
                   Cancel

@@ -24,7 +24,7 @@ import { get_user_applications } from "../store/reducers/jobApplicationReducer";
 import SEO from "../components/SEO";
 
 const JobDetails = () => {
-  const { jobId } = useParams();
+  const { slug } = useParams();
   const dispatch = useDispatch();
   const { categories } = useSelector((state) => state.home);
   const { job, loader } = useSelector((state) => state.job);
@@ -32,13 +32,13 @@ const JobDetails = () => {
   const { applications } = useSelector((state) => state.jobApplication);
 
   useEffect(() => {
-    if (jobId) {
-      dispatch(get_job(jobId));
+    if (slug) {
+      dispatch(get_job(slug));
     }
     return () => {
       dispatch(clearJob());
     };
-  }, [dispatch, jobId]);
+  }, [dispatch, slug]);
 
   useEffect(() => {
     if (userInfo) {

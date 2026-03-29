@@ -16,7 +16,7 @@ import SEO from "../components/SEO";
 
 const BlogPost = () => {
   const dispatch = useDispatch();
-  const { blogId } = useParams();
+  const { slug } = useParams();
   const { blogPost } = useSelector((state) => state.blog);
 
   useEffect(() => {
@@ -29,8 +29,8 @@ const BlogPost = () => {
   }, []);
 
   useEffect(() => {
-    dispatch(get_blogPost(blogId));
-  }, [blogId, dispatch]);
+    dispatch(get_blogPost(slug));
+  }, [slug, dispatch]);
 
   const formatDate = (dateString) => {
     if (!dateString) {return "Today";}
@@ -157,7 +157,7 @@ const BlogPost = () => {
           <div className="mx-auto max-w-4xl">
             <BlogContent blogPost={blogPost} />
             <div className="mt-16">
-              <BlogComments blogPost={blogPost} blogId={blogId} />
+              <BlogComments blogPost={blogPost} blogId={blogPost?._id} />
             </div>
           </div>
         </div>

@@ -339,7 +339,7 @@ const FeatureTrip = ({ trips }) => {
 
                             <button
                               onClick={() =>
-                                navigate(`/trip/details/${trip._id}`)
+                                navigate(`/trip/details/${trip.slug}`)
                               }
                               className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3.5 text-base font-semibold text-white shadow-soft transition-all hover:bg-primary-700 hover:shadow-soft-md"
                             >

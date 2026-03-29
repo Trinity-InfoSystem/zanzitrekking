@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-function BlogItem({ id, title, image, paragraph, date }) {
+function BlogItem({ slug, title, image, paragraph, date }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`/blog/${id}`);
+    navigate(`/blog/${slug}`);
   };
 
   // Format date if available

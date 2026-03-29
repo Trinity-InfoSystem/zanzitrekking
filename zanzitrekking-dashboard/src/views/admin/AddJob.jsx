@@ -156,12 +156,15 @@ const AddJob = () => {
       // For HTML content, requirements are not used, but other fields are available
       requirements:
         finalContentType === "structured" && data.requirements
-          ? data.requirements.split(",").map((r) => r.trim())
+          ? data.requirements
+              .split(",")
+              .map((r) => r.trim())
+              .filter(Boolean)
           : [],
       location: data.location || "",
       employmentType: data.employmentType || "full-time",
       salaryRange: data.salaryRange || "",
-      applicationDeadline: data.applicationDeadline || null,
+      applicationDeadline: data.applicationDeadline || "",
       isActive: data.isActive === true || data.isActive === "true",
     };
 

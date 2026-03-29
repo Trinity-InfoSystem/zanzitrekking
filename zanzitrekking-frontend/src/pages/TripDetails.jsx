@@ -30,7 +30,7 @@ import Reviews from "../components/reviews/Reviews";
 import SEO from "../components/SEO";
 
 const TripDetails = () => {
-  const { tripId } = useParams();
+  const { slug } = useParams();
   const { trip, loading } = useSelector((state) => state.trip);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -44,8 +44,8 @@ const TripDetails = () => {
   const { userInfo } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    dispatch(get_trip(tripId));
-  }, [tripId, dispatch]);
+    dispatch(get_trip(slug));
+  }, [slug, dispatch]);
 
   useEffect(() => {
     if (errorMessage) {toast.error(errorMessage);}
@@ -103,7 +103,7 @@ const TripDetails = () => {
     }
 
     const tripInCart = cart_trips.find(
-      (cartItem) => cartItem.tripId === tripId,
+      (cartItem) => cartItem.tripId === trip?._id,
     );
 
     if (tripInCart) {
@@ -112,7 +112,7 @@ const TripDetails = () => {
       dispatch(
         add_to_cart({
           userId: userInfo._id,
-          tripId,
+          tripId: trip?._id,
           startingDate: formatDateForAPI(new Date()),
           travelersNumber: 1,
           mainTitle: trip.mainTitle,
@@ -151,7 +151,7 @@ const TripDetails = () => {
           />
         );
       case "reviews":
-        return <Reviews tripId={tripId} orderId={null} />;
+        return <Reviews tripId={trip?._id} orderId={null} />;
       default:
         return null;
     }

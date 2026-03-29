@@ -14,6 +14,7 @@ const {
 router.post('/customer-register', validate(customerRegisterSchema), customerController.register_customer)
 router.post('/customer-login', validate(customerLoginSchema), customerController.login_customer)
 router.post('/refresh-token', customerController.refresh_token)
+router.post('/logout', customerController.logout_customer)
 router.post('/google-login', validate(socialLoginSchema), customerController.google_login)
 router.post('/facebook-login', validate(socialLoginSchema), customerController.facebook_login)
 

@@ -2,11 +2,37 @@ const blogPostModel = require("../../models/blogPost");
 const logger = require('./../../utilities/logger');
 const Customer = require("../../models/customer");
 const Admin = require("../../models/admin");
+const mongoose = require("mongoose");
+const slugify = require("slugify");
 
 const { responseReturn } = require("../../utilities/response");
 const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const fs = require("fs");
 const path = require("path");
+
+const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+
+const generateUniqueSlug = async ({ model, base, excludeId }) => {
+  const baseSlug = slugify(base || "", { lower: true, strict: true });
+  if (!baseSlug) return "";
+
+  let slug = baseSlug;
+  let counter = 2;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const query = { slug };
+    if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+      query._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
+    }
+
+    const exists = await model.findOne(query).select("_id").lean();
+    if (!exists) return slug;
+
+    slug = `${baseSlug}-${counter}`;
+    counter += 1;
+  }
+};
 class blogPostController {
   add_blogPost = async (req, res) => {
     try {
@@ -47,6 +73,10 @@ class blogPostController {
 
       const blogPostData = {
         mainTitle: req.body.mainTitle,
+        slug: await generateUniqueSlug({
+          model: blogPostModel,
+          base: req.body.mainTitle,
+        }),
         creatorName: req.body.creatorName,
         creatorBio: req.body.creatorBio,
         contentType: contentType,
@@ -235,7 +265,9 @@ class blogPostController {
     const { blogPostId } = req.params;
 
     try {
-      const blogPost = await blogPostModel.findById(blogPostId);
+      const blogPost = isMongoObjectId(blogPostId)
+        ? await blogPostModel.findById(blogPostId)
+        : await blogPostModel.findOne({ slug: blogPostId });
       if (!blogPost) {
         return responseReturn(res, 404, { error: "No blogPost Found" });
       }
@@ -299,6 +331,14 @@ class blogPostController {
       const contentType =
         req.body.contentType || blogPost.contentType || "structured";
       updatedData.contentType = contentType;
+
+      if (req.body.mainTitle && req.body.mainTitle !== blogPost.mainTitle) {
+        updatedData.slug = await generateUniqueSlug({
+          model: blogPostModel,
+          base: req.body.mainTitle,
+          excludeId: blogPostId,
+        });
+      }
       
       // Handle category update (optional field)
       if (req.body.category !== undefined) {
