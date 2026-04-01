@@ -1,12 +1,12 @@
-const winston = require('winston');
-const DailyRotateFile = require('winston-daily-rotate-file');
-const path = require('path');
-const fs = require('fs');
+const winston = require('winston')
+const DailyRotateFile = require('winston-daily-rotate-file')
+const path = require('path')
+const fs = require('fs')
 
 // Create logs directory if it doesn't exist
-const logsDir = path.join(__dirname, '..', 'logs');
+const logsDir = path.join(__dirname, '..', 'logs')
 if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+  fs.mkdirSync(logsDir, { recursive: true })
 }
 
 // Define log format
@@ -15,20 +15,20 @@ const logFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.splat(),
   winston.format.json()
-);
+)
 
 // Console format for development
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let msg = `${timestamp} [${level}]: ${message}`;
+    let msg = `${timestamp} [${level}]: ${message}`
     if (Object.keys(meta).length > 0) {
-      msg += ` ${JSON.stringify(meta)}`;
+      msg += ` ${JSON.stringify(meta)}`
     }
-    return msg;
+    return msg
   })
-);
+)
 
 // Create logger instance
 const logger = winston.createLogger({
@@ -42,7 +42,7 @@ const logger = winston.createLogger({
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '14d',
-      level: 'debug',
+      level: 'debug'
     }),
     // Write error logs to error.log
     new DailyRotateFile({
@@ -50,8 +50,8 @@ const logger = winston.createLogger({
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '30d',
-      level: 'error',
-    }),
+      level: 'error'
+    })
   ],
   // Handle exceptions and rejections
   exceptionHandlers: [
@@ -59,36 +59,42 @@ const logger = winston.createLogger({
       filename: path.join(logsDir, 'exceptions-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
-      maxFiles: '30d',
+      maxFiles: '30d'
     }),
+    new winston.transports.Console({
+      format: consoleFormat
+    })
   ],
   rejectionHandlers: [
     new DailyRotateFile({
       filename: path.join(logsDir, 'rejections-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
-      maxFiles: '30d',
+      maxFiles: '30d'
     }),
-  ],
-});
+    new winston.transports.Console({
+      format: consoleFormat
+    })
+  ]
+})
 
 // Add console transport for non-production environments
 if (process.env.NODE_ENV !== 'production') {
   logger.add(
     new winston.transports.Console({
       format: consoleFormat,
-      level: 'debug',
+      level: 'debug'
     })
-  );
+  )
 } else {
   // In production, only log warnings and errors to console
   logger.add(
     new winston.transports.Console({
       format: winston.format.simple(),
-      level: 'warn',
+      level: 'warn'
     })
-  );
+  )
 }
 
 // Export logger with convenient methods
-module.exports = logger;
+module.exports = logger

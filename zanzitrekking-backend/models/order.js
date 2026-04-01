@@ -222,7 +222,7 @@ const orderSchema = new Schema(
       },
       status: {
         type: String,
-        enum: ["pending", "processing", "completed", "failed", "refunded"],
+        enum: ["pending", "processing", "completed", "failed", "refunded", "processed"],
         default: "processing",
       },
       transactionId: {
