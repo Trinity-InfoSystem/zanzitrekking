@@ -225,6 +225,7 @@ class WeTravelWebhookController {
       succeeded: "completed",
       pending: "pending",
       processing: "processing",
+      processed: "processed",
       failed: "failed",
       cancelled: "failed",
       refunded: "refunded",
@@ -300,7 +301,7 @@ class WeTravelWebhookController {
         : req.headers["x-wetravel-signature"] || req.headers["wetravel-signature"] || req.headers["signature"];
 
       logger.info("[Webhook] 📥 Received WeTravel webhook event");
-      logger.info("[Webhook] Event type:", payload.event || payload.type || "unknown");
+      logger.info("[Webhook] Event type:",payload.type);
       logger.info("[Webhook] Payload keys:", Object.keys(payload));
       logger.info("[Webhook] Has raw body:", !!req.rawBody);
       logger.info("[Webhook] Has signature:", !!signature);
@@ -316,12 +317,7 @@ class WeTravelWebhookController {
       }
 
       // Extract event type
-      const eventType =
-        payload.event ||
-        payload.type ||
-        payload.event_type ||
-        payload.data?.event ||
-        "payment.completed";
+      const eventType = payload.type
 
       logger.info(`[Webhook] Processing event: ${eventType}`);
 
@@ -339,15 +335,8 @@ class WeTravelWebhookController {
       }
 
       // Extract payment status
-      const paymentStatus =
-        payload.status ||
-        payload.payment_status ||
-        payload.payment?.status ||
-        payload.data?.status ||
-        payload.data?.payment_status ||
-        payload.transaction?.status ||
-        "pending";
-
+      const paymentStatus = payload.data.status
+      
       const mappedStatus = this.mapPaymentStatus(paymentStatus);
 
       logger.info(
@@ -408,16 +397,8 @@ class WeTravelWebhookController {
       }
 
       // Update payment date if payment is completed
-      if (mappedStatus === "completed") {
-        order.payment.paymentDate = new Date(
-          payload.paid_at ||
-            payload.paidAt ||
-            payload.payment_date ||
-            payload.paymentDate ||
-            payload.data?.paid_at ||
-            payload.data?.paidAt ||
-            Date.now()
-        );
+      if (mappedStatus === "completed" || mappedStatus === "processed") {
+        order.payment.paymentDate = new Date(payload.data.updated_at)
 
         // Update order status to confirmed if it's pending
         if (order.orderStatus === "pending") {
@@ -534,7 +515,7 @@ class WeTravelWebhookController {
       });
     } catch (error) {
       logger.error("[Webhook] ❌ Error processing webhook:", error);
-      logger.error("[Webhook] Error stack:", error.stack);
+      logger.error("[Webhook] Error stack:", error);
       return responseReturn(res, 500, {
         error: "Internal server error",
         message: error.message,
