@@ -13,7 +13,6 @@ import QRCodeDisplay from "../components/QRCodeDisplay";
 import CircularProgress from '@mui/material/CircularProgress'
 import SEO from "../components/SEO";
 
-import SEO from "../components/SEO";
 const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
