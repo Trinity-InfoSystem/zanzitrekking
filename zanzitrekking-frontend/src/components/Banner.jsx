@@ -152,17 +152,33 @@ const Banner = () => {
           {/* Background Media */}
           <div className="absolute inset-0">
             {sharedVideoUrl && !isVideoError ? (
-              <video
-                ref={videoRef}
-                src={sharedVideoUrl}
-                className="h-full w-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                onError={() => setIsVideoError(true)}
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={sharedVideoUrl}
+                  className="h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  onError={() => setIsVideoError(true)}
+                />
+                <div className="absolute inset-0 z-20 flex items-center">
+                  <div className="absolute inset-0 z-20 flex items-center">
+                    <div className="container mx-auto px-6 lg:px-12">
+                      <div className="max-w-3xl">
+                        <h1 className="mb-4 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
+                          {banner.title || "Experience the Adventure of a Lifetime"}
+                        </h1>
+                        <p className="mb-8 max-w-2xl text-base leading-relaxed text-white/80 md:text-lg">
+                          {banner.description || "Unforgettable journeys through Tanzania's most spectacular landscapes."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
             ) : (
               <img
                 src={
@@ -176,6 +192,8 @@ const Banner = () => {
             )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60"></div>
           </div>
+
+         
 
           {/* Content Overlay */}
           {(!sharedVideoUrl || isVideoError) &&
@@ -203,13 +221,11 @@ const Banner = () => {
                         )}
 
                         <h1 className="mb-4 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
-                          {bnr.title ||
-                            "Experience the Adventure of a Lifetime"}
+                          {bnr.title || banner.title || "Experience the Adventure of a Lifetime"}
                         </h1>
 
                         <p className="mb-8 max-w-2xl text-base leading-relaxed text-white/90 md:text-lg">
-                          {bnr.description ||
-                            "Embark on an unforgettable journey through Tanzania's most spectacular destinations."}
+                          {bnr.description || banner.description || "Unforgettable journeys through Tanzania's most spectacular landscapes."}
                         </p>
 
                         <div className="mb-8 flex flex-wrap gap-3">

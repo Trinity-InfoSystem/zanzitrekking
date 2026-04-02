@@ -9,6 +9,8 @@ const bannerItemSchema = new Schema({
 
 const bannerSchema = new Schema(
   {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
     sharedVideo: { type: String, required: false }, // Single video for all banners
     banners: [bannerItemSchema],
   },
