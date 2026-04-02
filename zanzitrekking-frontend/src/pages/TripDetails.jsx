@@ -179,6 +179,7 @@ const TripDetails = () => {
     );
   }
 
+  console.log(trip)
   const imageName = trip.mainImage
     ? resolveMediaUrl(trip.mainImage)
     : "/placeholder.svg";
@@ -187,15 +188,17 @@ const TripDetails = () => {
     <div className="flex min-h-screen flex-col bg-neutral-50">
       {trip?._id && (
         <SEO
-          title={`${trip.mainTitle || trip.title} | Zanzi Safaris`}
-          description={trip.description || trip.overview}
-          image={(() => {
-            const raw =
-              trip.mainImage || trip.images?.[0] || trip.image;
-            return raw ? resolveMediaUrl(raw) : undefined;
-          })()}
-          type="trip"
+          title={trip.seo?.general?.title}
+          description={trip.seo?.general?.description}
+          image={trip.seo?.general?.image || (trip.images?.[0] ? IMAGES_URL + trip.images[0] : null)}
+          ogTitle={trip.seo?.openGraph?.title}
+          ogDescription={trip.seo?.openGraph?.description}
+          
+          twitterTitle={trip.seo?.twitter?.title}
+          twitterDescription={trip.seo?.twitter?.description}
           data={trip}
+          type="trip"
+          robots={trip.seo?.allowSearch === "no" ? "noindex, nofollow" : "index, follow"}
         />
       )}
       <style>{`
@@ -205,6 +208,9 @@ const TripDetails = () => {
           font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
       `}</style>
+
+      
+
 
       <Header />
 

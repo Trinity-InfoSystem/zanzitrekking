@@ -30,8 +30,8 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import GoogleReviewsWidget from "../components/GoogleReviewsWidget";
 import TripadvisorReviews from "../components/TripadvisorReviews";
-
 import SEO from "../components/SEO";
+
 const CATEGORY_CONTENT = {
   "cultural tours": {
     title: "Cultural Tours",

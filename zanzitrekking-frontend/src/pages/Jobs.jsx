@@ -23,6 +23,7 @@ import { get_user_applications } from "../store/reducers/jobApplicationReducer";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import { sanitizeToText } from "../utils/sanitize";
+import SEO from "../components/SEO";
 
 import SEO from "../components/SEO";
 const Jobs = () => {

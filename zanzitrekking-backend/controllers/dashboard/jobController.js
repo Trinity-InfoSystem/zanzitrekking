@@ -129,6 +129,29 @@ class JobControllers {
         }
       }
 
+      let parsedSeo;
+      try {
+        parsedSeo = req.body.seo 
+          ? (typeof req.body.seo === "string" ? JSON.parse(req.body.seo) : req.body.seo)
+          : {
+              allowSearch: "yes",
+              general: { title: "", description: "", image: null },
+              openGraph: { title: "", description: "", image: null },
+              twitter: { title: "", description: "", image: null },
+            };
+
+        // Map SEO images from req.files
+        ["general", "openGraph", "twitter"].forEach((tab) => {
+          const seoFile = req.files?.find((f) => f.fieldname === `seo_${tab}_image`);
+          if (seoFile) {
+            parsedSeo[tab].image = `${basePath}${seoFile.filename}`;
+          }
+        });
+      } catch (e) {
+        logger.error("SEO parsing error in Blog Post:", e);
+        parsedSeo = {}; 
+      }
+
       // Build job data based on content type
       const jobData = {
         title,
@@ -138,6 +161,7 @@ class JobControllers {
         description: finalContentType === "html" ? "" : (description || ""),
         isActive: activeStatus,
         createdBy: req.user?.id || null,
+        seo:parsedSeo
       };
 
       // Include structured fields for both content types
@@ -360,6 +384,43 @@ class JobControllers {
         }
       }
 
+     let parsedSeo;
+      try {
+        parsedSeo = req.body.seo 
+          ? (typeof req.body.seo === "string" ? JSON.parse(req.body.seo) : req.body.seo)
+          : (blogPost.seo || {
+              allowSearch: "yes",
+              general: { title: "", description: "", image: null },
+              openGraph: { title: "", description: "", image: null },
+              twitter: { title: "", description: "", image: null },
+            });
+
+        const platforms = ["general", "openGraph", "twitter"];
+        for (const platform of platforms) {
+          const seoFile = req.files.find((f) => f.fieldname === `seo_${platform}_image`);
+          
+          if (seoFile) {
+            const oldImagePath = existingJob.seo?.[platform]?.image;
+            if (oldImagePath) {
+              const oldFileName = path.basename(oldImagePath);
+              const oldPath = path.resolve(__dirname, "..", "..", "public", "uploads", oldFileName);
+              try {
+                await fs.promises.unlink(oldPath);
+                logger.info(`Deleted old SEO ${platform} image:`, oldPath);
+              } catch (err) {
+                logger.error(`Error deleting old SEO ${platform} image: ${err.message}`);
+              }
+            }
+            parsedSeo[platform].image = `${basePath}${seoFile.filename}`;
+          } else {
+            parsedSeo[platform].image = parsedSeo[platform].image || (existingJob.seo?.[platform]?.image || null);
+          }
+        }
+      } catch (e) {
+        logger.error("SEO update parsing error:", e);
+        parsedSeo = existingJob.seo; 
+      }
+
       // Prepare the update object based on content type
       const updateFields = {
         title,
@@ -367,6 +428,7 @@ class JobControllers {
         htmlContent: finalContentType === "html" ? htmlContent : "",
         description: finalContentType === "html" ? "" : (description || ""),
         isActive: activeStatus,
+        seo:parsedSeo,
       };
 
       if (title && title !== existingJob.title) {

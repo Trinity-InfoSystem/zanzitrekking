@@ -50,21 +50,20 @@ const BlogPost = () => {
     <div className="min-h-screen bg-white">
       {blogPost?._id && (
         <SEO
-          title={`${blogPost.title || blogPost.mainTitle} | Zanzi Safaris Blog`}
-          description={
-            blogPost.description ||
-            blogPost.mainParagraph ||
-            blogPost.excerpt
-          }
-          image={(() => {
-            const raw =
-              blogPost.mainImage || blogPost.coverImage || blogPost.image;
-            return raw ? resolveMediaUrl(raw) : undefined;
-          })()}
-          type="blog"
+          title={blogPost.seo?.general?.title}
+          description={blogPost.seo?.general?.description}
+          image={blogPost.seo?.general?.image || (blogPost.images?.[0] ? IMAGES_URL + blogPost.images[0] : null)}
+          ogTitle={blogPost.seo?.openGraph?.title}
+          ogDescription={blogPost.seo?.openGraph?.description}
+          
+          twitterTitle={blogPost.seo?.twitter?.title}
+          twitterDescription={blogPost.seo?.twitter?.description}
           data={blogPost}
+          type="blog"
+          robots={blogPost.seo?.allowSearch === "no" ? "noindex, nofollow" : "index, follow"}
         />
       )}
+      
       <Header />
 
       {/* Enhanced Hero Section with Background Image */}

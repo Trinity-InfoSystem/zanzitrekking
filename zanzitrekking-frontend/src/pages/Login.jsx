@@ -15,8 +15,8 @@ import { ArrowRight, Eye, EyeOff, Lock, LogIn, Mail, Shield } from "lucide-react
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "../utils/validationSchemas";
-
 import SEO from "../components/SEO";
+
 const Login = () => {
   const { loader, errorMessage, successMessage, userInfo } = useSelector(
     (state) => state.auth,

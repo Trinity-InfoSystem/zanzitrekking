@@ -115,6 +115,28 @@ const blogPostSchema = new Schema(
     timestamps: true,
     toJSON: { getters: true }, // Enable getters for JSON responses
     toObject: { getters: true }, // Automatically adds createdAt and updatedAt fields
+    seo: {
+      allowSearch: {
+        type: String,
+        enum: ["yes", "no"],
+        default: "yes",
+      },
+      general: {
+        title: { type: String, default: "" },
+        description: { type: String, default: "" },
+        image: { type: String, default: null },
+      },
+      openGraph: {
+        title: { type: String, default: "" },
+        description: { type: String, default: "" },
+        image: { type: String, default: null },
+      },
+      twitter: {
+        title: { type: String, default: "" },
+        description: { type: String, default: "" },
+        image: { type: String, default: null },
+      },
+    },
   }
 );
 

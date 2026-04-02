@@ -21,7 +21,19 @@ import { getRouteConfig } from "../config/routes";
  * This component does NOT make any API calls.
  * Data should be fetched by the page component and passed as props.
  */
-const SEO = ({ title: propTitle, description: propDescription, image: propImage, type: propType, data = null }) => {
+const SEO = ({
+  title: propTitle,
+  description: propDescription,
+  image: propImage,
+  type: propType,
+  data = null,
+  ogTitle: propOgTitle,
+  ogDescription: propOgDescription,
+  ogImage: propOgImage,
+  twitterTitle: propTwitterTitle,
+  twitterDescription: propTwitterDescription,
+  twitterImage: propTwitterImage,
+}) => {
   const location = useLocation();
   // Use frontend URL from env or fallback to current origin (for SEO, we need the frontend URL, not API URL)
   const baseUrl = import.meta.env.VITE_FRONTEND_URL ||
@@ -41,6 +53,14 @@ const SEO = ({ title: propTitle, description: propDescription, image: propImage,
 
   const currentUrl = `${baseUrl}${location.pathname}`;
   const fullImageUrl = image.startsWith("http") ? image : `${baseUrl}${image}`;
+
+  const ogTitle = propOgTitle || data?.seo?.facebook?.title || title;
+  const ogDescription = propOgDescription || data?.seo?.openGraph?.description || description;
+  const ogImage = propOgImage || image;
+
+  const twitterTitle = propTwitterTitle || data?.seo?.twitter?.title || ogTitle;
+  const twitterDescription = propTwitterDescription || data?.seo?.twitter?.description || ogDescription;
+  const twitterImage = propTwitterImage || image;
 
   // ─── Structured Data (JSON-LD) ───────────────────────────────────────────
 
@@ -353,18 +373,18 @@ const SEO = ({ title: propTitle, description: propDescription, image: propImage,
       {/* Open Graph */}
       <meta property="og:type" content={pageType} />
       <meta property="og:url" content={currentUrl} />
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={fullImageUrl} />
+      <meta property="og:title" content={ogTitle} />
+      <meta property="og:description" content={ogDescription} />
+      <meta property="og:image" content={ogImage} />
       <meta property="og:site_name" content="Zanzi Safaris" />
       <meta property="og:locale" content="en_US" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={currentUrl} />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={fullImageUrl} />
+      <meta name="twitter:title" content={twitterTitle} />
+      <meta name="twitter:description" content={twitterDescription} />
+      <meta name="twitter:image" content={twitterImage} />
 
       {/* Canonical */}
       <link rel="canonical" href={currentUrl} />
