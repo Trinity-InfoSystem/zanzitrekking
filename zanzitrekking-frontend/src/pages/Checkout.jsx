@@ -22,6 +22,7 @@ import {
 } from "../store/reducers/urgentBookingRequestReducer";
 import { safeRedirect } from "../utils/urlValidation";
 import { parse } from "date-fns";
+import SEO from "../components/SEO";
 
 const Checkout = () => {
   const location = useLocation();
@@ -768,6 +769,7 @@ const Checkout = () => {
 
   return (
     <div className="from-background-nature via-background-sunset flex min-h-screen flex-col bg-gradient-to-br to-background-paper">
+      <SEO/>
       <Header />
       <main className="flex-grow py-12" style={{ minHeight: 'calc(100vh - 200px)' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

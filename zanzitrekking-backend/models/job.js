@@ -45,6 +45,28 @@ const jobSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Admin",
     },
+    seo: {
+      allowSearch: {
+        type: String,
+        enum: ["yes", "no"],
+        default: "yes",
+      },
+      general: {
+        title: { type: String, default: "" },
+        description: { type: String, default: "" },
+        image: { type: String, default: null },
+      },
+      openGraph: {
+        title: { type: String, default: "" },
+        description: { type: String, default: "" },
+        image: { type: String, default: null },
+      },
+      twitter: {
+        title: { type: String, default: "" },
+        description: { type: String, default: "" },
+        image: { type: String, default: null },
+      },
+    },
   },
   { timestamps: true }
 );

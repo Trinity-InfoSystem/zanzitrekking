@@ -14,6 +14,7 @@ const GoogleReviews = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO/>
       <Header />
 
       {/* Hero (matching Blog/Trips) */}

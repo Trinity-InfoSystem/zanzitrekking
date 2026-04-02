@@ -17,6 +17,7 @@ import { CartItem } from "../components/Cart/CartItem";
 import { OrderSummary } from "../components/Cart/OrderSummary";
 import toast from "react-hot-toast";
 import { addDays, format, parse, isSameMonth, startOfMonth } from "date-fns";
+import SEO from "../components/SEO";
 
 const Cart = () => {
   const dispatch = useDispatch();
@@ -840,6 +841,7 @@ const Cart = () => {
 
   return (
     <div className="from-background-nature via-background-sunset flex min-h-screen flex-col bg-gradient-to-br to-background-paper">
+      <SEO/>
       <Header />
 
       <main className="flex-grow py-6 sm:py-8 md:py-12">

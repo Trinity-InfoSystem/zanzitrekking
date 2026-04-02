@@ -150,7 +150,7 @@ function App() {
       }}
     >
       <ScrollToTop />
-      <SEO />
+      {/* <SEO /> */}
       <div>
         {/* ✅ Wrap Routes in Suspense with fallback */}
         <Suspense fallback={<RouteLoader />}>

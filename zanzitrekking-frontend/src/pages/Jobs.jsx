@@ -23,6 +23,7 @@ import { get_user_applications } from "../store/reducers/jobApplicationReducer";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import { sanitizeToText } from "../utils/sanitize";
+import SEO from "../components/SEO";
 
 const Jobs = () => {
   const [perPage] = useState(12);
@@ -122,6 +123,7 @@ const Jobs = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO/>
       <Header categories={categories} />
 
       {/* Enhanced Hero Section */}

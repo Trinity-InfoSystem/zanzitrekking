@@ -95,6 +95,7 @@ import ItineraryModal from "../components/trip components/ItineraryModal";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { tripBasicSchema } from "../../utils/validationSchemas";
+import SeoManager from "../../components/SeoManager";
 
 // Helper for Nominatim search
 const fetchNominatim = async (query) => {
@@ -177,7 +178,15 @@ const isDraftEmpty = (draft) => {
     (draft.pricingType && draft.pricingType !== "yearRound") ||
     (draft.pricingType === "yearRound" &&
       hasRegularPrices(draft.regularPrices)) ||
-    (draft.pricingType === "seasonal" && hasSeasonValues(draft.seasons))
+    (draft.pricingType === "seasonal" && hasSeasonValues(draft.seasons)) ||
+    (draft.seo && (
+      (draft.seo.allowSearch && draft.seo.allowSearch !== "yes") || 
+      ["general", "openGraph", "twitter"].some(tab => 
+        draft.seo[tab]?.title || 
+        draft.seo[tab]?.description || 
+        draft.seo[tab]?.image
+      )
+    ))
   ) {
     return false;
   }
@@ -267,6 +276,12 @@ const AddTrip = () => {
       description: "",
       category: "",
       mainImage: null,
+      seo: {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      },
     },
     mode: "onChange",
   });
@@ -316,6 +331,12 @@ const AddTrip = () => {
       },
     },
     seasons: [],
+     seo: {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      },
   });
 
   // Sync form values with react-hook-form
@@ -333,7 +354,7 @@ const AddTrip = () => {
   const { trip, successMessage, errorMessage, loader } = useSelector(
     (state) => state.trip,
   );
-
+  
   const draftKey = tripId ? `tripDraft-${tripId}` : "tripDraft-new";
 
   // On mount, check for draft
@@ -420,6 +441,12 @@ const AddTrip = () => {
         },
       },
       seasons: [],
+      seo: {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      },
     });
 
     // Reset destination search state
@@ -668,6 +695,27 @@ const AddTrip = () => {
       }));
     }
 
+    if (!safeDraft.seo) {
+      safeDraft.seo = {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      };
+    } else {
+      if (!safeDraft.seo.allowSearch) safeDraft.seo.allowSearch = "yes";
+
+      ["general", "openGraph", "twitter"].forEach((tab) => {
+        if (!safeDraft.seo[tab]) {
+          safeDraft.seo[tab] = { title: "", description: "", image: null };
+        } else {
+          safeDraft.seo[tab].title = safeDraft.seo[tab].title || "";
+          safeDraft.seo[tab].description = safeDraft.seo[tab].description || "";
+          safeDraft.seo[tab].image = safeDraft.seo[tab].image || null;
+        }
+      });
+    }
+
     setFormData(safeDraft);
     setShowResumeDraft(false);
   };
@@ -769,6 +817,12 @@ const AddTrip = () => {
           ? [trip.mainDestination]
           : [{ name: "", location: { lat: null, lng: null } }];
 
+      const safeSeoTab = (tabData) => ({
+        title: tabData?.title || "",
+        description: tabData?.description || "",
+        image: tabData?.image || null,
+      });
+
       // Initialize destination search states
       setDestinationQueries(mainDestinations.map((d) => d?.name || ""));
       setDestinationResults(mainDestinations.map(() => []));
@@ -781,6 +835,12 @@ const AddTrip = () => {
         description: trip.description || "",
         category: trip.category?._id || trip.category || "",
         mainImage: null, // File input - keep as null, use preview for display
+        seo: {
+          allowSearch: trip.seo?.allowSearch || "yes",
+          general: safeSeoTab(trip.seo?.general),
+          openGraph: safeSeoTab(trip.seo?.openGraph),
+          twitter: safeSeoTab(trip.seo?.twitter),
+        },
       });
 
       setFormData({
@@ -834,6 +894,7 @@ const AddTrip = () => {
           },
         },
         seasons: trip.seasons || [],
+        seo: trip.seo || {}
       });
     }
   }, [trip, reset]);
@@ -917,6 +978,19 @@ const AddTrip = () => {
     });
 
     submitData.append("daysCount", formData.days.length.toString());
+
+    // Handle SEO
+    submitData.append("seo", JSON.stringify(formData.seo));
+
+    // Map through the tabs to attach files if they exist
+    ["general", "openGraph", "twitter"].forEach((tab) => {
+      const tabImage = formData.seo?.[tab]?.image;
+      
+      if (tabImage instanceof File) {
+        submitData.append(`seo_${tab}_image`, tabImage);
+      }
+    });
+    
 
     let result;
     if (tripId) {
@@ -2063,6 +2137,10 @@ const AddTrip = () => {
                     }}
                     label="Main Trip Video"
                   />
+                </div>
+                
+                <div className="sm:col-span-2">
+                  <SeoManager watch={watch} setValue={setValue}/>
                 </div>
               </div>
             </div>

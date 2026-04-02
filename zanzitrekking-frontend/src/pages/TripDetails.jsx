@@ -27,6 +27,8 @@ import TripHero from "../components/tripDetails/TripHero";
 import TripTabs from "../components/tripDetails/TripTabs";
 import TripActions from "../components/tripDetails/TripActions";
 import Reviews from "../components/reviews/Reviews";
+import SEO from "../components/SEO";
+
 
 const TripDetails = () => {
   const { tripId } = useParams();
@@ -178,6 +180,7 @@ const TripDetails = () => {
     );
   }
 
+  console.log(trip)
   const imageName = trip.mainImage
     ? IMAGES_URL + trip.mainImage.split("/").pop()
     : "/placeholder.svg";
@@ -191,6 +194,21 @@ const TripDetails = () => {
           font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
       `}</style>
+
+      <SEO
+        title={trip.seo?.general?.title}
+        description={trip.seo?.general?.description}
+        image={trip.seo?.general?.image || (trip.images?.[0] ? IMAGES_URL + trip.images[0] : null)}
+        ogTitle={trip.seo?.openGraph?.title}
+        ogDescription={trip.seo?.openGraph?.description}
+        
+        twitterTitle={trip.seo?.twitter?.title}
+        twitterDescription={trip.seo?.twitter?.description}
+        data={trip}
+        type="trip"
+        robots={trip.seo?.allowSearch === "no" ? "noindex, nofollow" : "index, follow"}
+      />
+
 
       <Header />
 

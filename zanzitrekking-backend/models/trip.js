@@ -154,6 +154,28 @@ const tripSchema = new mongoose.Schema(
         },
       },
     ],
+    seo: {
+      allowSearch: {
+        type: String,
+        enum: ["yes", "no"],
+        default: "yes",
+      },
+      general: {
+        title: { type: String},
+        description: { type: String},
+        image: { type: String },
+      },
+      openGraph: {
+        title: { type: String },
+        description: { type: String },
+        image: { type: String },
+      },
+      twitter: {
+        title: { type: String },
+        description: { type: String },
+        image: { type: String},
+      },
+    },
   },
   { timestamps: true }
 );

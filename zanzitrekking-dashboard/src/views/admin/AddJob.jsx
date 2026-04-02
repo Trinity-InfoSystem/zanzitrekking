@@ -21,6 +21,7 @@ import "../admin/quill-custom.css";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { jobSchema } from "../../utils/validationSchemas";
+import SeoManager from "../../components/SeoManager";
 
 const AddJob = () => {
   const dispatch = useDispatch();
@@ -60,6 +61,12 @@ const AddJob = () => {
       salaryRange: "",
       applicationDeadline: "",
       isActive: true,
+      seo: {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      },
     },
   });
 
@@ -147,6 +154,15 @@ const AddJob = () => {
       }
     }
 
+    const getSeoTab = (tabName) => {
+      const tab = data.seo?.[tabName] || {};
+      return {
+        title: tab.title || "",
+        description: tab.description || "",
+        image: tab.image || null,
+      };
+    };
+
     const jobData = {
       title: data.title,
       contentType: finalContentType,
@@ -163,6 +179,12 @@ const AddJob = () => {
       salaryRange: data.salaryRange || "",
       applicationDeadline: data.applicationDeadline || null,
       isActive: data.isActive === true || data.isActive === "true",
+      seo: {
+        allowSearch: data.seo?.allowSearch || "yes",
+        general: getSeoTab("general"),
+        openGraph: getSeoTab("openGraph"),
+        twitter: getSeoTab("twitter"),
+      },
     };
 
     // Submit job data
@@ -236,6 +258,12 @@ const AddJob = () => {
         setPreservedStyleScript({ styles: [], scripts: [] });
       }
 
+      const safeSeoTab = (tabData) => ({
+        title: tabData?.title || "",
+        description: tabData?.description || "",
+        image: tabData?.image || null,
+      });
+
       reset({
         title: job?.title || "",
         contentType: contentTypeValue,
@@ -249,6 +277,12 @@ const AddJob = () => {
           ? new Date(job.applicationDeadline).toISOString().split("T")[0]
           : "",
         isActive: job?.isActive !== undefined ? job.isActive : true,
+        seo: {
+          allowSearch: job.seo?.allowSearch || "yes",
+          general: safeSeoTab(job.seo?.general),
+          openGraph: safeSeoTab(job.seo?.openGraph),
+          twitter: safeSeoTab(job.seo?.twitter),
+        },
       });
     }
   }, [job, jobId, setValue, reset]);
@@ -624,6 +658,7 @@ const AddJob = () => {
                   </div>
                 </>
               )}
+              <SeoManager watch={watch} setValue={setValue}/>
 
               <div className="flex items-center gap-2">
                 <input

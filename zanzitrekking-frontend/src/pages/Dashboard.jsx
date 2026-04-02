@@ -141,6 +141,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO/>
       <Header />
       <div className="px-4 py-6 sm:px-6 lg:px-12 lg:py-12">
         <div className="relative flex flex-col lg:flex-row lg:gap-6">

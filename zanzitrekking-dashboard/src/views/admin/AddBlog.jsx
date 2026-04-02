@@ -26,6 +26,7 @@ import {
   FaCode,
   FaFileAlt,
   FaTags,
+  FaRocket
 } from "react-icons/fa";
 import { overrideStyle } from "../../utils/utilis";
 import { PropagateLoader } from "react-spinners";
@@ -37,6 +38,7 @@ import "./quill-custom.css";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { blogPostSchema } from "../../utils/validationSchemas";
+import SeoManager from "../../components/SeoManager";
 
 const BlogPostForm = () => {
   const dispatch = useDispatch();
@@ -100,6 +102,12 @@ const BlogPostForm = () => {
       relatedImage1: null,
       relatedImage2: null,
       category: "",
+      seo: {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      },
     },
   });
 
@@ -229,6 +237,16 @@ const BlogPostForm = () => {
         "creatorSocialLinks[twitter]",
         data.creatorSocialLinks?.twitter || "",
       );
+
+      formData.append("seo", JSON.stringify(data.seo));
+
+      ["general", "openGraph", "twitter"].forEach((tab) => {
+        const tabImage = data.seo?.[tab]?.image;
+        
+        if (tabImage instanceof File) {
+          formData.append(`seo_${tab}_image`, tabImage);
+        }
+      });
 
       if (blogPostId) {
         dispatch(update_blogPost({ blogPostId, formData }));
@@ -872,6 +890,10 @@ const BlogPostForm = () => {
               </FormSection>
             </>
           )}
+
+          <FormSection title="SEO Configuration" icon={FaRocket}>
+            <SeoManager watch={watch} setValue={setValue}/>
+          </FormSection>
 
           <div className="flex justify-center">
             <button

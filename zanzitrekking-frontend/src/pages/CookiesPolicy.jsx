@@ -15,6 +15,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import SEO from "../components/SEO";
 
 const CookiesPolicy = () => {
   useEffect(() => {
@@ -28,6 +29,7 @@ const CookiesPolicy = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO/>
       <Header />
 
       {/* Hero Section */}

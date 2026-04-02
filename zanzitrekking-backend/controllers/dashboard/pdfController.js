@@ -16,7 +16,7 @@ class PDFController {
     try {
       const cached = await redis.get(key);
       if (cached) {
-        return responseReturn(res, 200, JSON.parse(cached));
+        return res.status(200).json({ pdfs: JSON.parse(cached) });
       }
       const pdfs = await PdfModel.find().sort({ createdAt: -1 });
 

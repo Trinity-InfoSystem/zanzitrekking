@@ -47,6 +47,19 @@ const BlogPost = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title={blogPost.seo?.general?.title}
+        description={blogPost.seo?.general?.description}
+        image={blogPost.seo?.general?.image || (blogPost.images?.[0] ? IMAGES_URL + blogPost.images[0] : null)}
+        ogTitle={blogPost.seo?.openGraph?.title}
+        ogDescription={blogPost.seo?.openGraph?.description}
+        
+        twitterTitle={blogPost.seo?.twitter?.title}
+        twitterDescription={blogPost.seo?.twitter?.description}
+        data={blogPost}
+        type="blog"
+        robots={blogPost.seo?.allowSearch === "no" ? "noindex, nofollow" : "index, follow"}
+      />
       <Header />
 
       {/* Enhanced Hero Section with Background Image */}
