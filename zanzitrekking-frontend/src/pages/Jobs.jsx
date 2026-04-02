@@ -25,7 +25,6 @@ import "aos/dist/aos.css";
 import { sanitizeToText } from "../utils/sanitize";
 import SEO from "../components/SEO";
 
-import SEO from "../components/SEO";
 const Jobs = () => {
   const [perPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
