@@ -10,6 +10,7 @@ import {
 } from "../store/reducers/orderReducer";
 import { resolveMediaUrl } from "../utils/imageUtils";
 import QRCodeDisplay from "../components/QRCodeDisplay";
+import CircularProgress from '@mui/material/CircularProgress'
 
 import SEO from "../components/SEO";
 const OrderConfirmation = () => {
@@ -22,20 +23,48 @@ const OrderConfirmation = () => {
 
   const [orderDetails, setOrderDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const hasFetched = useRef(false); // Track if we've already fetched
+
+  const intervalRef = useRef(null)
+  const [checkingStatus, setCheckingStatus] = useState(false)
 
   // Get order details from location state or fetch from API
   useEffect(() => {
-    // Skip if already fetched
-    if (hasFetched.current) {
-      return;
-    }
 
     const { orderId } = location.state || {};
 
     if (orderId) {
+      const orderTimestamp = window.localStorage.getItem(orderId)
+
+      if (orderTimestamp && (Date.now() / 1000) - orderTimestamp > 5) {
+        setCheckingStatus(true)
+        if (!intervalRef.current) {
+          intervalRef.current = setInterval(() => {
+            dispatch(getOrderById(orderId))
+            .then((result) => {
+              if (result.payload) {
+                setOrderDetails(result.payload.order);
+              }
+              
+              const status = result.payload.order.orderStatus
+  
+              if (status === 'confirmed') {
+                setCheckingStatus(false)
+                clearInterval(intervalRef.current)            
+              }
+            })
+            .catch(() => {
+              setCheckingStatus(false)
+                clearInterval(intervalRef.current)
+                console.log(e)
+            });
+          }, 5000)
+        }
+      }
+    }
+
+    if (orderId) {
       // Fetch order details from API using the specific orderId
-      hasFetched.current = true;
+
       dispatch(getOrderById(orderId))
         .then((result) => {
           if (result.payload) {
@@ -48,14 +77,14 @@ const OrderConfirmation = () => {
         });
     } else if (currentOrder && orderCreationStatus === "success") {
       // Only use current order from Redux if we just created an order
-      hasFetched.current = true;
+
       setOrderDetails(currentOrder);
       setIsLoading(false);
     } else {
       // No order data available
       setIsLoading(false);
     }
-  }, [dispatch, location.state, currentOrder, orderCreationStatus]);
+  }, [dispatch, location.state, orderCreationStatus]);
 
   // Clear messages on unmount
   useEffect(() => {
@@ -474,7 +503,14 @@ const OrderConfirmation = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="mb-2 text-xl font-bold text-gray-900">
-                    🚨 Payment Required - Act Now!
+                    {
+                      checkingStatus ? (
+                        <>
+                          Confirming your payment status, Please wait
+                          <CircularProgress className="ml-2" color="orange" size="16px" />
+                        </>
+                      ) : `🚨 Payment Required - Act Now!`
+                    }
                   </h3>
                   <p className="mb-4 text-gray-700">
                     Your booking is reserved but <strong>not confirmed</strong>{" "}
@@ -493,8 +529,6 @@ const OrderConfirmation = () => {
                   </div>
                   <a
                     href={orderDetails.payment.weTravelPaymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:from-orange-600 hover:to-red-600 hover:shadow-xl"
                   >
                     <svg

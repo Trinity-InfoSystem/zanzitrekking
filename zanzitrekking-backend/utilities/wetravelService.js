@@ -132,6 +132,7 @@ class WeTravelService {
       const depositAmountCents = paymentOption === 'deposit' ? depositAmount : totalAmountCents
       const remainingAmountCents = totalAmountCents - depositAmountCents
       
+      const paymentDeadline = moment(startDate).utc().diff(moment().utc(), 'days') + 1
 
       const data = {
         trip: {
@@ -145,7 +146,7 @@ class WeTravelService {
 
         pricing: {
           price: totalAmountCents,
-          days_before_departure: daysBeforeDeparture,
+          days_before_departure: paymentDeadline,
           payment_plan: {
             allow_auto_payment: true,
             allow_partial_payment: false,
@@ -153,7 +154,7 @@ class WeTravelService {
             installments: [
               {
                 price: totalAmountCents,
-                days_before_departure: daysBeforeDeparture
+                days_before_departure: paymentDeadline
               }
             ]
           }
@@ -170,7 +171,7 @@ class WeTravelService {
           installments: [
             {
               price: remainingAmountCents,
-              days_before_departure: daysBeforeDeparture
+              days_before_departure: paymentDeadline
             }
           ]
         }
