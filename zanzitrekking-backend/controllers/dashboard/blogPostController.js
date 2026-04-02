@@ -71,6 +71,29 @@ class blogPostController {
         categoryValue = null;
       }
 
+      let parsedSeo;
+      try {
+        parsedSeo = req.body.seo 
+          ? (typeof req.body.seo === "string" ? JSON.parse(req.body.seo) : req.body.seo)
+          : {
+              allowSearch: "yes",
+              general: { title: "", description: "", image: null },
+              openGraph: { title: "", description: "", image: null },
+              twitter: { title: "", description: "", image: null },
+            };
+
+        // Map SEO images from req.files
+        ["general", "facebook", "twitter"].forEach((tab) => {
+          const seoFile = req.files?.find((f) => f.fieldname === `seo_${tab}_image`);
+          if (seoFile) {
+            parsedSeo[tab].image = `${basePath}${seoFile.filename}`;
+          }
+        });
+      } catch (e) {
+        logger.error("SEO parsing error in Blog Post:", e);
+        parsedSeo = {}; 
+      }
+
       const blogPostData = {
         mainTitle: req.body.mainTitle,
         slug: await generateUniqueSlug({
@@ -85,6 +108,7 @@ class blogPostController {
           : null,
         mainImage: mainImage ? publicUploadsRef(mainImage.filename) : null,
         creatorSocialLinks: socialLinks,
+        seo: parsedSeo,
         category: categoryValue, // Optional category field
       };
 
@@ -428,6 +452,45 @@ class blogPostController {
           }
         }
       }
+
+      let parsedSeo;
+      try {
+        parsedSeo = req.body.seo 
+          ? (typeof req.body.seo === "string" ? JSON.parse(req.body.seo) : req.body.seo)
+          : (blogPost.seo || {
+              allowSearch: "yes",
+              general: { title: "", description: "", image: null },
+              openGraph: { title: "", description: "", image: null },
+              twitter: { title: "", description: "", image: null },
+            });
+
+        const platforms = ["general", "openGraph", "twitter"];
+        for (const platform of platforms) {
+          const seoFile = req.files.find((f) => f.fieldname === `seo_${platform}_image`);
+          
+          if (seoFile) {
+            const oldImagePath = blogPost.seo?.[platform]?.image;
+            if (oldImagePath) {
+              const oldFileName = path.basename(oldImagePath);
+              const oldPath = path.resolve(__dirname, "..", "..", "public", "uploads", oldFileName);
+              try {
+                await fs.promises.unlink(oldPath);
+                logger.info(`Deleted old SEO ${platform} image:`, oldPath);
+              } catch (err) {
+                logger.error(`Error deleting old SEO ${platform} image: ${err.message}`);
+              }
+            }
+            parsedSeo[platform].image = `${basePath}${seoFile.filename}`;
+          } else {
+            parsedSeo[platform].image = parsedSeo[platform].image || (blogPost.seo?.[platform]?.image || null);
+          }
+        }
+      } catch (e) {
+        logger.error("SEO update parsing error:", e);
+        parsedSeo = blogPost.seo; 
+      }
+
+      updatedData.seo = parsedSeo;
 
       const updatedBlogPost = await blogPostModel.findByIdAndUpdate(
         blogPostId,

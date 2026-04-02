@@ -1,6 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
 import { lazy, Suspense, useEffect, useMemo } from "react";
-import { Helmet } from "react-helmet-async";
 import AOS from "aos";
 
 import Header from "../components/Header";
@@ -9,10 +8,9 @@ import Categories from "../components/Categories";
 import FeatureTrip from "../components/trips/FeatureTrip";
 import Footer from "../components/Footer";
 import SectionDivider from "../components/Home/SectionDivider";
-
 import { get_special_trips } from "../store/reducers/tripReducer";
-
 import SEO from "../components/SEO";
+
 // ✅ Helpers should live OUTSIDE the component rendering cycle to prevent memory leaks and prop recreation.
 const ensureArray = (data) => {
   if (Array.isArray(data)) return data;
@@ -53,15 +51,7 @@ const Home = () => {
     <div className="min-h-screen bg-white">
       <SEO />
       {/* 🚀 SEO METADATA */}
-      <Helmet>
-        <title>Zanzi Trekking | Authentic Safaris & Tours</title>
-        <meta name="description" content="Discover unforgettable trekking and safari experiences in Zanzibar. Explore top-rated tours, guides, and vacation packages today." />
-        <link rel="canonical" href="https://www.yourdomain.com/" />
-        {/* OpenGraph properties for links sharing */}
-        <meta property="og:title" content="Zanzi Trekking | Authentic Safaris & Tours" />
-        <meta property="og:description" content="Discover unforgettable trekking and safari experiences in Zanzibar..." />
-        <meta property="og:type" content="website" />
-      </Helmet>
+      <SEO/>
 
       <Header />
 

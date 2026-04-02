@@ -22,8 +22,8 @@ import {
 } from "../store/reducers/urgentBookingRequestReducer";
 import { safeRedirect } from "../utils/urlValidation";
 import { parse } from "date-fns";
-
 import SEO from "../components/SEO";
+
 const Checkout = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);

@@ -37,6 +37,8 @@ class BannerController {
 
       // Create a new banner document
       const newBanner = await Banner.create({ 
+        title: req.title,
+        description: req.description,
         sharedVideo: sharedVideo,
         banners: bannerData 
       });
@@ -139,6 +141,8 @@ class BannerController {
       // Update the existing banner with the new data
       existingBanner.sharedVideo = newSharedVideo;
       existingBanner.banners = updatedBanners;
+      existingBanner.title= req.title;
+      existingBanner.description = req.description;
 
       // Save the updated banner
       const savedBanner = await existingBanner.save();

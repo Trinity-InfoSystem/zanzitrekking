@@ -17,8 +17,8 @@ import { CartItem } from "../components/Cart/CartItem";
 import { OrderSummary } from "../components/Cart/OrderSummary";
 import toast from "react-hot-toast";
 import { addDays, format, parse, isSameMonth, startOfMonth } from "date-fns";
-
 import SEO from "../components/SEO";
+
 const Cart = () => {
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);

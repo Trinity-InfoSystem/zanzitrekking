@@ -221,6 +221,28 @@ class TripController {
         }
       }
 
+      let seo = {
+        allowSearch: "yes",
+        general: { title: "", description: "", image: null },
+        openGraph: { title: "", description: "", image: null },
+        twitter: { title: "", description: "", image: null },
+      };
+
+      if (req.body.seo) {
+        try {
+          seo = typeof req.body.seo === "string" ? JSON.parse(req.body.seo) : req.body.seo;
+          
+          ["general", "openGraph", "twitter"].forEach((tab) => {
+            const seoFile = req.files.find((f) => f.fieldname === `seo_${tab}_image`);
+            if (seoFile) {
+              seo[tab].image = `${basePath}${seoFile.filename}`;
+            }
+          });
+        } catch (e) {
+          logger.error("SEO parsing failed", e);
+        }
+      }
+
       // Create new trip object
       const newTrip = {
         mainTitle,
@@ -237,6 +259,7 @@ class TripController {
         discount: parseFloat(discount) || 0,
         pricingType,
         days: tripDays,
+        seo,
       };
 
       // Add pricing based on type
@@ -519,6 +542,45 @@ class TripController {
 
       updateFields.days = updatedDays;
 
+      let parsedSeo;
+      try {
+        parsedSeo = req.body.seo 
+          ? (typeof req.body.seo === "string" ? JSON.parse(req.body.seo) : req.body.seo)
+          : (existingTrip.seo || {
+              allowSearch: "yes",
+              general: { title: "", description: "", image: null },
+              openGraph: { title: "", description: "", image: null },
+              twitter: { title: "", description: "", image: null },
+            });
+
+        const platforms = ["general", "openGraph", "twitter"];
+        for (const platform of platforms) {
+          const seoFile = req.files.find((f) => f.fieldname === `seo_${platform}_image`);
+          
+          if (seoFile) {
+            const oldImagePath = existingTrip.seo?.[platform]?.image;
+            if (oldImagePath) {
+              const oldFileName = path.basename(oldImagePath);
+              const oldPath = path.resolve(__dirname, "..", "..", "public", "uploads", oldFileName);
+              try {
+                await fs.promises.unlink(oldPath);
+                logger.info(`Deleted old SEO ${platform} image:`, oldPath);
+              } catch (err) {
+                logger.error(`Error deleting old SEO ${platform} image: ${err.message}`);
+              }
+            }
+            parsedSeo[platform].image = `${basePath}${seoFile.filename}`;
+          } else {
+            parsedSeo[platform].image = parsedSeo[platform].image || (existingTrip.seo?.[platform]?.image || null);
+          }
+        }
+      } catch (e) {
+        logger.error("SEO update parsing error:", e);
+        parsedSeo = existingTrip.seo; 
+      }
+
+      updateFields.seo = parsedSeo;
+
       // Update the trip
       const updatedTrip = await TripModel.findByIdAndUpdate(
         tripId,
@@ -670,7 +732,8 @@ class TripController {
         .sort({ discount: -1 })
         .limit(4)
         .populate("category")
-        .populate("days.accommodation");
+        .populate("days.accommodation")
+        .lean();
 
       const responseData = {
         totalTrips: totalTrips,

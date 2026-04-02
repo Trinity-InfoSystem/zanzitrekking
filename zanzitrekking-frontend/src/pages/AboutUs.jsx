@@ -23,7 +23,9 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import { get_statistic_data } from "../store/reducers/homeReducer";
 import { resolveMediaUrl } from "../utils/imageUtils";
+import { IMAGES_URL } from "../utils/constants";
 import SEO from "../components/SEO";
+
 const AboutUs = () => {
   const dispatch = useDispatch();
   const { whoWeAre } = useSelector((state) => state.aboutUs);

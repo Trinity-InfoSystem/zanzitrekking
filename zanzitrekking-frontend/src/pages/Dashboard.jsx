@@ -21,8 +21,8 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useDispatch, useSelector } from "react-redux";
 import { customer_logout } from "../store/reducers/authReducer";
-
 import SEO from "../components/SEO";
+
 const Dashboard = () => {
   const { userInfo } = useSelector((state) => state.auth);
   const [sidebarOpen, setSidebarOpen] = useState(false);

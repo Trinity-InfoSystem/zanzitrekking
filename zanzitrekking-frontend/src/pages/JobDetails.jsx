@@ -149,12 +149,21 @@ const JobDetails = () => {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50">
       {job?._id && (
         <SEO
-          title={`${job.title} | Careers at Zanzi Safaris`}
-          description={job.description}
-          type="job"
-          data={job}
+            title={job.seo?.general?.title}
+            description={job.seo?.general?.description}
+            image={job.seo?.general?.image || (job.images?.[0] ? IMAGES_URL + job.images[0] : null)}
+            ogTitle={job.seo?.openGraph?.title}
+            ogDescription={job.seo?.openGraph?.description}
+            
+            twitterTitle={job.seo?.twitter?.title}
+            twitterDescription={job.seo?.twitter?.description}
+            data={job}
+            type="job"
+            robots={job.seo?.allowSearch === "no" ? "noindex, nofollow" : "index, follow"}
         />
       )}
+
+     
       <Header categories={categories} />
 
       {/* Enhanced Hero Section */}

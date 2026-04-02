@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import AOS from "aos";
 import "aos/dist/aos.css";
-
 import SEO from "../components/SEO";
+
 const ContactUs = () => {
   useEffect(() => {
     AOS.init({
