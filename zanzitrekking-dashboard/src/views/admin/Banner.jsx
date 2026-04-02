@@ -49,6 +49,8 @@ const Banner = () => {
           image: null,
         },
       ],
+      title:"",
+      description:"",
       sharedVideo: null,
     },
   });
@@ -70,9 +72,11 @@ const Banner = () => {
         banners: banner.banners.map((b) => ({
           title: b.title || "",
           description: b.description || "",
-          image: null, // Keep as null, use imageUrl for preview
+          image: b.image, // Keep as null, use imageUrl for preview
         })),
         sharedVideo: null,
+        title:banner.title,
+        description:banner.description
       });
 
       // Set shared video
@@ -144,6 +148,10 @@ const Banner = () => {
   const onSubmit = (data) => {
     const formData = new FormData();
 
+    // Add Title and description
+    formData.append("title", data.title || "");
+    formData.append("description", data.description || "");
+
     // Add shared video
     if (sharedVideoFile) {
       formData.append("sharedVideo", sharedVideoFile);
@@ -158,6 +166,7 @@ const Banner = () => {
       formData.append(`banners[${index}][title]`, bannerItem.title || "");
       formData.append(`banners[${index}][description]`, bannerItem.description || "");
     });
+    console.log(formData);
 
     if (banner) {
       dispatch(update_banner(formData));
@@ -287,6 +296,38 @@ const Banner = () => {
                         disabled={isViewer(role)}
                       />
                     </label>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-primary-800">
+                      Title *
+                    </label>
+                    <input
+                      {...register(`title`)}
+                      type="text"
+                      placeholder="Enter compelling title"
+                      className={`w-full rounded-xl border-2 bg-white px-4 py-3 text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 ${
+                        
+                          "border-primary-200 focus:border-secondary focus:ring-secondary-200"
+                      }`}
+                    />
+                    {/* {titleError && (
+                      <p className="mt-1 text-xs text-red-600">
+                        {titleError.message}
+                      </p>
+                    )} */}
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-primary-800">
+                      Description *
+                    </label>
+                    <textarea
+                      {...register(`description`)}
+                      placeholder="Write engaging description"
+                      rows={5}
+                      className="w-full resize-none rounded-xl border-2 border-primary-200 bg-white px-4 py-3 text-text-dark placeholder:text-text-light focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary-200"
+                    />
                   </div>
                 </div>
 
