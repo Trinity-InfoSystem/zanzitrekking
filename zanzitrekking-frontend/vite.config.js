@@ -139,9 +139,10 @@ export default defineConfig(({ mode }) => {
               return "react-vendor";
             }
 
-            // 6. MUI - depends on React
+            // 6. MUI + Emotion — keep in react-vendor to avoid a circular chunk edge
+            // (ui-vendor <-> react-vendor) that surfaces as "Cannot access before initialization" in prod.
             if (id.includes("@mui/material") || id.includes("@emotion")) {
-              return "ui-vendor";
+              return "react-vendor";
             }
 
             // 7. React Leaflet - depends on React
@@ -163,9 +164,9 @@ export default defineConfig(({ mode }) => {
               return "react-vendor";
             }
 
-            // 8. Non-React utility libraries
+            // 8. Axios / date-fns — keep in react-vendor to avoid utils-vendor <-> react-vendor cycles
             if (id.includes("axios") || id.includes("date-fns")) {
-              return "utils-vendor";
+              return "react-vendor";
             }
 
             // 9. Handle remaining node_modules - check specific ones first
@@ -175,7 +176,7 @@ export default defineConfig(({ mode }) => {
                 return "animation";
               }
               if (id.includes("socket.io")) {
-                return "socket-vendor";
+                return "react-vendor";
               }
               if (id.includes("stripe")) {
                 return "payment-vendor";
@@ -187,7 +188,7 @@ export default defineConfig(({ mode }) => {
                 return "swiper-vendor";
               }
               if (id.includes("jwt-decode")) {
-                return "utils-vendor";
+                return "react-vendor";
               }
               
               // CRITICAL: Check for React-related packages BEFORE allowing vendor
