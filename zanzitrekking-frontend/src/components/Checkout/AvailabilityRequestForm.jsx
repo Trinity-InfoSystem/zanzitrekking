@@ -7,7 +7,8 @@ import { AlertCircle, Calendar, Package, Send, Users } from "lucide-react";
 import { parse } from "date-fns";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { urgentBookingRequestSchema } from "../../utils/validationSchemas";
+import { personalInfoSchema } from "../../utils/validationSchemas";
+import * as yup from "yup";
 
 const AvailabilityRequestForm = ({
   blockedTrips,
@@ -25,7 +26,7 @@ const AvailabilityRequestForm = ({
     watch,
     formState: { errors },
   } = useForm({
-    resolver: yupResolver(urgentBookingRequestSchema),
+    resolver: yupResolver(yup.object({ personalInfo: personalInfoSchema.required() })),
     defaultValues: {
       personalInfo: {
         firstName: parentFormData?.personalInfo?.firstName || userInfo?.name?.split(" ")[0] || "",
@@ -116,47 +117,7 @@ const AvailabilityRequestForm = ({
           tripStartUTC = new Date(Date.UTC(localYear, localMonth, localDay, 0, 0, 0, 0));
         }
 
-        const daysUntilTrip = Math.ceil((tripStartUTC.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24));
-
-        // Check if trip should actually be blocked based on rules
-        // IMPORTANT: Match the checkout logic exactly
-        // - Block trips that start today or in the past (daysUntilTrip < 1)
-        // - Cultural/Trekking/Zanzibar: block tomorrow (daysUntilTrip === 1)
-        // - Safari Budget: block tomorrow (daysUntilTrip === 1)
-        // - Safari Mid/Lux: block 1-4 days (daysUntilTrip >= 1 && daysUntilTrip <= 4)
-        const categoryName = (blockedTrip.categoryName || blockedTrip.trip?.category?.name || "").toLowerCase();
-        const isSafari = categoryName.includes("safari");
-        const isCultural = categoryName.includes("cultural");
-        const isTrekking = categoryName.includes("trekking");
-        const isZanzibar = categoryName.includes("zanzibar");
-        const isBudget = blockedTrip.selectedCategory === "standard";
-        const isMidOrLux = blockedTrip.selectedCategory === "midRange" || blockedTrip.selectedCategory === "luxury";
-        
-        let shouldBeBlocked = false;
-        
-        // Block trips that start today or in the past (matching checkout logic)
-        if (daysUntilTrip < 1) {
-          shouldBeBlocked = true;
-        }
-        // Cultural / Trekking / Zanzibar (all packages): block tomorrow
-        else if (isCultural || isTrekking || isZanzibar) {
-          shouldBeBlocked = daysUntilTrip === 1;
-        }
-        // Safaris
-        else if (isSafari) {
-          // Budget Safaris: block tomorrow
-          if (isBudget) {
-            shouldBeBlocked = daysUntilTrip === 1;
-          }
-          // Mid-Range / Luxury Safaris: block 1–4 days
-          else if (isMidOrLux) {
-            shouldBeBlocked = daysUntilTrip >= 1 && daysUntilTrip <= 4;
-          }
-        }
-
-        if (!shouldBeBlocked) {
-          continue;
-        }
+        // We only use trips that were identified as blocked by Checkout.jsx
 
         // Get the correct trip ID - prefer tripId, fallback to trip._id or trip.tripId
         const tripId = blockedTrip.tripId || blockedTrip.trip?._id || blockedTrip.trip?.tripId;

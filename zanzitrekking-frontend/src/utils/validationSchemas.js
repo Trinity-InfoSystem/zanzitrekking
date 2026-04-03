@@ -218,5 +218,5 @@ export const urgentBookingRequestSchema = yup.object({
     .max(100, "Travelers number cannot exceed 100")
     .required("Travelers number is required"),
   personalInfo: personalInfoSchema.required(),
-  billingAddress: billingAddressSchema.optional(),
+  billingAddress: billingAddressSchema.nullable(),
 });

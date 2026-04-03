@@ -23,7 +23,7 @@ const createUrgentBookingRequestSchema = Joi.object({
     "any.required": "Travelers number is required",
   }),
   personalInfo: personalInfoSchema.required(),
-  billingAddress: billingAddressSchema,
+  billingAddress: billingAddressSchema.allow(null).optional(),
 });
 
 module.exports = {
