@@ -194,6 +194,9 @@ export const tripReducer = createSlice({
       state.overallTrips = payload.overallTrips ?? payload.totalTrips ?? state.overallTrips;
       state.successMessage = payload.message;
       state.loader = false;
+      if (typeof window !== "undefined") {
+        window.prerenderReady = true;
+      }
     });
     builder.addCase(query_trips.rejected, (state, { payload }) => {
       state.loader = false;

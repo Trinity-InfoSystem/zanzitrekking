@@ -25,7 +25,6 @@ import "aos/dist/aos.css";
 import { sanitizeToText } from "../utils/sanitize";
 import SEO from "../components/SEO";
 
-import SEO from "../components/SEO";
 const Jobs = () => {
   const [perPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,13 +74,15 @@ const Jobs = () => {
       text = job.description;
     }
     if (text.length > 150) {
-      return `${text.substring(0, 150).trim()  }...`;
+      return `${text.substring(0, 150).trim()}...`;
     }
     return text;
   };
 
   const formatEmploymentType = (type) => {
-    if (!type) {return "";}
+    if (!type) {
+      return "";
+    }
     return type
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -217,7 +218,8 @@ const Jobs = () => {
                         Find Your Role
                       </h2>
                       <p className="text-sm font-medium text-neutral-600 lg:text-base">
-                        {totalJobs} open position{totalJobs !== 1 ? "s" : ""} available
+                        {totalJobs} open position{totalJobs !== 1 ? "s" : ""}{" "}
+                        available
                       </p>
                     </div>
                   </div>
@@ -316,7 +318,7 @@ const Jobs = () => {
                     >
                       {/* Background gradient on hover */}
                       <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br from-primary-100 to-emerald-100 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
-                      <div className="absolute -left-12 -bottom-12 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-100 to-primary-100 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
+                      <div className="absolute -bottom-12 -left-12 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-100 to-primary-100 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
 
                       {hasApplied && (
                         <div className="absolute right-4 top-4 z-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
@@ -349,8 +351,10 @@ const Jobs = () => {
 
                         {job.salaryRange && (
                           <div className="group/salary mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-transparent px-4 py-3 transition-all duration-300 hover:border-emerald-300 hover:shadow-md">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-md transition-transform duration-300 group-hover/salary:scale-110 group-hover/salary:rotate-3">
-                              <span className="text-xs font-bold text-white">$</span>
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-md transition-transform duration-300 group-hover/salary:rotate-3 group-hover/salary:scale-110">
+                              <span className="text-xs font-bold text-white">
+                                $
+                              </span>
                             </div>
                             <p className="text-sm font-bold text-neutral-900">
                               {job.salaryRange.startsWith("$")

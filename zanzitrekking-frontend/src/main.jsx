@@ -9,6 +9,14 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { HelmetProvider } from "react-helmet-async";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
+if (typeof window !== "undefined") {
+  window.setTimeout(() => {
+    if (window.prerenderReady !== true) {
+      window.prerenderReady = true;
+    }
+  }, 10000);
+}
+
 // ✅ Add a proper loading component
 const PageLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-white">
