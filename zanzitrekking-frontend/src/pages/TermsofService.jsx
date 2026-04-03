@@ -331,8 +331,8 @@ const TermsOfService = () => {
 
                 <p className="mb-6 text-base text-text-light">
                   As a participant in our safaris and treks, you agree to the
-                  following responsibilities to ensure everyone&apos;s safety and
-                  enjoyment.
+                  following responsibilities to ensure everyone&apos;s safety
+                  and enjoyment.
                 </p>
 
                 <div className="grid gap-4 md:grid-cols-2">

@@ -10,7 +10,7 @@ import {
 } from "../store/reducers/orderReducer";
 import { resolveMediaUrl } from "../utils/imageUtils";
 import QRCodeDisplay from "../components/QRCodeDisplay";
-import CircularProgress from '@mui/material/CircularProgress'
+import CircularProgress from "@mui/material/CircularProgress";
 import SEO from "../components/SEO";
 
 const OrderConfirmation = () => {
@@ -24,40 +24,39 @@ const OrderConfirmation = () => {
   const [orderDetails, setOrderDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const intervalRef = useRef(null)
-  const [checkingStatus, setCheckingStatus] = useState(false)
+  const intervalRef = useRef(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   // Get order details from location state or fetch from API
   useEffect(() => {
-
     const { orderId } = location.state || {};
 
     if (orderId) {
-      const orderTimestamp = window.localStorage.getItem(orderId)
+      const orderTimestamp = window.localStorage.getItem(orderId);
 
-      if (orderTimestamp && (Date.now() / 1000) - orderTimestamp > 5) {
-        setCheckingStatus(true)
+      if (orderTimestamp && Date.now() / 1000 - orderTimestamp > 5) {
+        setCheckingStatus(true);
         if (!intervalRef.current) {
           intervalRef.current = setInterval(() => {
             dispatch(getOrderById(orderId))
-            .then((result) => {
-              if (result.payload) {
-                setOrderDetails(result.payload.order);
-              }
-              
-              const status = result.payload.order.orderStatus
-  
-              if (status === 'confirmed') {
-                setCheckingStatus(false)
-                clearInterval(intervalRef.current)            
-              }
-            })
-            .catch(() => {
-              setCheckingStatus(false)
-                clearInterval(intervalRef.current)
-                console.log(e)
-            });
-          }, 5000)
+              .then((result) => {
+                if (result.payload) {
+                  setOrderDetails(result.payload.order);
+                }
+
+                const status = result.payload.order.orderStatus;
+
+                if (status === "confirmed") {
+                  setCheckingStatus(false);
+                  clearInterval(intervalRef.current);
+                }
+              })
+              .catch(() => {
+                setCheckingStatus(false);
+                clearInterval(intervalRef.current);
+                console.log(e);
+              });
+          }, 5000);
         }
       }
     }
@@ -147,14 +146,19 @@ const OrderConfirmation = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const locationState = location.state || {};
   const orderIdFromUrl = urlParams.get("orderId");
-  const paymentCancelled = urlParams.get("cancelled") === "true" || 
-                          urlParams.get("payment_cancelled") === "true" ||
-                          urlParams.get("cancel") === "true" ||
-                          locationState.paymentCancelled === true;
+  const paymentCancelled =
+    urlParams.get("cancelled") === "true" ||
+    urlParams.get("payment_cancelled") === "true" ||
+    urlParams.get("cancel") === "true" ||
+    locationState.paymentCancelled === true;
 
   // If payment is cancelled, redirect to booking page immediately
   useEffect(() => {
-    if (paymentCancelled && (orderIdFromUrl || orderDetails?._id) && !isLoading) {
+    if (
+      paymentCancelled &&
+      (orderIdFromUrl || orderDetails?._id) &&
+      !isLoading
+    ) {
       const orderId = orderIdFromUrl || orderDetails?._id;
       // Redirect to booking detail page instead of staying on order confirmation
       navigate(`/dashboard/orders/${orderId}`, {
@@ -164,7 +168,13 @@ const OrderConfirmation = () => {
         },
       });
     }
-  }, [paymentCancelled, orderIdFromUrl, orderDetails?._id, isLoading, navigate]);
+  }, [
+    paymentCancelled,
+    orderIdFromUrl,
+    orderDetails?._id,
+    isLoading,
+    navigate,
+  ]);
 
   if (isLoading) {
     return (
@@ -209,8 +219,8 @@ const OrderConfirmation = () => {
                 Booking Not Found
               </h1>
               <p className="mb-8 text-gray-600">
-                We couldn&apos;t find the booking details. Please check your booking
-                history or contact support.
+                We couldn&apos;t find the booking details. Please check your
+                booking history or contact support.
               </p>
               <div className="space-x-4">
                 <button
@@ -236,13 +246,14 @@ const OrderConfirmation = () => {
 
   // Determine payment status
   const paymentStatus = orderDetails?.payment?.status;
-  const isPaymentPending = paymentStatus === "pending" || paymentStatus === "processing";
+  const isPaymentPending =
+    paymentStatus === "pending" || paymentStatus === "processing";
   const isPaymentCompleted = paymentStatus === "completed";
   const isPaymentFailed = paymentStatus === "failed" || paymentCancelled;
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <SEO/>
+      <SEO />
       <Header />
       <main className="flex-grow py-12">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
@@ -263,7 +274,8 @@ const OrderConfirmation = () => {
                 🎉 Payment Confirmed!
               </h1>
               <p className="text-lg text-gray-600">
-                Your booking has been confirmed. We&apos;ll send you a confirmation email shortly.
+                Your booking has been confirmed. We&apos;ll send you a
+                confirmation email shortly.
               </p>
             </div>
           ) : isPaymentFailed ? (
@@ -282,7 +294,8 @@ const OrderConfirmation = () => {
                 Payment Not Completed
               </h1>
               <p className="text-lg text-gray-600">
-                Your payment was cancelled or failed. Don&apos;t worry, your booking is still reserved.
+                Your payment was cancelled or failed. Don&apos;t worry, your
+                booking is still reserved.
               </p>
             </div>
           ) : (
@@ -301,7 +314,8 @@ const OrderConfirmation = () => {
                 Booking Reserved
               </h1>
               <p className="text-lg text-gray-600">
-                Thank you for your booking. Please complete your payment to secure your reservation.
+                Thank you for your booking. Please complete your payment to
+                secure your reservation.
               </p>
             </div>
           )}
@@ -332,7 +346,9 @@ const OrderConfirmation = () => {
                     ⚠️ Payment Not Completed
                   </h3>
                   <p className="mb-4 text-gray-700">
-                    Your payment was cancelled or could not be processed. Your booking is still reserved, but you need to complete payment to confirm it.
+                    Your payment was cancelled or could not be processed. Your
+                    booking is still reserved, but you need to complete payment
+                    to confirm it.
                   </p>
                   <div className="mb-4 rounded-lg border border-red-200 bg-white p-4">
                     <p className="mb-2 text-sm font-semibold text-gray-900">
@@ -340,7 +356,9 @@ const OrderConfirmation = () => {
                     </p>
                     <ul className="list-inside list-disc space-y-1 text-sm text-gray-600">
                       <li>You may have closed the payment window</li>
-                      <li>There might have been an issue with your payment method</li>
+                      <li>
+                        There might have been an issue with your payment method
+                      </li>
                       <li>The payment session may have expired</li>
                     </ul>
                   </div>
@@ -349,7 +367,9 @@ const OrderConfirmation = () => {
                       ✅ Good news: Your booking is still reserved!
                     </p>
                     <p className="text-sm text-green-800">
-                      You can complete your payment anytime using the button below. Your booking will be confirmed once payment is successful.
+                      You can complete your payment anytime using the button
+                      below. Your booking will be confirmed once payment is
+                      successful.
                     </p>
                   </div>
                   <a
@@ -405,11 +425,14 @@ const OrderConfirmation = () => {
                 ? new Date(item.startingDate)
                 : null;
 
-              if (!startingDate) {continue;}
+              if (!startingDate) {
+                continue;
+              }
 
               startingDate.setHours(0, 0, 0, 0);
               const daysUntilTrip = Math.ceil(
-                (startingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+                (startingDate.getTime() - today.getTime()) /
+                  (1000 * 60 * 60 * 24),
               );
 
               // Budget packages - no restriction
@@ -430,9 +453,15 @@ const OrderConfirmation = () => {
               // Only Midrange/Luxury Safaris with less than 4 days need warning
               const isSafari = categoryLower.includes("safari");
               const isMidrangeOrLuxury =
-                selectedCategory === "midRange" || selectedCategory === "luxury";
+                selectedCategory === "midRange" ||
+                selectedCategory === "luxury";
 
-              if (isSafari && isMidrangeOrLuxury && daysUntilTrip < 4 && daysUntilTrip >= 1) {
+              if (
+                isSafari &&
+                isMidrangeOrLuxury &&
+                daysUntilTrip < 4 &&
+                daysUntilTrip >= 1
+              ) {
                 warningTrip = { item, daysUntilTrip };
                 break;
               }
@@ -463,16 +492,17 @@ const OrderConfirmation = () => {
                       ⚠️ Contact Required Before Payment
                     </h3>
                     <p className="mb-3 text-sm font-medium text-orange-800">
-                      This Midrange/Luxury Safari trip starts in less than 4 days (
-                      {warningTrip.daysUntilTrip} day
-                      {warningTrip.daysUntilTrip > 1 ? "s" : ""}). Please contact us
-                      first to confirm availability before completing your payment.
+                      This Midrange/Luxury Safari trip starts in less than 4
+                      days ({warningTrip.daysUntilTrip} day
+                      {warningTrip.daysUntilTrip > 1 ? "s" : ""}). Please
+                      contact us first to confirm availability before completing
+                      your payment.
                     </p>
                     <div className="rounded-lg border border-orange-200 bg-white/70 p-4">
                       <p className="text-sm text-orange-700">
                         <strong>Important:</strong> Please contact us to confirm
-                        availability before completing payment. This ensures your
-                        reservation can be properly confirmed.
+                        availability before completing payment. This ensures
+                        your reservation can be properly confirmed.
                       </p>
                     </div>
                   </div>
@@ -482,88 +512,95 @@ const OrderConfirmation = () => {
           })()}
 
           {/* Payment Link Section - Only show if payment is pending/processing and not failed */}
-          {isPaymentPending && orderDetails.payment?.weTravelPaymentLink && !isPaymentFailed && (
-            <div className="mb-8 rounded-xl border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-6 shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
-                    <svg
-                      className="h-6 w-6 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+          {isPaymentPending &&
+            orderDetails.payment?.weTravelPaymentLink &&
+            !isPaymentFailed && (
+              <div className="mb-8 rounded-xl border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 p-6 shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
+                      <svg
+                        className="h-6 w-6 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="mb-2 text-xl font-bold text-gray-900">
-                    {
-                      checkingStatus ? (
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-xl font-bold text-gray-900">
+                      {checkingStatus ? (
                         <>
                           Confirming your payment status, Please wait
-                          <CircularProgress className="ml-2" color="orange" size="16px" />
+                          <CircularProgress
+                            className="ml-2"
+                            color="orange"
+                            size="16px"
+                          />
                         </>
-                      ) : `🚨 Payment Required - Act Now!`
-                    }
-                  </h3>
-                  <p className="mb-4 text-gray-700">
-                    Your booking is reserved but <strong>not confirmed</strong>{" "}
-                    until payment is completed. Please click the button below to
-                    proceed with payment as soon as possible.
-                  </p>
-                  <div className="mb-4 rounded-lg border border-orange-200 bg-white p-4">
-                    <p className="mb-2 text-sm text-gray-600">
-                      <strong>Important:</strong> Unpaid bookings may be
-                      cancelled. Complete your payment to secure your spot!
+                      ) : (
+                        `🚨 Payment Required - Act Now!`
+                      )}
+                    </h3>
+                    <p className="mb-4 text-gray-700">
+                      Your booking is reserved but{" "}
+                      <strong>not confirmed</strong> until payment is completed.
+                      Please click the button below to proceed with payment as
+                      soon as possible.
                     </p>
-                    <p className="text-sm text-gray-500">
-                      You will receive email reminders until payment is
-                      completed.
-                    </p>
+                    <div className="mb-4 rounded-lg border border-orange-200 bg-white p-4">
+                      <p className="mb-2 text-sm text-gray-600">
+                        <strong>Important:</strong> Unpaid bookings may be
+                        cancelled. Complete your payment to secure your spot!
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        You will receive email reminders until payment is
+                        completed.
+                      </p>
+                    </div>
+                    <a
+                      href={orderDetails.payment.weTravelPaymentLink}
+                      className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:from-orange-600 hover:to-red-600 hover:shadow-xl"
+                    >
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                      </svg>
+                      Complete Payment Now
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 7l5 5m0 0l-5 5m5-5H6"
+                        />
+                      </svg>
+                    </a>
                   </div>
-                  <a
-                    href={orderDetails.payment.weTravelPaymentLink}
-                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:from-orange-600 hover:to-red-600 hover:shadow-xl"
-                  >
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                    Complete Payment Now
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
-                  </a>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Order Summary Card */}
           <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
@@ -573,7 +610,10 @@ const OrderConfirmation = () => {
                   Booking Summary
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Booking Reference: <span className="font-semibold text-gray-700">#{orderDetails.orderNumber}</span>
+                  Booking Reference:{" "}
+                  <span className="font-semibold text-gray-700">
+                    #{orderDetails.orderNumber}
+                  </span>
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
                   Order ID: {orderDetails._id}
@@ -590,8 +630,11 @@ const OrderConfirmation = () => {
                   Booked on {formatDate(orderDetails.createdAt)}
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  Payment Status: <span className={`font-semibold ${isPaymentCompleted ? 'text-green-600' : isPaymentPending ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {paymentStatus || 'pending'}
+                  Payment Status:{" "}
+                  <span
+                    className={`font-semibold ${isPaymentCompleted ? "text-green-600" : isPaymentPending ? "text-yellow-600" : "text-red-600"}`}
+                  >
+                    {paymentStatus || "pending"}
                   </span>
                 </p>
               </div>
@@ -685,8 +728,9 @@ const OrderConfirmation = () => {
               <QRCodeDisplay orderNumber={orderDetails.orderNumber} />
               <div className="mt-6 rounded-lg bg-white/80 p-4 text-center">
                 <p className="text-sm text-gray-700">
-                  <strong>Important:</strong> Save this QR code to your phone or print it. 
-                  Present it at check-in for quick access to your booking details.
+                  <strong>Important:</strong> Save this QR code to your phone or
+                  print it. Present it at check-in for quick access to your
+                  booking details.
                 </p>
               </div>
             </div>
@@ -760,8 +804,8 @@ const OrderConfirmation = () => {
               <div className="flex items-start gap-3">
                 <div className="mt-1 h-2 w-2 rounded-full bg-blue-600"></div>
                 <p>
-                  You&apos;ll receive daily email reminders until your payment is
-                  completed.
+                  You&apos;ll receive daily email reminders until your payment
+                  is completed.
                 </p>
               </div>
               <div className="flex items-start gap-3">
@@ -774,7 +818,8 @@ const OrderConfirmation = () => {
               <div className="flex items-start gap-3">
                 <div className="mt-1 h-2 w-2 rounded-full bg-blue-600"></div>
                 <p>
-                  You can track your booking and payment status in your dashboard.
+                  You can track your booking and payment status in your
+                  dashboard.
                 </p>
               </div>
               <div className="flex items-start gap-3">
