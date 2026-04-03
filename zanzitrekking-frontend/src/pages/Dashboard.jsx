@@ -290,7 +290,7 @@ const Dashboard = () => {
 
           {/* Main Content */}
           <main className="flex-1 transition-all duration-300">
-            <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft">
+            <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-soft mt-6">
               <Suspense
                 fallback={
                   <div className="flex min-h-[500px] items-center justify-center p-8">
