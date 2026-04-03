@@ -15,6 +15,111 @@ const statusStyles = {
 const statusLabel = (status = "") =>
   status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
 
+const RequestCard = ({ req }) => {
+  const trip = req.tripId || {};
+  const imageName = trip.mainImage
+    ? resolveMediaUrl(trip.mainImage)
+    : "/placeholder.svg";
+  const style = statusStyles[req.status] || statusStyles.pending;
+
+  return (
+    <div className={`rounded-xl border p-5${style}`}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-4">
+          <div className="h-16 w-16 overflow-hidden rounded-lg bg-white/60">
+            <img
+              src={imageName}
+              alt={trip.mainTitle || "Trip"}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-bold">
+                {trip.mainTitle || req.tripTitle || "Trip"}
+              </h3>
+              <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold">
+                {statusLabel(req.status)}
+              </span>
+            </div>
+            <div className="mt-1 text-sm opacity-90">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Request ID:</span>{" "}
+                <span className="font-mono text-xs">{req._id}</span>
+                <button
+                  onClick={() => handleCopyRequestId(req._id)}
+                  className="text-primary-600 hover:text-primary-800"
+                  title="Copy Request ID"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+              </div>
+              <div>
+                <span className="font-semibold">Requested Date:</span>{" "}
+                {new Date(req.requestedDate).toLocaleDateString()}
+              </div>
+              <div>
+                <span className="font-semibold">Package:</span>{" "}
+                {req.selectedCategory === "standard"
+                  ? "Budget"
+                  : req.selectedCategory === "midRange"
+                    ? "Mid-Range"
+                    : "Luxury"}
+                {" · "}
+                <span className="font-semibold">Travelers:</span>{" "}
+                {req.travelersNumber || 1}
+              </div>
+            </div>
+            {req.status === "rejected" && req.rejectedReason && (
+              <div className="mt-3 rounded-lg bg-white/70 p-2 text-sm">
+                <span className="font-semibold">Rejected Reason:</span>{" "}
+                {req.rejectedReason}
+              </div>
+            )}
+            {req.status === "approved" && (
+              <div className="mt-3 rounded-lg bg-white/70 p-2 text-sm">
+                Your request is approved. You can proceed to checkout.
+              </div>
+            )}
+
+          </div>
+        </div>
+
+        {/* Show action buttons */}
+        <div className="sm:ml-4 flex flex-col gap-2 sm:flex-row">
+          {req.status === "approved" && (
+            <button
+              onClick={() => handleProceedToCheckout(req)}
+              className="w-full rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-2 text-sm font-semibold text-white shadow-soft transition-all hover:from-primary-700 hover:to-primary-800 sm:w-auto"
+            >
+              Proceed to Checkout
+            </button>
+          )}
+          {req.status === "rejected" && (
+            <button
+              onClick={() => handleDeleteRequest(req._id)}
+              disabled={deletingId === req._id}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-soft transition-all hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+            >
+              {deletingId === req._id ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash className="h-4 w-4" />
+                  <span>Delete</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MyBookingRequests = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -118,111 +223,6 @@ const MyBookingRequests = () => {
   const handleCopyRequestId = (requestId) => {
     navigator.clipboard.writeText(requestId);
     toast.success("Request ID copied to clipboard!");
-  };
-
-  const RequestCard = ({ req }) => {
-    const trip = req.tripId || {};
-    const imageName = trip.mainImage
-      ? resolveMediaUrl(trip.mainImage)
-      : "/placeholder.svg";
-    const style = statusStyles[req.status] || statusStyles.pending;
-
-    return (
-      <div className={`rounded-xl border p-5 ${style}`}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex gap-4">
-            <div className="h-16 w-16 overflow-hidden rounded-lg bg-white/60">
-              <img
-                src={imageName}
-                alt={trip.mainTitle || "Trip"}
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-bold">
-                  {trip.mainTitle || req.tripTitle || "Trip"}
-                </h3>
-                <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold">
-                  {statusLabel(req.status)}
-                </span>
-              </div>
-              <div className="mt-1 text-sm opacity-90">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">Request ID:</span>{" "}
-                  <span className="font-mono text-xs">{req._id}</span>
-                  <button
-                    onClick={() => handleCopyRequestId(req._id)}
-                    className="text-primary-600 hover:text-primary-800"
-                    title="Copy Request ID"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                </div>
-                <div>
-                  <span className="font-semibold">Requested Date:</span>{" "}
-                  {new Date(req.requestedDate).toLocaleDateString()}
-                </div>
-                <div>
-                  <span className="font-semibold">Package:</span>{" "}
-                  {req.selectedCategory === "standard"
-                    ? "Budget"
-                    : req.selectedCategory === "midRange"
-                      ? "Mid-Range"
-                      : "Luxury"}
-                  {" · "}
-                  <span className="font-semibold">Travelers:</span>{" "}
-                  {req.travelersNumber || 1}
-                </div>
-              </div>
-              {req.status === "rejected" && req.rejectedReason && (
-                <div className="mt-3 rounded-lg bg-white/70 p-2 text-sm">
-                  <span className="font-semibold">Rejected Reason:</span>{" "}
-                  {req.rejectedReason}
-                </div>
-              )}
-              {req.status === "approved" && (
-                <div className="mt-3 rounded-lg bg-white/70 p-2 text-sm">
-                  Your request is approved. You can proceed to checkout.
-                </div>
-              )}
-
-            </div>
-          </div>
-
-          {/* Show action buttons */}
-          <div className="sm:ml-4 flex flex-col gap-2 sm:flex-row">
-            {req.status === "approved" && (
-              <button
-                onClick={() => handleProceedToCheckout(req)}
-                className="w-full rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 px-4 py-2 text-sm font-semibold text-white shadow-soft transition-all hover:from-primary-700 hover:to-primary-800 sm:w-auto"
-              >
-                Proceed to Checkout
-              </button>
-            )}
-            {req.status === "rejected" && (
-              <button
-                onClick={() => handleDeleteRequest(req._id)}
-                disabled={deletingId === req._id}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-soft transition-all hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
-              >
-                {deletingId === req._id ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash className="h-4 w-4" />
-                    <span>Delete</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
