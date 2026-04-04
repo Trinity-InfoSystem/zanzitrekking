@@ -1,26 +1,5 @@
 # Apache configuration for SPA routing
 
-# --- Prerender: crawlers only (proxy to self-hosted prerender on VPS) ---
-# Requires: mod_rewrite, mod_proxy, mod_proxy_http
-# REPLACE YOUR_VPS_IP with your Hetzner (or other) VPS public IP
-# REPLACE yourdomain.com with your actual domain (no https:// here)
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-
-  # Crawler user-agents → prerender (same idea as prerender-node middleware)
-  RewriteCond %{HTTP_USER_AGENT} (Googlebot|Bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|Sogou|Exabot|facebookexternalhit|Twitterbot|rogerbot|linkedinbot|embedly|quora[\s]link[\s]preview|showyoubot|outbrain|pinterest|developers\.google\.com/\+/web/snippet|slackbot|vkShare|W3C_Validator|redditbot|Applebot|WhatsApp|FlipboardProxy|tumblr|bitlybot|SkypeUriPreview|nuzzel|Discordbot|Google[\s]Page[\s]Speed|Qwantify|pinterestbot|Bitrix[\s]link[\s]preview|XING-contenttabreceiver|Chrome-Lighthouse|telegrambot) [NC]
-  # Skip static assets
-  RewriteCond %{REQUEST_URI} !\.(js|css|xml|less|png|jpg|jpeg|gif|pdf|doc|txt|ico|rss|zip|mp3|rar|exe|wmv|avi|ppt|mpg|mpeg|tif|wav|mov|psd|ai|xls|mp4|m4a|swf|dat|dmg|iso|flv|m4v|torrent|ttf|woff|woff2|svg)$ [NC]
-  # Whitelist same paths as prerender-server/plugins/pathWhitelist.js
-  RewriteCond %{REQUEST_URI} ^/(trips/?$|trip/details/|blog($|/)|about/?$|contact/?$) [NC]
-  RewriteRule ^(.*)$ http://YOUR_VPS_IP:3000/https://yourdomain.com$1 [P,L]
-</IfModule>
-
-<IfModule mod_proxy_http.c>
-  ProxyRequests Off
-</IfModule>
-
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
