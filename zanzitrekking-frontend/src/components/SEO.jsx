@@ -1,30 +1,11 @@
 /*
- * PRERENDER / SEO AUDIT (read-only notes; component logic unchanged)
- * ------------------------------------------------------------------
- * Synchronous vs async meta:
- *   - On mount, Helmet renders title, meta description/keywords, robots, OG, Twitter,
- *     canonical, and JSON-LD from (1) explicit props, (2) routeConfig via getRouteConfig(pathname),
- *     (3) fallbacks. That is synchronous for a given render — there is no await inside SEO.
- *   - If props are omitted, values come from static route metadata in routes.js immediately;
- *     they are not fetched asynchronously inside this component.
+ * SEO notes (read-only; component logic unchanged)
+ * -------------------------------------------------
+ * Meta is synchronous for a given render: Helmet outputs title, description, OG, JSON-LD from
+ * props, routeConfig, or fallbacks — there is no await inside SEO.
  *
- * Trip detail (/trip/details/:slug):
- *   - TripDetails only renders <SEO> when trip?._id is truthy, after get_trip completes and
- *     loading is false. Until then, the page shows a loading shell with NO <SEO>; the document
- *     keeps whatever default title/meta came from index.html / parent. So for prerender, the
- *     critical window is after the trip payload exists: then title, description, image, and
- *     type="trip" JSON-LD reflect trip + trip.seo fields when provided.
- *   - If trip.seo.general title/description/image are missing, SEO falls back to routeConfig
- *     defaults for /trip/details/:slug (generic copy), not necessarily mainTitle/hero image.
- *   - Minimal improvement (not applied here): render a minimal <SEO> on the loading branch with
- *     noindex or static title, or pass mainTitle from a skeleton route; and/or default og:image
- *     to the first trip image when trip.seo.general.image is absent (some of this is partially
- *     handled via image={trip.seo?.general?.image || images[0]}).
- *
- * window.prerenderReady:
- *   - Set in tripReducer on query_trips.fulfilled (trips listing). Trip detail and blog routes
- *     rely on prerender’s network-idle behavior and/or the 10s safety set in main.jsx unless
- *     extended elsewhere.
+ * Trip detail (/trip/details/:slug): TripDetails renders <SEO> only after trip data exists; until
+ * then the loading shell has no trip-specific meta (defaults from index/parent apply).
  */
 
 import { Helmet } from "react-helmet-async";
