@@ -39,6 +39,7 @@
     "node-cron": "^3.0.3",
     "node-fetch": "^2.7.0",
     "nodemailer": "^7.0.5",
+    "prerender-node": "^3.8.3",
     "qrcode": "^1.5.4",
     "slugify": "^1.6.8",
     "socket.io": "^4.7.5",

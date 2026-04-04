@@ -58,8 +58,7 @@ jobs:
 
       - name: Rsync files
         run: |
-          rsync -avz --delete \
-            -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
+          rsync -avz -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
             dist/ \
             ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_FRONTEND_DEPLOYMENT_DIR }}
 
