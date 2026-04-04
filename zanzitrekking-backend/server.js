@@ -11,6 +11,7 @@ const mongoSanitize = require("express-mongo-sanitize");
 const fetch = require("node-fetch");
 const path = require("path");
 const logger = require("./utilities/logger");
+const { initPrerender } = require("./prerenderer");
 
 // Socket.IO and file handling modules
 const { initializeSocketIO } = require("./socket/socketHandler");
@@ -39,6 +40,9 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
+
+// Crawler prerender (optional; requires PRERENDER_SERVICE_URL in .env)
+initPrerender(app);
 
 // Home routes
 const homeRouter = require("./routes/home/homeRoutes");
