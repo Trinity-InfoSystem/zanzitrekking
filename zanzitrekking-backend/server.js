@@ -11,7 +11,6 @@ const mongoSanitize = require("express-mongo-sanitize");
 const fetch = require("node-fetch");
 const path = require("path");
 const logger = require("./utilities/logger");
-const prerenderer = require('./prerenderer')
 
 // Socket.IO and file handling modules
 const { initializeSocketIO } = require("./socket/socketHandler");
@@ -25,8 +24,6 @@ const { setupCronJobs } = require("./utilities/cronJobs");
 
 // Initialize Express app and server
 const app = express();
-prerenderer.initPrerender(app)
-
 const server = http.createServer(app);
 
 // Trust proxy - This is essential for correct protocol detection when behind a reverse proxy (nginx, load balancer, etc.)
