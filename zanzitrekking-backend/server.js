@@ -166,6 +166,13 @@ const limiter = rateLimit({
   skip: () => process.env.NODE_ENV !== "production",
 });
 app.use("/api", limiter);
+
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  },
+}));
+
 // Public static files
 app.use(
   "/public",
