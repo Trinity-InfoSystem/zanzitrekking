@@ -1,0 +1,14 @@
+{
+  "apps" : [{
+    "name": "ZanziSafaries-Prerender",
+    "script" : "npm run start",
+    "cwd": "/root/prerender",
+    "instances": 1,
+    "autorestart": true,
+    "max_memory_restart": "1024M",
+    "env_production": {
+      "NODE_ENV": "production",
+      "DEBUG": "prerender:*"
+    }
+  }]
+}
