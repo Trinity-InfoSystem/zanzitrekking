@@ -1,0 +1,16 @@
+{
+  "apps": [{
+    "name": "zanzitrekking-backend",
+    "script": "npm run start",
+    "cwd": "/var/www/backend/",
+    "env_production": {
+      "NODE_ENV": "production"
+    },
+    "env_development": {
+      "NODE_ENV": "development"
+    },
+    "env_staging": {
+      "NODE_ENV": "staging"
+    }
+  }]
+}
