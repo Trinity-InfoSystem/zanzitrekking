@@ -1,11 +1,9 @@
-name: Deploy Frontend to cPanel
+name: Deploy Frontend
 
-# This workflow triggers ONLY when frontend files change
-# It will NOT trigger if only backend files are changed
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'zanzitrekking-frontend/**'
       - '.github/workflows/deploy-frontend.yml'
@@ -52,15 +50,15 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.CPANEL_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.CPANEL_SSH_PORT || 22 }} ${{ secrets.CPANEL_SSH_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Rsync files
         run: |
-          rsync -avz -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
+          rsync -avz -e "ssh -p ${{ secrets.SSH_PORT || 22 }}" \
             dist/ \
-            ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_FRONTEND_DEPLOYMENT_DIR }}
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.FRONTEND_DEPLOYMENT_DIR }}
 
       - name: Deployment Notification
         if: success()

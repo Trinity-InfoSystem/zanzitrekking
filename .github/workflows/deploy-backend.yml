@@ -1,11 +1,9 @@
-name: Deploy Backend to cPanel
+name: Deploy Backend
 
-# This workflow triggers ONLY when backend files change
-# It will NOT trigger if only frontend files are changed
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'zanzitrekking-backend/**'
       - '.github/workflows/deploy-backend.yml'
@@ -22,9 +20,9 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.CPANEL_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.CPANEL_SSH_PORT || 22 }} ${{ secrets.CPANEL_SSH_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Rsync files
         run: |
@@ -33,5 +31,9 @@ jobs:
             --exclude ".env" \
             --exclude "public" \
             --exclude "node_modules" \
-            -e "ssh -p ${{ secrets.CPANEL_SSH_PORT || 22 }}" \
-            ./zanzitrekking-backend/ ${{ secrets.CPANEL_SSH_USERNAME }}@${{ secrets.CPANEL_SSH_HOST }}:${{ secrets.CPANEL_BACKEND_DEPLOYMENT_DIR }}
+            -e "ssh -p ${{ secrets.SSH_PORT || 22 }}" \
+            ./zanzitrekking-backend/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.BACKEND_DEPLOYMENT_DIR }}
+
+      - name: Post-deployment commands
+        run: |
+          ssh -p ${{ secrets.SSH_PORT || 22 }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.BACKEND_DEPLOYMENT_DIR }} && npm ci && pm2 startOrReload ecosystem.config.json --env production"
