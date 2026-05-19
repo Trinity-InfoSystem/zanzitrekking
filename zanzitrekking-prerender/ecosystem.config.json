@@ -1,6 +1,6 @@
 {
   "apps" : [{
-    "name": "ZanziSafaries-Prerender",
+    "name": "zanzitrekking-prerender",
     "script" : "npm run start",
     "cwd": "/root/prerender",
     "instances": 1,
