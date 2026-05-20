@@ -272,6 +272,14 @@ app.use("/api", adminUrgentBookingRequestRoute); // ADDED
 // File download endpoint with enhanced security and multiple location support
 app.get("/api/download-file/:filename", handleFileDownload);
 
+// Catch-all route to serve the React SPA (must be before error handler)
+app.get("*", (req, res, next) => {
+  if (req.originalUrl.startsWith("/api/")) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 // Global error handling middleware - must be after all routes
 app.use((err, req, res, next) => {
   logger.error("Error:", err);
