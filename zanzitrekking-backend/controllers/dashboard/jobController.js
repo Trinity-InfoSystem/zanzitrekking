@@ -1,5 +1,5 @@
 const Job = require("../../models/job");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const { responseReturn } = require("../../utilities/response");
 const redis = require('../../redis');
 const crypto = require("crypto");
@@ -33,21 +33,26 @@ const generateUniqueSlug = async ({ model, base, excludeId }) => {
 class JobControllers {
   get_one_job = async (req, res) => {
     const { jobId } = req.params;
+    const key = `home:job:${jobId}`;
     try {
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       const job = isMongoObjectId(jobId)
         ? await Job.findById(jobId).populate("createdBy", "name email")
         : await Job.findOne({ slug: jobId }).populate("createdBy", "name email");
+
       if (!job) {
         return responseReturn(res, 404, { error: "Job Not Found" });
       }
 
-      const cacheKeyId = job.slug || job._id.toString();
-      const key = `home:job:${cacheKeyId}`;
-      await redis.set(key, JSON.stringify(job), "EX", 43200);
-      return responseReturn(res, 200, {
+      const response = {
         message: "Job Fetch Successful",
         job,
-      });
+      };
+      await redis.set(key, JSON.stringify(response), "EX", 43200);
+      return responseReturn(res, 200, response);
     } catch (error) {
       return responseReturn(res, 500, { error: "Internal Server Error" });
     }
@@ -158,7 +163,7 @@ class JobControllers {
         slug: await generateUniqueSlug({ model: Job, base: title }),
         contentType: finalContentType,
         htmlContent: finalContentType === "html" ? htmlContent : "",
-        description: finalContentType === "html" ? "" : (description || ""),
+        description: finalContentType === "html" ? "" : description || "",
         isActive: activeStatus,
         createdBy: req.user?.id || null,
         seo:parsedSeo
@@ -166,7 +171,8 @@ class JobControllers {
 
       // Include structured fields for both content types
       // For HTML content, these fields are optional but can still be provided
-      jobData.requirements = finalContentType === "structured" ? requirementsArray : [];
+      jobData.requirements =
+        finalContentType === "structured" ? requirementsArray : [];
       jobData.location = location || "";
       jobData.employmentType = employmentType || "full-time";
       jobData.salaryRange = salaryRange || "";
@@ -180,7 +186,7 @@ class JobControllers {
         });
       }
       await redis.del(`home:job:${job._id}`);
-      if (job.slug) await redis.del(`home:job:${job.slug}`);
+      
       return responseReturn(res, 201, {
         message: "Job Successfully created",
         job,
@@ -203,10 +209,22 @@ class JobControllers {
     try {
       const hash = crypto
         .createHash("md5")
-        .update(JSON.stringify({ page: Number(page), parPage: Number(parPage), searchValue, sort, isActive }))
+        .update(
+          JSON.stringify({
+            page: Number(page),
+            parPage: Number(parPage),
+            searchValue,
+            sort,
+            isActive,
+          }),
+        )
         .digest("hex");
 
       const key = `home:jobs:list:${hash}`;
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       // Determine sort order
       let sortOptions = {};
       let collation = null;
@@ -254,10 +272,14 @@ class JobControllers {
         const jobs = await dbQuery.populate("createdBy", "name email");
         const totalJobs = await Job.find(query).countDocuments();
 
-        return responseReturn(res, 200, {
+        const response = {
           totalJobs,
           jobs,
-        });
+        };
+
+        await redis.set(key, JSON.stringify(response), "EX", 43200);
+
+        return responseReturn(res, 200, response);
       } else if (searchValue === "" && page && parPage && allJobs === "false") {
         let dbQuery = Job.find(query).skip(skipPage).limit(+parPage);
 
@@ -270,10 +292,14 @@ class JobControllers {
         const jobs = await dbQuery.populate("createdBy", "name email");
         const totalJobs = await Job.find(query).countDocuments();
 
-        return responseReturn(res, 200, {
+        const response = {
           totalJobs,
           jobs,
-        });
+        };
+
+        await redis.set(key, JSON.stringify(response), "EX", 43200);
+
+        return responseReturn(res, 200, response);
       } else {
         // For dropdowns/selects
         const jobs = await Job.find(query)
@@ -282,17 +308,14 @@ class JobControllers {
           .populate("createdBy", "name email");
         const totalJobs = await Job.find(query).countDocuments();
 
-        const responseData = {
+        const response = {
           totalJobs,
           jobs,
           message: "Jobs successfully fetched",
         };
-        await redis.set(key, JSON.stringify(responseData), "EX", 43200);
-        return responseReturn(res, 200, {
-          totalJobs,
-          jobs,
-          message: "Jobs successfully fetched",
-        });
+
+        await redis.set(key, JSON.stringify(response), "EX", 43200);
+        return responseReturn(res, 200, response);
       }
     } catch (error) {
       logger.error(error);
@@ -426,7 +449,7 @@ class JobControllers {
         title,
         contentType: finalContentType,
         htmlContent: finalContentType === "html" ? htmlContent : "",
-        description: finalContentType === "html" ? "" : (description || ""),
+        description: finalContentType === "html" ? "" : description || "",
         isActive: activeStatus,
         seo:parsedSeo,
       };
@@ -441,7 +464,8 @@ class JobControllers {
 
       // Include structured fields for both content types
       // For HTML content, these fields are optional but can still be provided
-      updateFields.requirements = finalContentType === "structured" ? requirementsArray : [];
+      updateFields.requirements =
+        finalContentType === "structured" ? requirementsArray : [];
       updateFields.location = location || "";
       updateFields.employmentType = employmentType || "full-time";
       updateFields.salaryRange = salaryRange || "";

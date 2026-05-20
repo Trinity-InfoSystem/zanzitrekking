@@ -1,8 +1,8 @@
 const PdfModel = require("../../models/pdf");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const fs = require("fs").promises;
 const path = require("path");
-const redis = require('../../redis');
+const redis = require("../../redis");
 
 class PDFController {
   // Helper function to get full URL (static method)
@@ -28,7 +28,12 @@ class PDFController {
           url: PDFController.getFullUrl(req, pdf.path),
         };
       });
-      await redis.set(key, JSON.stringify(transformedPdfs), "EX", 86400);
+      await redis.set(
+        key,
+        JSON.stringify({ pdfs: transformedPdfs }),
+        "EX",
+        86400,
+      );
       res.status(200).json({ pdfs: transformedPdfs });
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -70,7 +75,7 @@ class PDFController {
         const oldFilePath = path.join(
           __dirname,
           "../../public/pdfs",
-          existingPdf.path
+          existingPdf.path,
         );
 
         try {

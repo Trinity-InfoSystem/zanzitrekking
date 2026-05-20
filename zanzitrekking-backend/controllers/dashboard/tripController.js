@@ -1,5 +1,5 @@
 const TripModel = require("../../models/trip");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const CategoryModel = require("../../models/category");
 const { responseReturn } = require("../../utilities/response");
 const fs = require("fs");
@@ -44,9 +44,8 @@ const resolveCategoryData = async (categoryValue) => {
     typeof categoryValue === "string" ? categoryValue.trim() : categoryValue;
 
   if (mongoose.Types.ObjectId.isValid(normalizedValue)) {
-    const categoryDoc = await CategoryModel.findById(normalizedValue).select(
-      "name"
-    );
+    const categoryDoc =
+      await CategoryModel.findById(normalizedValue).select("name");
     if (categoryDoc) {
       return {
         categoryName: categoryDoc.name,
@@ -126,7 +125,7 @@ class TripController {
             standard: [],
             midRange: [],
             luxury: [],
-          })
+          }),
       );
       const exclusions = JSON.parse(
         req.body.exclusions ||
@@ -134,7 +133,7 @@ class TripController {
             standard: [],
             midRange: [],
             luxury: [],
-          })
+          }),
       );
       // Parse mainDestination - ensure it's an array
       let parsedMainDestination = [];
@@ -165,10 +164,10 @@ class TripController {
 
       // Extract the main image and video
       const mainImageFile = req.files.find(
-        (file) => file.fieldname === "mainImage"
+        (file) => file.fieldname === "mainImage",
       );
       const mainVideoFile = req.files.find(
-        (file) => file.fieldname === "mainVideo"
+        (file) => file.fieldname === "mainVideo",
       );
       const mainImage = mainImageFile ? mainImageFile.filename : null;
       const mainVideo = mainVideoFile ? mainVideoFile.filename : null;
@@ -179,7 +178,7 @@ class TripController {
 
       for (let i = 0; i < parseInt(daysCount); i++) {
         const dayImageFile = req.files.find(
-          (file) => file.fieldname === `dayImage_${i}`
+          (file) => file.fieldname === `dayImage_${i}`,
         );
         const dayData = parsedDaysData[i];
 
@@ -280,7 +279,8 @@ class TripController {
         delPattern("home:trips:list:*"),
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
-        delPattern("home:trips:query:*")
+        delPattern("home:trips:query:*"),
+        redis.del("dashboard:stats"),
       ]);
 
       responseReturn(res, 201, {
@@ -331,7 +331,7 @@ class TripController {
             standard: [],
             midRange: [],
             luxury: [],
-          })
+          }),
       );
       const parsedExclusions = JSON.parse(
         exclusions ||
@@ -339,7 +339,7 @@ class TripController {
             standard: [],
             midRange: [],
             luxury: [],
-          })
+          }),
       );
       const parsedDaysData = JSON.parse(daysData || "[]");
       // Parse mainDestination - ensure it's an array
@@ -378,10 +378,10 @@ class TripController {
           parsedMainDestination.length > 0
             ? parsedMainDestination
             : Array.isArray(existingTrip.mainDestination)
-            ? existingTrip.mainDestination
-            : existingTrip.mainDestination
-            ? [existingTrip.mainDestination]
-            : [],
+              ? existingTrip.mainDestination
+              : existingTrip.mainDestination
+                ? [existingTrip.mainDestination]
+                : [],
         startPoint: parsedStartPoint || existingTrip.startPoint,
         endPoint: parsedEndPoint || existingTrip.endPoint,
         discount: parseFloat(discount) || existingTrip.discount || 0,
@@ -433,7 +433,7 @@ class TripController {
 
       // Handle main image
       const mainImageFile = req.files.find(
-        (file) => file.fieldname === "mainImage"
+        (file) => file.fieldname === "mainImage",
       );
       if (mainImageFile) {
         // Delete old image if it exists
@@ -445,7 +445,7 @@ class TripController {
             "..",
             "public",
             "uploads",
-            oldImageFileName
+            oldImageFileName,
           );
           try {
             await fs.promises.unlink(oldImagePath);
@@ -459,7 +459,7 @@ class TripController {
 
       // Handle main video
       const mainVideoFile = req.files.find(
-        (file) => file.fieldname === "mainVideo"
+        (file) => file.fieldname === "mainVideo",
       );
       if (mainVideoFile) {
         // Delete old video if it exists
@@ -471,7 +471,7 @@ class TripController {
             "..",
             "public",
             "uploads",
-            oldVideoFileName
+            oldVideoFileName,
           );
           try {
             await fs.promises.unlink(oldVideoPath);
@@ -489,7 +489,7 @@ class TripController {
         const dayData = parsedDaysData[i];
         const existingDay = existingTrip.days[i];
         const dayImageFile = req.files.find(
-          (file) => file.fieldname === `dayImage_${i}`
+          (file) => file.fieldname === `dayImage_${i}`,
         );
 
         // Store accommodation IDs (references) instead of full objects
@@ -523,7 +523,7 @@ class TripController {
               "..",
               "public",
               "uploads",
-              oldDayImageFileName
+              oldDayImageFileName,
             );
             try {
               await fs.promises.unlink(oldDayImagePath);
@@ -585,7 +585,7 @@ class TripController {
       const updatedTrip = await TripModel.findByIdAndUpdate(
         tripId,
         updateFields,
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       )
         .populate("category")
         .populate("days.accommodation");
@@ -597,7 +597,8 @@ class TripController {
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
         delPattern("home:trips:list:*"),
-        delPattern("home:trips:query:*")
+        delPattern("home:trips:query:*"),
+        redis.del("dashboard:stats"),
       ]);
 
       responseReturn(res, 200, {
@@ -620,18 +621,22 @@ class TripController {
     try {
       // Build stable query hash
       const hash = crypto
-      .createHash("md5")
-      .update(
-        JSON.stringify({
-          page: Number(page) || 1,
-          parPage: Number(parPage) || 10,
-          searchValue: searchValue || "",
-          sort: sort || "newest-desc",
-        })
-      )
-      .digest("hex");
+        .createHash("md5")
+        .update(
+          JSON.stringify({
+            page: Number(page) || 1,
+            parPage: Number(parPage) || 10,
+            searchValue: searchValue || "",
+            sort: sort || "newest-desc",
+          }),
+        )
+        .digest("hex");
 
-    const key = `home:trips:list:${hash}`;
+      const key = `home:trips:list:${hash}`;
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       // Determine sort order
       let sortOptions = {};
       let collation = null;
@@ -670,14 +675,14 @@ class TripController {
         .populate("days.accommodation");
       const trips = await tripsQuery;
       const totalTrips = await mongoose.model("Trip").countDocuments(query);
-      await redis.set(key, JSON.stringify({
-          totalTrips,
-          trips,
-        }), "EX", 43200);
-      responseReturn(res, 200, {
+
+      const response = {
         totalTrips,
         trips,
-      });
+      };
+
+      await redis.set(key, JSON.stringify(response), "EX", 43200);
+      responseReturn(res, 200, response);
     } catch (error) {
       responseReturn(res, 500, { error: "internal server error" });
     }
@@ -686,7 +691,10 @@ class TripController {
   get_special_trips = async (req, res) => {
     try {
       const key = `home:trips:special:all`;
-
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       // Get all trips and total count
       const allTrips = await TripModel.find({})
         .populate("category")
@@ -800,7 +808,7 @@ class TripController {
           "..",
           "public",
           "uploads",
-          oldMainImageFileName
+          oldMainImageFileName,
         );
 
         fs.unlink(oldMainImagePath, (err) => {
@@ -808,7 +816,7 @@ class TripController {
             logger.error(`Error deleting old main image: ${err.message}`);
           } else {
             logger.info(
-              `Successfully deleted old main image: ${oldMainImagePath}`
+              `Successfully deleted old main image: ${oldMainImagePath}`,
             );
           }
         });
@@ -823,7 +831,7 @@ class TripController {
           "..",
           "public",
           "uploads",
-          oldMainVideoFileName
+          oldMainVideoFileName,
         );
 
         fs.unlink(oldMainVideoPath, (err) => {
@@ -831,7 +839,7 @@ class TripController {
             logger.error(`Error deleting old main video: ${err.message}`);
           } else {
             logger.info(
-              `Successfully deleted old main video: ${oldMainVideoPath}`
+              `Successfully deleted old main video: ${oldMainVideoPath}`,
             );
           }
         });
@@ -847,7 +855,7 @@ class TripController {
             "..",
             "public",
             "uploads",
-            oldDayImageFileName
+            oldDayImageFileName,
           );
 
           fs.unlink(oldDayImagePath, (err) => {
@@ -855,7 +863,7 @@ class TripController {
               logger.error(`Error deleting old day image: ${err.message}`);
             } else {
               logger.info(
-                `Successfully deleted old day image: ${oldDayImagePath}`
+                `Successfully deleted old day image: ${oldDayImagePath}`,
               );
             }
           });
@@ -871,7 +879,7 @@ class TripController {
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
         delPattern("home:trips:list:*"),
-        delPattern("home:trips:query:*")
+        delPattern("home:trips:query:*"),
       ]);
 
       responseReturn(res, 200, { message: "Trip deleted successfully" });
@@ -884,7 +892,11 @@ class TripController {
 
   get_price_range = async (req, res) => {
     try {
-       const key = "home:trips:price-range";
+      const key = "home:trips:price-range";
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       // Find the lowest and highest prices from both regular and seasonal pricing
       const result = await TripModel.aggregate([
         {
@@ -1028,7 +1040,7 @@ class TripController {
             }
           : { low: 200, high: 5000 }; // Default fallback values
 
-      await redis.set(key, JSON.stringify(priceRange), "EX", 86400);
+      await redis.set(key, JSON.stringify({ priceRange }), "EX", 86400);
       responseReturn(res, 200, {
         priceRange,
       });
@@ -1064,17 +1076,21 @@ class TripController {
         search: search || "",
         perPage: Number(queryPerPage) || 6,
       };
-       // Build stable query hash for cache key
+      // Build stable query hash for cache key
       const hash = crypto
         .createHash("md5")
         .update(JSON.stringify(normalizedQuery || {}))
         .digest("hex");
+
       const key = `home:trips:query:${hash}`;
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
 
       const perPage = queryPerPage ? parseInt(queryPerPage) : 6;
       const skip = (parseInt(pageNumber) - 1) * perPage;
 
-      
       let baseQuery = {};
 
       if (category) {
@@ -1122,7 +1138,7 @@ class TripController {
                   categoryPrices.twoPerson,
                   categoryPrices.threePerson,
                   categoryPrices.fourPerson,
-                  categoryPrices.fiveOrMorePerson
+                  categoryPrices.fiveOrMorePerson,
                 );
               }
             });
@@ -1133,7 +1149,7 @@ class TripController {
               trip.regularPrices.twoPerson,
               trip.regularPrices.threePerson,
               trip.regularPrices.fourPerson,
-              trip.regularPrices.fiveOrMorePerson
+              trip.regularPrices.fiveOrMorePerson,
             );
           }
         } else if (trip.pricingType === "seasonal" && trip.seasons) {
@@ -1162,7 +1178,7 @@ class TripController {
                     categoryPrices.twoPerson,
                     categoryPrices.threePerson,
                     categoryPrices.fourPerson,
-                    categoryPrices.fiveOrMorePerson
+                    categoryPrices.fiveOrMorePerson,
                   );
                 }
               });
@@ -1173,15 +1189,16 @@ class TripController {
                 currentSeason.rates.twoPerson,
                 currentSeason.rates.threePerson,
                 currentSeason.rates.fourPerson,
-                currentSeason.rates.fiveOrMorePerson
+                currentSeason.rates.fiveOrMorePerson,
               );
             }
           }
         }
 
         // Filter valid prices and return minimum
+
         const validPrices = prices.filter(
-          (price) => typeof price === "number" && !isNaN(price) && price > 0
+          (p) => typeof p === "number" && p > 0,
         );
         // Return minimum price, or null if no valid prices (to distinguish from 0 price)
         return validPrices.length > 0 ? Math.min(...validPrices) : null;
@@ -1230,7 +1247,7 @@ class TripController {
           break;
         case "duration":
           sortedTrips.sort(
-            (a, b) => (a.days?.length || 0) - (b.days?.length || 0)
+            (a, b) => (a.days?.length || 0) - (b.days?.length || 0),
           );
           break;
         case "alphabetical":
@@ -1244,12 +1261,12 @@ class TripController {
           break;
         case "created-at":
           sortedTrips.sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
           );
           break;
         default:
           sortedTrips.sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
           );
       }
 
@@ -1293,8 +1310,9 @@ class TripController {
         delPattern("home:trips:list:*"),
         redis.del("home:trips:special:all"),
         redis.del("home:trips:price-range"),
-        delPattern("home:trips:query:*")
-      ])
+        delPattern("home:trips:query:*"),
+        redis.del("dashboard:stats"),
+      ]);
 
       return responseReturn(res, 200, {
         message: `Deleted ${deletedTrips.deletedCount} trips successfully`,

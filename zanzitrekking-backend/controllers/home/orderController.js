@@ -318,6 +318,8 @@ class OrderController {
         { path: 'cartItems.tripId', select: 'mainTitle mainImage' }
       ])
 
+      await redis.del("dashboard:stats");
+
       return responseReturn(res, 201, {
         message: 'Order created successfully',
         order
@@ -468,7 +470,8 @@ class OrderController {
       await Promise.allSettled([
         delPattern(`customer:${order.customerId}:orders:history:*`),
         redis.del(`customer:${order.customerId}:orders:statistics`),
-        redis.del(`order:${orderId}`)
+        redis.del(`order:${orderId}`),
+        redis.del("dashboard:stats")
       ]);
 
       return responseReturn(res, 200, {
@@ -543,7 +546,8 @@ class OrderController {
       await Promise.allSettled([
         delPattern(`customer:${order.customerId}:orders:history:*`),
         redis.del(`customer:${order.customerId}:orders:statistics`),
-        redis.del(`order:${orderId}`)
+        redis.del(`order:${orderId}`),
+        redis.del("dashboard:stats")
       ]);
       
       return responseReturn(res, 200, {
@@ -594,6 +598,10 @@ class OrderController {
     const key = `order:${orderId}`;
 
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       const order = await Order.findById(orderId)
         .populate([
           { path: 'customerId', select: 'name email phone' },
@@ -631,6 +639,10 @@ class OrderController {
           .digest("hex");
     const key=`customer:${customerId}:orders:history:${hash}`
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       // Validate customer exists
       const customer = await Customer.findById(customerId)
       if (!customer) {
@@ -952,6 +964,7 @@ class OrderController {
       await Promise.allSettled([
         delPattern(`customer:${order.customerId}:orders:history:*`),
         redis.del(`customer:${order.customerId}:orders:statistics`),
+        redis.del("dashboard:stats")
       ]);
 
       return responseReturn(res, 200, {
@@ -1050,6 +1063,10 @@ class OrderController {
     const key=`customer:${customerId}:orders:statistics`;
 
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       // Auto-check for completed trips before getting statistics
       await autoCompleteTrips()
 

@@ -1,30 +1,32 @@
-const Review = require('../../models/review')
-const Trip = require('../../models/trip')
-const Order = require('../../models/order')
-const mongoose = require('mongoose')
-const { responseReturn } = require('../../utilities/response')
+const Review = require("../../models/review");
+const Trip = require("../../models/trip");
+const Order = require("../../models/order");
+const mongoose = require("mongoose");
+const { responseReturn } = require("../../utilities/response");
 
-const redis = require('../../redis')
-const { delPattern } = require('../../utilities/cache')
+const redis = require("../../redis");
+const { delPattern } = require("../../utilities/cache");
 
 class ReviewController {
   // Create a new review
   createReview = async (req, res) => {
     try {
-      const { customerId, tripId, orderId, rating, title, comment, images } = req.body
+      const { customerId, tripId, orderId, rating, title, comment, images } =
+        req.body;
 
       // Validate required fields
       if (!customerId || !tripId || !rating || !title || !comment) {
         return responseReturn(res, 400, {
-          message: 'Missing required fields: customerId, tripId, rating, title, and comment are required.'
-        })
+          message:
+            "Missing required fields: customerId, tripId, rating, title, and comment are required.",
+        });
       }
 
       // Validate rating
       if (rating < 1 || rating > 5) {
         return responseReturn(res, 400, {
-          message: 'Rating must be between 1 and 5.'
-        })
+          message: "Rating must be between 1 and 5.",
+        });
       }
 
       // Create the review
@@ -36,105 +38,109 @@ class ReviewController {
         title: title.trim(),
         comment: comment.trim(),
         tripEndDate: new Date(), // Set to current date since we're not checking eligibility
-        images: images || []
-      }
+        images: images || [],
+      };
 
-      const review = await Review.create(reviewData)
+      const review = await Review.create(reviewData);
 
       // Add review to trip's reviews array
       await Trip.findByIdAndUpdate(tripId, {
-        $push: { reviews: review._id }
-      })
+        $push: { reviews: review._id },
+      });
 
       // Update trip average rating
-      await this.updateTripRating(tripId)
+      await this.updateTripRating(tripId);
 
       // Populate customer information
-      await review.populate('customerId', 'name email image')
+      await review.populate("customerId", "name email image");
 
       await Promise.allSettled([
         redis.del(`home:trip:${tripId}`),
         delPattern(`home:trip:${tripId}:reviews:*`),
-        delPattern(`customer:${customerId}:reviewable-trips:*`)
-      ])
+        delPattern(`customer:${customerId}:reviewable-trips:*`),
+      ]);
 
       return responseReturn(res, 201, {
-        message: 'Review submitted successfully',
-        review
-      })
+        message: "Review submitted successfully",
+        review,
+      });
     } catch (error) {
-      console.error('Error creating review:', error)
+      console.error("Error creating review:", error);
 
       if (error.statusCode === 400) {
-        return responseReturn(res, 400, { message: error.message })
+        return responseReturn(res, 400, { message: error.message });
       }
 
-      return responseReturn(res, 500, { message: 'Internal server error' })
+      return responseReturn(res, 500, { message: "Internal server error" });
     }
-  }
+  };
 
   // Get reviews for a specific trip
   getTripReviews = async (req, res) => {
     try {
-      const { tripId } = req.params
-      const { page = 1, limit = 10, status, customerId } = req.query
+      const { tripId } = req.params;
+      const { page = 1, limit = 10, status, customerId } = req.query;
       const hash = crypto
-        .createHash('sha256')
+        .createHash("sha256")
         .update(JSON.stringify({ tripId, page, limit, status, customerId }))
-        .digest('hex')
+        .digest("hex");
 
-      const key = `home:trip:${tripId}:reviews:${hash}`
+      const key = `home:trip:${tripId}:reviews:${hash}`;
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
 
-      const skip = (parseInt(page) - 1) * parseInt(limit)
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
       // Convert tripId to ObjectId
-      let tripObjectId
+      let tripObjectId;
       try {
-        tripObjectId = new mongoose.Types.ObjectId(tripId)
+        tripObjectId = new mongoose.Types.ObjectId(tripId);
       } catch (error) {
         return responseReturn(res, 400, {
-          message: 'Invalid trip ID format'
-        })
+          message: "Invalid trip ID format",
+        });
       }
 
       // Build query - show approved reviews and pending reviews for the current user
       // Never show rejected reviews
       const query = {
-        tripId: tripObjectId
-      }
+        tripId: tripObjectId,
+      };
 
       // If customerId is provided, also include their pending reviews
       // Otherwise, only show approved reviews
       if (customerId) {
-        let customerObjectId
+        let customerObjectId;
         try {
-          customerObjectId = new mongoose.Types.ObjectId(customerId)
+          customerObjectId = new mongoose.Types.ObjectId(customerId);
         } catch (error) {
           // If ObjectId conversion fails, use string
-          customerObjectId = customerId
+          customerObjectId = customerId;
         }
 
         // Show approved reviews OR user's own pending reviews (never rejected)
         query.$or = [
-          { status: 'approved' }, // All approved reviews
-          { status: 'pending', customerId: customerObjectId } // User's own pending reviews
-        ]
+          { status: "approved" }, // All approved reviews
+          { status: "pending", customerId: customerObjectId }, // User's own pending reviews
+        ];
       } else {
-        query.status = 'approved' // Default: only approved reviews
+        query.status = "approved"; // Default: only approved reviews
       }
 
       // Get reviews with pagination
       const reviews = await Review.find(query)
-        .populate('customerId', 'name email image')
+        .populate("customerId", "name email image")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(parseInt(limit));
 
       // Get total count
-      const totalReviews = await Review.countDocuments(query)
+      const totalReviews = await Review.countDocuments(query);
 
       // Get average rating (only from approved reviews)
-      const ratingStats = await Review.getTripAverageRating(tripId)
+      const ratingStats = await Review.getTripAverageRating(tripId);
 
       const response = {
         reviews,
@@ -143,42 +149,42 @@ class ReviewController {
           totalPages: Math.ceil(totalReviews / parseInt(limit)),
           totalReviews,
           hasNext: skip + reviews.length < totalReviews,
-          hasPrev: parseInt(page) > 1
+          hasPrev: parseInt(page) > 1,
         },
-        ratingStats
-      }
+        ratingStats,
+      };
 
-      await redis.set(key, JSON.stringify(response), 'EX', 300)
+      await redis.set(key, JSON.stringify(response), "EX", 300);
 
-      return responseReturn(res, 200, response)
+      return responseReturn(res, 200, response);
     } catch (error) {
-      console.error('Error getting trip reviews:', error)
-      return responseReturn(res, 500, { message: 'Internal server error' })
+      console.error("Error getting trip reviews:", error);
+      return responseReturn(res, 500, { message: "Internal server error" });
     }
-  }
+  };
 
   // Get customer's reviews
   getCustomerReviews = async (req, res) => {
     try {
-      const { customerId } = req.query
-      const { page = 1, limit = 10 } = req.query
+      const { customerId } = req.query;
+      const { page = 1, limit = 10 } = req.query;
 
       if (!customerId) {
         return responseReturn(res, 400, {
-          message: 'Customer ID is required'
-        })
+          message: "Customer ID is required",
+        });
       }
 
-      const skip = (parseInt(page) - 1) * parseInt(limit)
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
       const reviews = await Review.find({ customerId })
-        .populate('tripId', 'mainTitle mainImage mainDestination')
-        .populate('orderId', 'orderNumber')
+        .populate("tripId", "mainTitle mainImage mainDestination")
+        .populate("orderId", "orderNumber")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(parseInt(limit));
 
-      const totalReviews = await Review.countDocuments({ customerId })
+      const totalReviews = await Review.countDocuments({ customerId });
 
       return responseReturn(res, 200, {
         reviews,
@@ -187,190 +193,205 @@ class ReviewController {
           totalPages: Math.ceil(totalReviews / parseInt(limit)),
           totalReviews,
           hasNext: skip + reviews.length < totalReviews,
-          hasPrev: parseInt(page) > 1
-        }
-      })
+          hasPrev: parseInt(page) > 1,
+        },
+      });
     } catch (error) {
-      console.error('Error getting customer reviews:', error)
-      return responseReturn(res, 500, { message: 'Internal server error' })
+      console.error("Error getting customer reviews:", error);
+      return responseReturn(res, 500, { message: "Internal server error" });
     }
-  }
+  };
 
   // Update a review (only by the author)
   updateReview = async (req, res) => {
     try {
-      const { reviewId } = req.params
-      const { customerId, rating, title, comment, images } = req.body
+      const { reviewId } = req.params;
+      const { customerId, rating, title, comment, images } = req.body;
 
       if (!customerId) {
         return responseReturn(res, 400, {
-          message: 'Customer ID is required'
-        })
+          message: "Customer ID is required",
+        });
       }
 
       // Find the review
-      const review = await Review.findOne({ _id: reviewId, customerId })
+      const review = await Review.findOne({ _id: reviewId, customerId });
 
       if (!review) {
         return responseReturn(res, 404, {
-          message: "Review not found or you don't have permission to update it."
-        })
+          message:
+            "Review not found or you don't have permission to update it.",
+        });
       }
 
       // Validate rating if provided
       if (rating !== undefined && (rating < 1 || rating > 5)) {
         return responseReturn(res, 400, {
-          message: 'Rating must be between 1 and 5.'
-        })
+          message: "Rating must be between 1 and 5.",
+        });
       }
 
       // Update review (users can edit their own reviews regardless of status)
-      const updateData = {}
-      if (rating !== undefined) updateData.rating = parseInt(rating)
-      if (title !== undefined) updateData.title = title.trim()
-      if (comment !== undefined) updateData.comment = comment.trim()
-      if (images !== undefined) updateData.images = images
+      const updateData = {};
+      if (rating !== undefined) updateData.rating = parseInt(rating);
+      if (title !== undefined) updateData.title = title.trim();
+      if (comment !== undefined) updateData.comment = comment.trim();
+      if (images !== undefined) updateData.images = images;
 
       // If review was approved and being edited, set status back to pending for admin review
-      if (review.status === 'approved' && Object.keys(updateData).length > 0) {
-        updateData.status = 'pending'
+      if (review.status === "approved" && Object.keys(updateData).length > 0) {
+        updateData.status = "pending";
       }
 
-      const updatedReview = await Review.findByIdAndUpdate(reviewId, updateData, { new: true }).populate(
-        'customerId',
-        'name email image'
-      )
+      const updatedReview = await Review.findByIdAndUpdate(
+        reviewId,
+        updateData,
+        { new: true },
+      ).populate("customerId", "name email image");
 
-      await delPattern(`home:trip:${review.tripId}:reviews:*`)
+      await delPattern(`home:trip:${review.tripId}:reviews:*`);
 
       // Update trip rating if rating changed
       if (rating !== undefined) {
-        await this.updateTripRating(review.tripId)
-        await redis.del(`home:trip:${review.tripId}`)
+        await this.updateTripRating(review.tripId);
+        await redis.del(`home:trip:${review.tripId}`);
       }
 
       return responseReturn(res, 200, {
-        message: 'Review updated successfully.',
-        review: updatedReview
-      })
+        message: "Review updated successfully.",
+        review: updatedReview,
+      });
     } catch (error) {
-      console.error('Error updating review:', error)
-      return responseReturn(res, 500, { message: 'Internal server error' })
+      console.error("Error updating review:", error);
+      return responseReturn(res, 500, { message: "Internal server error" });
     }
-  }
+  };
 
   // Delete a review (only by the author)
   deleteReview = async (req, res) => {
     try {
-      const { reviewId } = req.params
-      const { customerId } = req.query
+      const { reviewId } = req.params;
+      const { customerId } = req.query;
 
       if (!customerId) {
         return responseReturn(res, 400, {
-          message: 'Customer ID is required'
-        })
+          message: "Customer ID is required",
+        });
       }
 
       // Find the review
-      const review = await Review.findOne({ _id: reviewId, customerId })
+      const review = await Review.findOne({ _id: reviewId, customerId });
 
       if (!review) {
         return responseReturn(res, 404, {
-          message: "Review not found or you don't have permission to delete it."
-        })
+          message:
+            "Review not found or you don't have permission to delete it.",
+        });
       }
 
       // Users can delete their own reviews regardless of status
       // Delete the review
-      await Review.findByIdAndDelete(reviewId)
+      await Review.findByIdAndDelete(reviewId);
 
       // Remove review from trip's reviews array
       await Trip.findByIdAndUpdate(review.tripId, {
-        $pull: { reviews: reviewId }
-      })
+        $pull: { reviews: reviewId },
+      });
 
       // Update trip rating
-      await this.updateTripRating(review.tripId)
+      await this.updateTripRating(review.tripId);
 
       await Promise.allSettled([
         delPattern(`home:trip:${review.tripId}:reviews:*`),
-        redis.del(`home:trip:${review.tripId}`)
-      ])
+        redis.del(`home:trip:${review.tripId}`),
+      ]);
 
       return responseReturn(res, 200, {
-        message: 'Review deleted successfully.'
-      })
+        message: "Review deleted successfully.",
+      });
     } catch (error) {
-      console.error('Error deleting review:', error)
-      return responseReturn(res, 500, { message: 'Internal server error' })
+      console.error("Error deleting review:", error);
+      return responseReturn(res, 500, { message: "Internal server error" });
     }
-  }
+  };
 
   // Helper method to update trip average rating
   updateTripRating = async (tripId) => {
     try {
-      const ratingStats = await Review.getTripAverageRating(tripId)
+      const ratingStats = await Review.getTripAverageRating(tripId);
 
       await Trip.findByIdAndUpdate(tripId, {
-        rating: Math.round(ratingStats.averageRating * 10) / 10 // Round to 1 decimal place
-      })
+        rating: Math.round(ratingStats.averageRating * 10) / 10, // Round to 1 decimal place
+      });
     } catch (error) {
-      console.error('Error updating trip rating:', error)
+      console.error("Error updating trip rating:", error);
     }
-  }
+  };
 
   // Get customer's completed trips that can be reviewed
   getReviewableTrips = async (req, res) => {
     try {
-      const { customerId, page = 1, limit = 10 } = req.query
+      const { customerId, page = 1, limit = 10 } = req.query;
 
       if (!customerId) {
         return responseReturn(res, 400, {
-          message: 'Customer ID is required'
-        })
+          message: "Customer ID is required",
+        });
       }
       const hash = crypto
-      .createHash('md5')
-      .update(JSON.stringify({ customerId, page: Number(page), limit: Number(limit) }))
-      .digest('hex');
+        .createHash("md5")
+        .update(
+          JSON.stringify({
+            customerId,
+            page: Number(page),
+            limit: Number(limit),
+          }),
+        )
+        .digest("hex");
 
       const key = `customer:${customerId}:reviewable-trips:${hash}`;
-  
-      const skip = (parseInt(page) - 1) * parseInt(limit)
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
       // First, auto-complete any trips that have ended
-      const { autoCompleteTrips } = require('../../utilities/autoCompleteTrips')
-      await autoCompleteTrips()
+      const {
+        autoCompleteTrips,
+      } = require("../../utilities/autoCompleteTrips");
+      await autoCompleteTrips();
 
       // Find orders with completed trips
       const orders = await Order.find({
         customerId,
-        'cartItems.itemStatus': 'completed'
+        "cartItems.itemStatus": "completed",
       })
-        .populate('cartItems.tripId', 'mainTitle mainImage mainDestination')
+        .populate("cartItems.tripId", "mainTitle mainImage mainDestination")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(parseInt(limit));
 
       // Filter out trips that have already been reviewed
-      const reviewableTrips = []
+      const reviewableTrips = [];
 
       for (const order of orders) {
         for (const cartItem of order.cartItems) {
-          if (cartItem.itemStatus === 'completed') {
+          if (cartItem.itemStatus === "completed") {
             // Check if this trip has been reviewed for this order
             const existingReview = await Review.findOne({
               customerId,
               tripId: cartItem.tripId._id,
-              orderId: order._id
-            })
+              orderId: order._id,
+            });
 
             if (!existingReview) {
               // Calculate trip end date
-              const tripStartDate = new Date(cartItem.startingDate)
-              const tripDuration = cartItem.days || 1
-              const tripEndDate = new Date(tripStartDate)
-              tripEndDate.setDate(tripEndDate.getDate() + tripDuration - 1)
+              const tripStartDate = new Date(cartItem.startingDate);
+              const tripDuration = cartItem.days || 1;
+              const tripEndDate = new Date(tripStartDate);
+              tripEndDate.setDate(tripEndDate.getDate() + tripDuration - 1);
 
               // Only include if trip has ended
               if (tripEndDate <= new Date()) {
@@ -385,27 +406,30 @@ class ReviewController {
                     : cartItem.mainDestination,
                   tripStartDate: cartItem.startingDate,
                   tripEndDate,
-                  canReview: true
-                })
+                  canReview: true,
+                });
               }
             }
           }
         }
       }
-      await redis.set(key, JSON.stringify(responseData), 'EX', 600);
 
-      return responseReturn(res, 200, {
+      const response = {
         reviewableTrips,
         pagination: {
           currentPage: parseInt(page),
-          totalTrips: reviewableTrips.length
-        }
-      })
+          totalTrips: reviewableTrips.length,
+        },
+      };
+
+      await redis.set(key, JSON.stringify(response), "EX", 600);
+
+      return responseReturn(res, 200, response);
     } catch (error) {
-      console.error('Error getting reviewable trips:', error)
-      return responseReturn(res, 500, { message: 'Internal server error' })
+      console.error("Error getting reviewable trips:", error);
+      return responseReturn(res, 500, { message: "Internal server error" });
     }
-  }
+  };
 }
 
-module.exports = new ReviewController()
+module.exports = new ReviewController();

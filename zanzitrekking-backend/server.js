@@ -27,6 +27,9 @@ const { setupCronJobs } = require("./utilities/cronJobs");
 const app = express();
 const server = http.createServer(app);
 
+// Crawler prerender (optional; requires PRERENDER_SERVICE_URL in .env)
+initPrerender(app);
+
 // Trust proxy - This is essential for correct protocol detection when behind a reverse proxy (nginx, load balancer, etc.)
 // This allows Express to read X-Forwarded-Proto header and correctly set req.protocol to 'https'
 // Trust only the first proxy hop to prevent IP-based rate limiting bypass
@@ -40,9 +43,6 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
-
-// Crawler prerender (optional; requires PRERENDER_SERVICE_URL in .env)
-initPrerender(app);
 
 // Home routes
 const homeRouter = require("./routes/home/homeRoutes");

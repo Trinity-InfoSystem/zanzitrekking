@@ -1,14 +1,23 @@
 const ImpactStatModel = require("../../models/impactStat");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const { responseReturn } = require("../../utilities/response");
 const mongoose = require("mongoose");
-const redis = require('../../redis');
+const redis = require("../../redis");
 
 class ImpactStatController {
   // Add Impact Stat
   add_impact_stat = async (req, res) => {
     try {
-      const { value, label, sublabel, prefix, suffix, labelStyle, duration, order } = req.body;
+      const {
+        value,
+        label,
+        sublabel,
+        prefix,
+        suffix,
+        labelStyle,
+        duration,
+        order,
+      } = req.body;
 
       const newImpactStat = {
         value: parseFloat(value) || 0,
@@ -39,7 +48,16 @@ class ImpactStatController {
   update_impact_stat = async (req, res) => {
     try {
       const { impactStatId } = req.params;
-      const { value, label, sublabel, prefix, suffix, labelStyle, duration, order } = req.body;
+      const {
+        value,
+        label,
+        sublabel,
+        prefix,
+        suffix,
+        labelStyle,
+        duration,
+        order,
+      } = req.body;
 
       const existingImpactStat = await ImpactStatModel.findById(impactStatId);
       if (!existingImpactStat) {
@@ -47,20 +65,29 @@ class ImpactStatController {
       }
 
       const updateFields = {
-        value: parseFloat(value) !== undefined ? parseFloat(value) : existingImpactStat.value,
+        value:
+          parseFloat(value) !== undefined
+            ? parseFloat(value)
+            : existingImpactStat.value,
         label: label || existingImpactStat.label,
         sublabel: sublabel || existingImpactStat.sublabel,
         prefix: prefix !== undefined ? prefix : existingImpactStat.prefix,
         suffix: suffix !== undefined ? suffix : existingImpactStat.suffix,
         labelStyle: labelStyle || existingImpactStat.labelStyle,
-        duration: parseInt(duration) !== undefined ? parseInt(duration) : existingImpactStat.duration,
-        order: parseInt(order) !== undefined ? parseInt(order) : existingImpactStat.order,
+        duration:
+          parseInt(duration) !== undefined
+            ? parseInt(duration)
+            : existingImpactStat.duration,
+        order:
+          parseInt(order) !== undefined
+            ? parseInt(order)
+            : existingImpactStat.order,
       };
 
       const updatedImpactStat = await ImpactStatModel.findByIdAndUpdate(
         impactStatId,
         updateFields,
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
       await redis.del(`home:impact-stats`);
       responseReturn(res, 200, {
@@ -79,8 +106,12 @@ class ImpactStatController {
   // Get Impact Stats
   get_impact_stats = async (req, res) => {
     const { page, parPage } = req.query;
-    const key=`home:impact-stats` 
+    const key = `home:impact-stats`;
     try {
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       let skipPage = "";
       if (parPage && page) {
         skipPage = +parPage * (+page - 1);
@@ -92,11 +123,14 @@ class ImpactStatController {
       impactStatsQuery = impactStatsQuery.sort({ order: 1, createdAt: -1 });
       const impactStats = await impactStatsQuery;
       const totalImpactStats = await ImpactStatModel.countDocuments({});
-      await redis.set(key, JSON.stringify(transformedPdfs), "EX", 86400);
-      responseReturn(res, 200, {
+
+      const response = {
         totalImpactStats,
         impactStats,
-      });
+      };
+
+      await redis.set(key, JSON.stringify(response), "EX", 86400);
+      responseReturn(res, 200, response);
     } catch (error) {
       responseReturn(res, 500, { error: "internal server error" });
     }
@@ -190,4 +224,3 @@ class ImpactStatController {
 }
 
 module.exports = new ImpactStatController();
-

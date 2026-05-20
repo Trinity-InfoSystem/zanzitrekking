@@ -1,12 +1,12 @@
 const WhoWeAreModel = require("../../models/whoWeAre");
-const logger = require('./../../utilities/logger');
+const logger = require("./../../utilities/logger");
 const Trip = require("../../models/trip");
 const Order = require("../../models/order");
 const { responseReturn } = require("../../utilities/response");
 const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const path = require("path");
 const fs = require("fs");
-const redis = require('../../redis');
+const redis = require("../../redis");
 
 class WhoWeAreController {
   get_whoWeAre = async (req, res) => {
@@ -105,7 +105,7 @@ class WhoWeAreController {
       const whoWeAre = await WhoWeAreModel.findOneAndUpdate(
         { identifier: "single_instance" },
         updateData,
-        { new: true }
+        { new: true },
       );
 
       if (!whoWeAre) {
@@ -132,7 +132,7 @@ class WhoWeAreController {
     if (files && files.length > 0) {
       const validImageFields = ["image1", "image2", "image3"];
       const invalidFields = files.filter(
-        (file) => !validImageFields.includes(file.fieldname)
+        (file) => !validImageFields.includes(file.fieldname),
       );
 
       if (invalidFields.length > 0) {
@@ -166,14 +166,14 @@ class WhoWeAreController {
             "..",
             "public",
             "uploads",
-            oldImageFileName
+            oldImageFileName,
           );
 
           if (fs.existsSync(oldImagePath)) {
             fs.unlink(oldImagePath, (err) => {
               if (err) {
                 logger.error(
-                  `Error deleting old image for ${field}: ${err.message}`
+                  `Error deleting old image for ${field}: ${err.message}`,
                 );
               } else {
                 logger.info(`Successfully deleted old image: ${oldImagePath}`);
@@ -182,7 +182,7 @@ class WhoWeAreController {
           }
         } catch (err) {
           logger.error(
-            `Error processing old image for ${field}: ${err.message}`
+            `Error processing old image for ${field}: ${err.message}`,
           );
         }
       }
@@ -191,8 +191,12 @@ class WhoWeAreController {
 
   // get Statistic data
   get_statistic_data = async (req, res) => {
-    const key=`home:statistics`
+    const key = `home:statistics`;
     try {
+      const cached = await redis.get(key);
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached));
+      }
       const totalTrips = await Trip.countDocuments();
       // overall rating
       const overallRating = await Trip.aggregate([
@@ -214,23 +218,18 @@ class WhoWeAreController {
       const totalOrderRevenue = await Order.aggregate([
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
       ]);
-      
-      await redis.set(key, JSON.stringify({
+
+      const response = {
         statisticData: {
           totalTrips,
           totalOrderTraveller: totalOrderTraveller[0]?.total || 0,
           totalOrderRevenue: totalOrderRevenue[0]?.total || 0,
           overallRating: overallRating[0]?.total || 0,
         },
-      }), "EX", 3600);
-      responseReturn(res, 200, {
-        statisticData: {
-          totalTrips,
-          totalOrderTraveller: totalOrderTraveller[0]?.total || 0,
-          totalOrderRevenue: totalOrderRevenue[0]?.total || 0,
-          overallRating: overallRating[0]?.total || 0,
-        },
-      });
+      };
+
+      await redis.set(key, JSON.stringify(response), "EX", 3600);
+      responseReturn(res, 200, response);
     } catch (error) {
       responseReturn(res, 500, { error: error.message });
     }

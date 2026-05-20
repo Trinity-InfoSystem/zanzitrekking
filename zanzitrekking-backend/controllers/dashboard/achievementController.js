@@ -150,6 +150,10 @@ class AchievementController {
     const { page, searchValue, parPage, type } = req.query;
     const key = `home:achievements:${type || 'all'}`;
     try {
+      const cached = await redis.get(key)
+      if (cached) {
+        return responseReturn(res, 200, JSON.parse(cached))
+      }
       let skipPage = "";
       if (parPage && page) {
         skipPage = +parPage * (+page - 1);
