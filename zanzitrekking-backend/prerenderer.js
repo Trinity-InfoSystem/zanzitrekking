@@ -18,21 +18,23 @@ function initPrerender(app) {
   prerender
     .set("prerenderServiceUrl", process.env.PRERENDER_SERVICE_URL)
     .set("whitelist", [
-      "^/$",
-      "^/trips",
-      "^/trip/details",
-      "^/blog",
-      "^/about",
-      "^/about-us",
-      "^/contact",
-      "^/contact-us",
+      /^\/$/,
+      /^\/trips/,
+      /^\/trip\/details/,
+      /^\/blog/,
+      /^\/about/,
+      /^\/about-us/,
+      /^\/contact/,
+      /^\/contact-us/
     ])
     .set("blacklist", [
-      "^/api",
-      "\\.js$",
-      "\\.css$",
-      "\\.png$",
-      "\\.jpg$",
+      /^\/api/,
+      /\.js$/,
+      /\.css$/,
+      /\.png$/,
+      /\.jpg$/,
+      /\.svg$/,
+      /\.ico$/
     ])
     .set("crawlerUserAgents", [
       "googlebot",
@@ -42,6 +44,7 @@ function initPrerender(app) {
       "facebookexternalhit",
       "linkedinbot",
     ])
+    .set("protocol", "https")
     .set("forwardHeaders", true)
     .set("timeout", 10000);
 
