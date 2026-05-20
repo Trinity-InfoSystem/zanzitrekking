@@ -14,18 +14,18 @@ const logger = require("./utilities/logger");
 const { initPrerender } = require("./prerenderer");
 
 // Socket.IO and file handling modules
-const { initializeSocketIO } = require("./socket/socketHandler");
-const { handleFileDownload } = require("./middlewares/fileHandler");
+const { initializeSocketIO } = require('./socket/socketHandler')
+const { handleFileDownload } = require('./middlewares/fileHandler')
 
 // Database
-const { dbConnect } = require("./utilities/db");
+const { dbConnect } = require('./utilities/db')
 
 // Cron jobs
-const { setupCronJobs } = require("./utilities/cronJobs");
+const { setupCronJobs } = require('./utilities/cronJobs')
 
 // Initialize Express app and server
-const app = express();
-const server = http.createServer(app);
+const app = express()
+const server = http.createServer(app)
 
 // Crawler prerender (optional; requires PRERENDER_SERVICE_URL in .env)
 initPrerender(app);
@@ -45,47 +45,47 @@ app.use(
 );
 
 // Home routes
-const homeRouter = require("./routes/home/homeRoutes");
-const customerRouter = require("./routes/home/customerRoutes");
-const cartRouter = require("./routes/home/cartRoute");
-const chatRoute = require("./routes/home/chatRoute");
-const reviewRouter = require("./routes/home/reviewRoutes");
-const jobRouter = require("./routes/home/jobRoutes");
-const jobApplicationRouter = require("./routes/home/jobApplicationRoutes");
-const urgentBookingRequestRouter = require("./routes/home/urgentBookingRequestRoutes"); // ADDED
-const wetravelWebhookRouter = require("./routes/home/wetravelWebhookRoutes"); // ADDED
+const homeRouter = require('./routes/home/homeRoutes')
+const customerRouter = require('./routes/home/customerRoutes')
+const cartRouter = require('./routes/home/cartRoute')
+const chatRoute = require('./routes/home/chatRoute')
+const reviewRouter = require('./routes/home/reviewRoutes')
+const jobRouter = require('./routes/home/jobRoutes')
+const jobApplicationRouter = require('./routes/home/jobApplicationRoutes')
+const urgentBookingRequestRouter = require('./routes/home/urgentBookingRequestRoutes') // ADDED
+const wetravelWebhookRouter = require('./routes/home/wetravelWebhookRoutes') // ADDED
 
 // Dashboard routes
-const authRoute = require("./routes/authRoutes");
-const blogPostRoute = require("./routes/dashboard/blogPostRoutes");
-const categoryRoute = require("./routes/dashboard/categoryRoutes");
-const tripRoute = require("./routes/dashboard/tripRoutes");
-const inclusionRoute = require("./routes/dashboard/inclusionRoute");
-const exclusionRoute = require("./routes/dashboard/exclusionRoute");
-const accommodationRoute = require("./routes/dashboard/accommodationRoute");
-const mealRoute = require("./routes/dashboard/mealRoute");
-const bannerRoute = require("./routes/dashboard/bannerRoute");
-const whoWeAreRoute = require("./routes/dashboard/whoWeAreRoute");
-const pdfRoute = require("./routes/dashboard/pdfRoutes");
-const newsletterRoutes = require("./routes/dashboard/newsletterRoutes");
-const partnerRoute = require("./routes/dashboard/partnerRoutes");
-const adminReviewRoute = require("./routes/dashboard/reviewRoutes");
-const adminToAdminRoute = require("./routes/dashboard/adminToAdminRoute");
-const dashboardRoute = require("./routes/dashboard/dashboardRoutes");
-const jobRoute = require("./routes/dashboard/jobRoutes");
-const jobApplicationRoute = require("./routes/dashboard/jobApplicationRoutes");
-const achievementRoute = require("./routes/dashboard/achievementRoutes");
-const impactStatRoute = require("./routes/dashboard/impactStatRoutes");
-const clientRoute = require("./routes/dashboard/clientRoutes");
-const adminUrgentBookingRequestRoute = require("./routes/dashboard/urgentBookingRequestRoutes"); // ADDED
-const safariAnalyticsRoutes = require("./routes/dashboard/safariAnalyticsRoutes");
+const authRoute = require('./routes/authRoutes')
+const blogPostRoute = require('./routes/dashboard/blogPostRoutes')
+const categoryRoute = require('./routes/dashboard/categoryRoutes')
+const tripRoute = require('./routes/dashboard/tripRoutes')
+const inclusionRoute = require('./routes/dashboard/inclusionRoute')
+const exclusionRoute = require('./routes/dashboard/exclusionRoute')
+const accommodationRoute = require('./routes/dashboard/accommodationRoute')
+const mealRoute = require('./routes/dashboard/mealRoute')
+const bannerRoute = require('./routes/dashboard/bannerRoute')
+const whoWeAreRoute = require('./routes/dashboard/whoWeAreRoute')
+const pdfRoute = require('./routes/dashboard/pdfRoutes')
+const newsletterRoutes = require('./routes/dashboard/newsletterRoutes')
+const partnerRoute = require('./routes/dashboard/partnerRoutes')
+const adminReviewRoute = require('./routes/dashboard/reviewRoutes')
+const adminToAdminRoute = require('./routes/dashboard/adminToAdminRoute')
+const dashboardRoute = require('./routes/dashboard/dashboardRoutes')
+const jobRoute = require('./routes/dashboard/jobRoutes')
+const jobApplicationRoute = require('./routes/dashboard/jobApplicationRoutes')
+const achievementRoute = require('./routes/dashboard/achievementRoutes')
+const impactStatRoute = require('./routes/dashboard/impactStatRoutes')
+const clientRoute = require('./routes/dashboard/clientRoutes')
+const adminUrgentBookingRequestRoute = require('./routes/dashboard/urgentBookingRequestRoutes') // ADDED
+const safariAnalyticsRoutes = require('./routes/dashboard/safariAnalyticsRoutes')
 // Order routes
-const orderRouter = require("./routes/home/orderRoutes");
+const orderRouter = require('./routes/home/orderRoutes')
 
 // CORS configuration
 // Parse allowed origins from environment variable (comma-separated)
 // CORS_ORIGINS is required - no fallback to prevent hardcoded origins
-const corsOriginsEnv = process.env.CORS_ORIGINS;
+const corsOriginsEnv = process.env.CORS_ORIGINS
 if (!corsOriginsEnv) {
   logger.error("CORS_ORIGINS environment variable is required but not set");
   throw new Error(
@@ -106,7 +106,7 @@ const corsOptions = {
         logger.warn("CORS: Request with no origin in production");
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(null, true)
     }
 
     // Normalize origin by removing trailing slash
@@ -119,33 +119,33 @@ const corsOptions = {
     });
 
     if (isAllowed) {
-      callback(null, true);
+      callback(null, true)
     } else {
       // Log the rejected origin for debugging
-      logger.warn(`CORS: Rejected origin: ${origin}`);
-      logger.debug(`CORS: Allowed origins:`, { allowedOrigins });
-      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
+      logger.warn(`CORS: Rejected origin: ${origin}`)
+      logger.debug(`CORS: Allowed origins:`, { allowedOrigins })
+      callback(new Error(`Not allowed by CORS. Origin: ${origin}`))
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["Content-Type"],
-  maxAge: 86400, // 24 hours
-};
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Type'],
+  maxAge: 86400 // 24 hours
+}
 
 // Initialize Socket.IO
-const io = initializeSocketIO(server, corsOptions);
+const io = initializeSocketIO(server, corsOptions)
 
 // Middleware
-app.use(morgan("tiny"));
-app.options("*", cors(corsOptions));
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(cookieParser());
+app.use(morgan('tiny'))
+app.options('*', cors(corsOptions))
+app.use(cors(corsOptions))
+app.use(express.json())
+app.use(cookieParser())
 
 // Input sanitization - prevent NoSQL injection attacks
-app.use(mongoSanitize());
+app.use(mongoSanitize())
 
 // Rate limiting - protect against DDoS and brute force attacks
 // In development, skip: a single page load + React Strict Mode can exceed 100 req/15min
@@ -203,74 +203,71 @@ app.use(
 
 // ============ SAFARI ANALYTICS ROUTES (BEFORE PROXY) ============
 // Register analytics routes BEFORE the Safari proxy to ensure they're matched first
-app.use("/api", safariAnalyticsRoutes);
+app.use('/api', safariAnalyticsRoutes)
 
 // ============ SAFARI API PROXY ============
 // This proxy handles requests to the external Safari Office API
 // and adds authentication headers server-side to avoid CORS issues
-app.use("/api/safari", async (req, res) => {
-  const apiPath = req.originalUrl.replace("/api/safari", "");
-  const url = `https://api.safarioffice.com${apiPath}`;
+app.use('/api/safari', async (req, res) => {
+  const apiPath = req.originalUrl.replace('/api/safari', '')
+  const url = `https://api.safarioffice.com${apiPath}`
 
   try {
     const response = await fetch(url, {
       method: req.method,
       headers: {
         Authorization: `Bearer ${process.env.SAFARI_TOKEN}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json'
       },
-      body:
-        req.method !== "GET" && req.method !== "HEAD"
-          ? JSON.stringify(req.body)
-          : undefined,
-    });
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined
+    })
 
-    const data = await response.json();
-    res.status(response.status).json(data);
+    const data = await response.json()
+    res.status(response.status).json(data)
   } catch (error) {
-    logger.error("Safari API proxy error:", error);
-    res.status(500).json({ error: "Proxy error", details: error.message });
+    logger.error('Safari API proxy error:', error)
+    res.status(500).json({ error: 'Proxy error', details: error.message })
   }
-});
+})
 
 // Home routes
-app.use("/api/home", homeRouter);
-app.use("/api/customer", customerRouter);
-app.use("/api", cartRouter);
-app.use("/api/orders", orderRouter);
-app.use("/api", chatRoute);
-app.use("/api/reviews", reviewRouter);
-app.use("/api", jobRouter);
-app.use("/api", jobApplicationRouter);
-app.use("/api", urgentBookingRequestRouter); // ADDED
-app.use("/api/webhooks", wetravelWebhookRouter); // ADDED - WeTravel webhook endpoint
+app.use('/api/home', homeRouter)
+app.use('/api/customer', customerRouter)
+app.use('/api', cartRouter)
+app.use('/api/orders', orderRouter)
+app.use('/api', chatRoute)
+app.use('/api/reviews', reviewRouter)
+app.use('/api', jobRouter)
+app.use('/api', jobApplicationRouter)
+app.use('/api', urgentBookingRequestRouter) // ADDED
+app.use('/api/webhooks', wetravelWebhookRouter) // ADDED - WeTravel webhook endpoint
 
 // Dashboard routes
-app.use("/api", authRoute);
-app.use("/api", blogPostRoute);
-app.use("/api", categoryRoute);
-app.use("/api", tripRoute);
-app.use("/api", inclusionRoute);
-app.use("/api", exclusionRoute);
-app.use("/api", accommodationRoute);
-app.use("/api", mealRoute);
-app.use("/api", bannerRoute);
-app.use("/api", whoWeAreRoute);
-app.use("/api", pdfRoute);
-app.use("/api", newsletterRoutes);
-app.use("/api", partnerRoute);
-app.use("/api", adminReviewRoute);
-app.use("/api", adminToAdminRoute);
-app.use("/api/dashboard", dashboardRoute);
-app.use("/api", jobRoute);
-app.use("/api", jobApplicationRoute);
-app.use("/api", achievementRoute);
-app.use("/api", impactStatRoute);
-app.use("/api", clientRoute);
-app.use("/api", adminUrgentBookingRequestRoute); // ADDED
+app.use('/api', authRoute)
+app.use('/api', blogPostRoute)
+app.use('/api', categoryRoute)
+app.use('/api', tripRoute)
+app.use('/api', inclusionRoute)
+app.use('/api', exclusionRoute)
+app.use('/api', accommodationRoute)
+app.use('/api', mealRoute)
+app.use('/api', bannerRoute)
+app.use('/api', whoWeAreRoute)
+app.use('/api', pdfRoute)
+app.use('/api', newsletterRoutes)
+app.use('/api', partnerRoute)
+app.use('/api', adminReviewRoute)
+app.use('/api', adminToAdminRoute)
+app.use('/api/dashboard', dashboardRoute)
+app.use('/api', jobRoute)
+app.use('/api', jobApplicationRoute)
+app.use('/api', achievementRoute)
+app.use('/api', impactStatRoute)
+app.use('/api', clientRoute)
+app.use('/api', adminUrgentBookingRequestRoute) // ADDED
 // Note: safariAnalyticsRoutes is registered earlier, before the Safari API proxy
 // File download endpoint with enhanced security and multiple location support
-app.get("/api/download-file/:filename", handleFileDownload);
+app.get('/api/download-file/:filename', handleFileDownload)
 
 // Catch-all route to serve the React SPA (must be before error handler)
 app.get("*", (req, res, next) => {
@@ -295,23 +292,23 @@ app.use((err, req, res, next) => {
 // Initialize database connection and setup cron jobs
 dbConnect()
   .then(() => {
-    setupCronJobs();
-    logger.info("✓ Database connected and cron jobs initialized");
+    setupCronJobs()
+    logger.info('✓ Database connected and cron jobs initialized')
   })
   .catch((err) => {
-    logger.error("Database connection failed:", err);
-  });
+    logger.error('Database connection failed:', err)
+  })
 
 // Modified server startup for Passenger compatibility
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000
 
 // Only start the server if not running under Passenger
-if (typeof PhusionPassenger === "undefined") {
+if (typeof PhusionPassenger === 'undefined') {
   server.listen(PORT, () => {
-    logger.info(`Server is up and running on http://localhost:${PORT}/`);
+    logger.info(`Server is up and running on http://localhost:${PORT}/`)
     // Also log to console for visibility
-    console.log(`✓ Server is up and running on http://localhost:${PORT}/`);
-  });
+    console.log(`✓ Server is up and running on http://localhost:${PORT}/`)
+  })
 }
 
 // Export for Passenger

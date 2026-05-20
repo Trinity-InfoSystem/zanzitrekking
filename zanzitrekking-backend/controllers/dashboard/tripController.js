@@ -10,6 +10,7 @@ const redis = require("../../redis");
 const { delPattern } = require('../../utilities/cache');
 const { publicUploadsRef } = require("../../utilities/storedAssetPath");
 const crypto = require("crypto");
+const { thumbnailGenerator } = require("../../utilities/multerUpload");
 
 const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
 
@@ -170,7 +171,12 @@ class TripController {
         (file) => file.fieldname === "mainVideo",
       );
       const mainImage = mainImageFile ? mainImageFile.filename : null;
+      const mainImageThumbnail = mainImageFile
+        ? await thumbnailGenerator(mainImageFile.path)
+        : null;
+
       const mainVideo = mainVideoFile ? mainVideoFile.filename : null;
+      const basePath = `uploads/`;
 
       // Process days
       const tripDays = [];
@@ -180,6 +186,11 @@ class TripController {
         const dayImageFile = req.files.find(
           (file) => file.fieldname === `dayImage_${i}`,
         );
+
+        const thumbnail = dayImageFile
+          ? await thumbnailGenerator(dayImageFile.path)
+          : null;
+
         const dayData = parsedDaysData[i];
 
         // Store accommodation IDs (references) instead of full objects
@@ -194,7 +205,8 @@ class TripController {
           title: dayData.title,
           overview: dayData.overview || "",
           mainDestination: dayData.mainDestination,
-          image: dayImageFile ? publicUploadsRef(dayImageFile.filename) : null,
+          image: dayImageFile ? `${basePath}${dayImageFile.filename}` : null,
+          thumbnail: thumbnail ? `${basePath}${thumbnail}` : null,
           accommodation: accommodationIds,
           meals: dayData.meals || [],
         });
@@ -254,6 +266,9 @@ class TripController {
         inclusions,
         exclusions,
         mainImage: mainImage ? `${basePath}${mainImage}` : null,
+        mainImageThumbnail: mainImageThumbnail
+          ? `${basePath}${mainImageThumbnail}`
+          : null,
         mainVideo: mainVideo ? `${basePath}${mainVideo}` : null,
         discount: parseFloat(discount) || 0,
         pricingType,
@@ -449,6 +464,10 @@ class TripController {
           );
           try {
             await fs.promises.unlink(oldImagePath);
+
+            if (existingTrip.mainImageThumbnail) {
+              await fs.promises.unlink(oldImagePath);
+            }
             logger.info("Deleted old main image:", oldImagePath);
           } catch (err) {
             logger.error(`Error deleting old main image: ${err.message}`);

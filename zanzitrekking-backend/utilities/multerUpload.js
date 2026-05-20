@@ -1,6 +1,31 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const sharp = require("sharp");
+
+const thumbnailGenerator = async (filePath, size = 300) => {
+  const ext = path.extname(filePath);
+  const base = filePath.replace(ext, "");
+
+  const thumbPath = `${base}_thumb.webp`;
+
+  try {
+    await sharp(filePath)
+      .resize({
+        height: size,
+        fit: "contain",
+      })
+      .toFormat("webp")
+      .toFile(thumbPath);
+
+    const segments = thumbPath.split("/");
+
+    // Return only file name
+    return segments.at(-1);
+  } catch (e) {
+    return null;
+  }
+};
 
 const FILE_TYPE_MAP = {
   "image/png": "png",
@@ -30,9 +55,9 @@ const imageStorage = multer.diskStorage({
       if (!isValid) {
         return cb(
           new Error(
-            "Invalid file type. Allowed types: PNG, JPEG, JPG, GIF, WEBP, MP4, MOV, AVI, WEBM"
+            "Invalid file type. Allowed types: PNG, JPEG, JPG, GIF, WEBP, MP4, MOV, AVI, WEBM",
           ),
-          null
+          null,
         );
       }
       const uploadPath = path.join(__dirname, "../public/uploads");
@@ -72,7 +97,7 @@ const pdfStorage = multer.diskStorage({
     if (file.mimetype !== "application/pdf") {
       return cb(
         new Error("Invalid file type. Only PDF files are allowed."),
-        null
+        null,
       );
     }
     const uploadPath = path.join(__dirname, "../public/pdfs");
@@ -92,9 +117,9 @@ const fileFilter = (req, file, cb) => {
   } else {
     cb(
       new Error(
-        "Invalid file type. Allowed types: PNG, JPEG, JPG, GIF, WEBP, PDF, MP4, MOV, AVI, WEBM"
+        "Invalid file type. Allowed types: PNG, JPEG, JPG, GIF, WEBP, PDF, MP4, MOV, AVI, WEBM",
       ),
-      false
+      false,
     );
   }
 };
@@ -116,7 +141,7 @@ const newsletterStorage = multer.diskStorage({
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(
       null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname),
     );
   },
 });
@@ -161,6 +186,9 @@ const cvFileFilter = (req, file, cb) => {
 
 // Export both configurations
 module.exports = {
+  // Genrate .webp thumbnails for images
+  thumbnailGenerator,
+
   // For general uploads (images and PDFs)
   uploadOptions: multer({
     storage: imageStorage,
@@ -205,9 +233,9 @@ module.exports = {
       } else {
         cb(
           new Error(
-            "Invalid file type. Allowed types: PDF, JPG, JPEG, PNG, GIF, WEBP, DOC, DOCX"
+            "Invalid file type. Allowed types: PDF, JPG, JPEG, PNG, GIF, WEBP, DOC, DOCX",
           ),
-          false
+          false,
         );
       }
     },
