@@ -338,6 +338,7 @@ class TripController {
       if (!existingTrip) {
         return responseReturn(res, 404, { error: "Trip not found" });
       }
+      const basePath = `uploads/`;
 
       // Parse JSON data for category-specific inclusions and exclusions
       const parsedInclusions = JSON.parse(
@@ -450,30 +451,43 @@ class TripController {
       const mainImageFile = req.files.find(
         (file) => file.fieldname === "mainImage",
       );
-      if (mainImageFile) {
+      const mainImageThumbnail = mainImageFile
+        ? await thumbnailGenerator(mainImageFile.path)
+        : null;
+
+     if (mainImageFile) {
         // Delete old image if it exists
         if (existingTrip.mainImage) {
-          const oldImageFileName = path.basename(existingTrip.mainImage);
-          const oldImagePath = path.resolve(
-            __dirname,
-            "..",
-            "..",
-            "public",
-            "uploads",
-            oldImageFileName,
-          );
-          try {
-            await fs.promises.unlink(oldImagePath);
+          const paths=[];
+          if (existingTrip.mainImage) {
+              paths.push(
+                path.join(__dirname, "public", path.basename(existingTrip.mainImage))
+              );
+            }
 
             if (existingTrip.mainImageThumbnail) {
-              await fs.promises.unlink(oldImagePath);
+              paths.push(
+                path.join(__dirname, "public", path.basename(existingTrip.mainImageThumbnail))
+              );
             }
-            logger.info("Deleted old main image:", oldImagePath);
-          } catch (err) {
-            logger.error(`Error deleting old main image: ${err.message}`);
-          }
+
+          const results = await Promise.allSettled(
+            paths.map(filePath => fs.promises.unlink(filePath))
+          );
+
+          results.forEach((result, i) => {
+            const fileName = path.basename(paths[i]);
+            if (result.status === 'fulfilled') {
+              debug(`Successfully deleted: ${fileName}`);
+            } else if (result.reason.code !== 'ENOENT') {
+              debug(`Failed to delete ${fileName}: ${result.reason.message}`);
+            }
+          });
         }
         updateFields.mainImage = `${basePath}${mainImageFile.filename}`;
+        updateFields.mainImageThumbnail = mainImageThumbnail
+          ? `${basePath}${mainImageThumbnail}`
+          : null;
       }
 
       // Handle main video
@@ -531,29 +545,47 @@ class TripController {
           meals: dayData.meals || (existingDay ? existingDay.meals : []),
         };
 
+        const basePath = `uploads/`;
+        const dayImageThumbnail = dayImageFile
+          ? await thumbnailGenerator(dayImageFile.path)
+          : null;
+
         // Handle day image
         if (dayImageFile) {
           // Delete old day image if it exists
           if (existingDay && existingDay.image) {
-            const oldDayImageFileName = path.basename(existingDay.image);
-            const oldDayImagePath = path.resolve(
-              __dirname,
-              "..",
-              "..",
-              "public",
-              "uploads",
-              oldDayImageFileName,
-            );
-            try {
-              await fs.promises.unlink(oldDayImagePath);
-              logger.info("Deleted old day image:", oldDayImagePath);
-            } catch (err) {
-              logger.error(`Error deleting old day image: ${err.message}`);
+            const filesToDelete = [];
+
+            if (existingDay.image) {
+              filesToDelete.push(
+                path.join(__dirname, "public", path.basename(existingDay.image))
+              );
             }
+
+            if (existingDay.imageThumbnail) {
+              filesToDelete.push(
+                path.join(__dirname, "public", path.basename(existingDay.imageThumbnail))
+              );
+            }
+
+            const results = await Promise.allSettled(filesToDelete.map(file => fs.promises.unlink(file)));
+
+            results.forEach((result, index) => {
+              const deletedFile = path.basename(filesToDelete[index]);
+              if (result.status === 'fulfilled') {
+                debug(`Deleted file: ${deletedFile}`);
+              } else if (result.reason.code !== 'ENOENT') {
+                debug(`Error deleting file ${deletedFile}: ${result.reason.message}`);
+              }
+            });
           }
-          updatedDay.image = publicUploadsRef(dayImageFile.filename);
+          updatedDay.image = `${basePath}${dayImageFile.filename}`;
+          updatedDay.imageThumbnail = dayImageThumbnail
+            ? `${basePath}${dayImageThumbnail}`
+            : null;
         } else if (existingDay) {
           updatedDay.image = existingDay.image;
+          updatedDay.imageThumbnail = existingDay.imageThumbnail ?? null;
         }
 
         updatedDays.push(updatedDay);

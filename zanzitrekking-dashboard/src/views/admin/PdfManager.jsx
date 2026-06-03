@@ -168,7 +168,7 @@ const PdfManager = () => {
         <PdfStatsOverview pdfs={pdfs} PDF_TYPES={PDF_TYPES} />
         {/* Document Grid */}
         <PdfGrid
-          pdfs={pdfs}
+          pdfs={pdfs?.pdfs || pdfs}
           PDF_TYPES={PDF_TYPES}
           PDF_ICONS={PDF_ICONS}
           formatFileSize={formatFileSize}

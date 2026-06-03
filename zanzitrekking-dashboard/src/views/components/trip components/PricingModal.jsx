@@ -62,7 +62,7 @@ const PricingModal = ({
               </label>
               <input
                 type="number"
-                value={discount === 0 ? "" : discount}
+                value={discount === 0 ? 0 : discount}
                 onChange={(e) => {
                   const val = e.target.value;
                   onDiscountChange(

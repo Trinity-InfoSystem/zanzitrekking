@@ -834,7 +834,7 @@ const AddTrip = () => {
         overview: trip.overview || "",
         description: trip.description || "",
         category: trip.category?._id || trip.category || "",
-        mainImage: null, // File input - keep as null, use preview for display
+        mainImage: trip.mainImage, // File input - keep as null, use preview for display
         seo: {
           allowSearch: trip.seo?.allowSearch || "yes",
           general: safeSeoTab(trip.seo?.general),
@@ -868,7 +868,7 @@ const AddTrip = () => {
         },
         daysCount: tripDays.length,
         days: tripDays,
-        discount: trip.discount || "",
+        discount: trip.discount || 0,
         pricingType: trip.pricingType || "yearRound",
         regularPrices: trip.regularPrices || {
           budget: {
@@ -933,7 +933,7 @@ const AddTrip = () => {
     );
 
     // Handle pricing based on type
-    submitData.append("discount", formData.discount.toString());
+    submitData.append("discount", formData.discount);
 
     if (formData.pricingType === "yearRound") {
       submitData.append(

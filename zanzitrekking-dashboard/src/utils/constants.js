@@ -13,7 +13,7 @@ export function getApiOrigin() {
 }
 
 export const IMAGES_URL = `${getApiOrigin()}/uploads/`;
-export const LIVE_IMAGE_DOWNLOAD_URL = `${getApiBaseUrl()}/api`;
+export const LIVE_IMAGE_DOWNLOAD_URL = `${getApiBaseUrl()}`;
 export const DOWNLOAD_URL = `${getApiBaseUrl()}/api`;
 
 /**

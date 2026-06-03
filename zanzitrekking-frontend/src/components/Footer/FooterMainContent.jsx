@@ -11,7 +11,7 @@ const FooterMainContent = ({ blogPosts, pdfs }) => {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
           <FooterCompanyInfo />
           <FooterBlogPosts blogPosts={blogPosts} />
-          <FooterDownloads pdfs={pdfs} />
+          <FooterDownloads pdfs={pdfs?.pdfs || pdfs} />
           <FooterQuickLinks />
           <FooterContactInfo />
         </div>

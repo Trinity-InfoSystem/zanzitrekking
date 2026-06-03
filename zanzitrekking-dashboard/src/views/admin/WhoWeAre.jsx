@@ -156,9 +156,9 @@ const WhoWeAre = () => {
       reset({
         mainTitle: whoWeAre.mainTitle || "",
         paragraph: whoWeAre.paragraph || "",
-        image1: null,
-        image2: null,
-        image3: null,
+        image1: whoWeAre.image1 || "",
+        image2: whoWeAre.image2 || "",
+        image3: whoWeAre.image3 || "",
       });
       setPreviewUrls({
         image1: whoWeAre.image1 || "",

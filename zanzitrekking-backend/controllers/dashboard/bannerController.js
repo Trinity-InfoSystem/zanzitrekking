@@ -71,6 +71,8 @@ class BannerController {
       const sharedVideoFile = files.find((f) => f.fieldname === 'sharedVideo');
       let newSharedVideo = existingBanner.sharedVideo;
 
+      const basePath = `uploads/`;
+
       if (sharedVideoFile) {
         // Delete the old shared video if it's being replaced
         if (existingBanner.sharedVideo) {

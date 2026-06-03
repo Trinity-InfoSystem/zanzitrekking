@@ -188,7 +188,7 @@ const EnhancedNavItemWithSubmenu = ({ item, pathname, totalTripsCount }) => {
       onMouseLeave={() => setIsOpen(false)}
     >
       <button
-        className={`group relative flex items-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-all duration-200 tablet:gap-1.5 tablet:px-2.5 tablet:py-2 tablet:text-[12px] lg:px-3 lg:text-[13px] xl:px-3.5 xl:text-[15px] ${
+        className={`group relative flex items-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-all duration-200 tablet:gap-1.5 tablet:px-2.5 lg:py-2 tablet:py-2 tablet:text-[12px] lg:px-3 lg:text-[13px] xl:px-3.5 xl:text-[15px] ${
           isActive
             ? "bg-neutral-100 text-neutral-900"
             : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
@@ -205,7 +205,7 @@ const EnhancedNavItemWithSubmenu = ({ item, pathname, totalTripsCount }) => {
       </button>
 
       <div
-        className={`absolute left-0 top-full mt-1.5 tablet:mt-2 w-[280px] tablet:w-72 origin-top-left rounded-xl border border-neutral-200 bg-white shadow-xl transition-all duration-200 ${
+        className={`absolute left-0 top-full pt-1.5 tablet:pt-2 w-[280px] tablet:w-72 origin-top-left rounded-xl border border-neutral-200 bg-white shadow-xl transition-all duration-200 ${
           isOpen
             ? "pointer-events-auto scale-100 opacity-100"
             : "pointer-events-none scale-95 opacity-0"

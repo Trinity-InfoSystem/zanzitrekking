@@ -12,7 +12,7 @@ router.post(
   "/add-whoWeAre",
   jwtMiddleware,
   uploadOptions.any(),
-  validate(addWhoWeAreSchema),
+  // validate(addWhoWeAreSchema),
   whoWeAreController.add_whoWeAre
 );
 

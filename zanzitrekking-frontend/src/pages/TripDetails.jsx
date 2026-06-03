@@ -179,7 +179,6 @@ const TripDetails = () => {
     );
   }
 
-  console.log(trip)
   const imageName = trip.mainImage
     ? resolveMediaUrl(trip.mainImage)
     : "/placeholder.svg";
